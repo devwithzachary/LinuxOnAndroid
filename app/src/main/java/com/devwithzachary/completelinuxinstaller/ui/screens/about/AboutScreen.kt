@@ -175,7 +175,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = "Application Version", value = "v0.0.1")
+                InfoRow(label = "Application Version", value = "v0.0.2")
                 InfoRow(label = "Build Target", value = "Release (ARM64-v8a)")
                 InfoRow(label = "Linux Distribution", value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = "Virtualization Engine", value = "PRoot 5.3 (Link2Symlink)")
@@ -203,8 +203,19 @@ fun AboutScreen() {
                 }
 
                 ChangelogItem(
+                    version = "v0.0.2",
+                    date = "In Development",
+                    highlights = listOf(
+                        "PRoot Link2Symlink SELinux architecture fixes for Ubuntu APT package manager.",
+                        "Fixed OpenSSH Server installation and Perl taint mode security permissions.",
+                        "Added Play Store listing metadata, feature graphic, and phone & tablet screenshots.",
+                        "Updated repository license to GNU General Public License v2.0 (GPL-2.0)."
+                    )
+                )
+
+                ChangelogItem(
                     version = "v0.0.1",
-                    date = "Initial Release",
+                    date = "Initial Open Testing Release",
                     highlights = listOf(
                         "2-step setup wizard: Download -> User account & SSH password configuration.",
                         "Multi-user management: Set Root password, create Sudo users, and change user passwords.",
