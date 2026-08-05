@@ -101,4 +101,12 @@
     <string name="btn_download_ubuntu">Download &amp; Setup Ubuntu 26.04</string>
     <string name="btn_retry_download">Retry Download</string>
     <string name="btn_view_failure_logs">View Failure Logs</string>
+
+    <!-- Hotkeys Editor -->
+    <string name="hotkey_editor_title">Custom Hotkeys Manager</string>
+    <string name="hotkey_editor_desc">Add, remove, or reorder touch hotkeys and quick commands shown above the keyboard.</string>
+    <string name="hotkey_add_placeholder">Add key or command (e.g. ls -la)</string>
+    <string name="btn_add_key">Add Key</string>
+    <string name="btn_reset_default_keys">Reset Defaults</string>
+    <string name="btn_save_keys">Save Hotkeys</string>
 </resources>
