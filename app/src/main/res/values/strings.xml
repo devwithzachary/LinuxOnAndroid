@@ -1,3 +1,104 @@
 <resources>
     <string name="app_name">Linux Installer</string>
+    <string name="app_title">Complete Linux Installer</string>
+    <string name="app_tagline">PRoot-based Linux container manager for Android</string>
+    <string name="app_tagline_hero">PRoot-based Linux image manager for non-rooted Android devices.</string>
+    <string name="website_domain">linuxonandroid.com</string>
+    <string name="website_url">https://linuxonandroid.com</string>
+    <string name="patreon_url">https://www.patreon.com/cw/DevWithZachary/membership</string>
+    <string name="github_issues_url">https://github.com/devwithzachary/LinuxOnAndroid/issues</string>
+
+    <!-- Navigation Tabs -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_terminal">Terminal</string>
+    <string name="nav_software">Software</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_about">About</string>
+
+    <!-- Dashboard Screen -->
+    <string name="status_ready">READY</string>
+    <string name="status_not_installed">NOT INSTALLED</string>
+    <string name="dashboard_setup_required_title">Ubuntu 26.04 LTS rootfs is not initialized yet.</string>
+    <string name="btn_install_barebones">Install Barebones Ubuntu RootFS</string>
+    <string name="section_quick_actions">Quick Actions</string>
+    <string name="btn_terminal">Terminal</string>
+    <string name="btn_start_shell">Start Shell</string>
+    <string name="btn_stop">Stop</string>
+    <string name="section_one_touch_launchers">One-Touch Service Launchers</string>
+    <string name="btn_start_vnc">Start TigerVNC Desktop Server (Port 5901)</string>
+    <string name="btn_start_nginx">Start NGINX HTTP Web Server (Port 80)</string>
+    <string name="btn_start_ssh">Start OpenSSH Server (Port 2222)</string>
+
+    <!-- System Status Card -->
+    <string name="status_card_title">System Environment Status</string>
+    <string name="label_distribution">Distribution:</string>
+    <string name="label_storage_allocated">Storage Allocated:</string>
+    <string name="label_sdcard_bound">SDCard Bound:</string>
+    <string name="value_sdcard_yes">Yes (/sdcard)</string>
+    <string name="value_sdcard_disabled">Disabled</string>
+
+    <!-- Patreon Banner & Support -->
+    <string name="patreon_banner_title">Support on Patreon</string>
+    <string name="patreon_banner_text">Love Complete Linux Installer? Join my Patreon from $1/month to support ongoing development!</string>
+    <string name="btn_join_patreon">Join my Patreon ($1/mo)</string>
+    <string name="patreon_support_title">Support the Project</string>
+    <string name="patreon_support_text">Complete Linux Installer is free and open-source software. If you find this app helpful and want to support ongoing development, new features, and distros, join my Patreon from $1/month!</string>
+
+    <!-- Alpha Notice & Bug Reporting -->
+    <string name="alpha_card_title">Alpha Software &amp; Issue Reporting</string>
+    <string name="alpha_card_text">Complete Linux Installer is currently in early alpha stage. You may encounter bugs or unexpected behavior. If you discover any issues, please report them on GitHub!</string>
+    <string name="btn_report_github_issue">Report an Issue on GitHub</string>
+
+    <!-- About Screen -->
+    <string name="about_info_title">App &amp; Environment Information</string>
+    <string name="about_changelog_title">Changelog History</string>
+    <string name="label_app_version">Application Version</string>
+    <string name="label_build_target">Build Target</string>
+    <string name="label_linux_distro">Linux Distribution</string>
+    <string name="label_virtualization_engine">Virtualization Engine</string>
+    <string name="label_developer">Developer</string>
+
+    <!-- Software Hub -->
+    <string name="hub_title">Software &amp; Package Hub</string>
+    <string name="hub_apt_card_title">Install Any Apt Package</string>
+    <string name="hub_apt_placeholder">e.g. ffmpeg, rustc, golang, git</string>
+    <string name="btn_install">Install</string>
+    <string name="btn_one_click_install">1-Click Install</string>
+    <string name="btn_view_logs">View Logs</string>
+    <string name="btn_view_terminal_output">View Terminal Output</string>
+    <string name="btn_start_service">Start Service</string>
+    <string name="status_installed">Installed</string>
+    <string name="status_installing">Installing</string>
+    <string name="status_failed">Failed</string>
+
+    <!-- Log Viewer Popup -->
+    <string name="log_viewer_terminal_output_log">Terminal Output Log</string>
+    <string name="log_status_installing">INSTALLING PACKAGES...</string>
+    <string name="log_status_complete">INSTALLATION COMPLETE</string>
+    <string name="log_status_failed">INSTALLATION FAILED</string>
+    <string name="log_status_not_installed">NOT INSTALLED</string>
+    <string name="btn_close_log_viewer">Close Log Viewer</string>
+    <string name="log_viewer_setup_title">Ubuntu First Launch Setup Log</string>
+    <string name="btn_close_log">Close Log</string>
+    <string name="log_initializing">Initializing installation processes...</string>
+
+    <!-- Wizard Screen -->
+    <string name="wizard_step2_title">Account &amp; Password Setup</string>
+    <string name="wizard_step2_description">Configure your Linux root administrator password and create a regular user for secure SSH logins and sudo privileges.</string>
+    <string name="label_root_password">Root User Password</string>
+    <string name="label_regular_username">Regular Username (Sudo)</string>
+    <string name="label_regular_password">Regular User Password</string>
+    <string name="btn_save_account">Save Account &amp; Open Dashboard</string>
+    <string name="btn_view_setup_logs">View Setup Logs</string>
+    <string name="wizard_intro_part1">Part of the LinuxonAndroid project (</string>
+    <string name="wizard_intro_part2">). Run a full Linux distribution on your phone without root access.</string>
+    <string name="feature_no_root_title">No Root Required</string>
+    <string name="feature_no_root_desc">Uses PRoot user-space virtualization to safely execute Linux binaries inside an isolated app sandbox.</string>
+    <string name="feature_ubuntu_base_title">Official Ubuntu 26.04 LTS Base</string>
+    <string name="feature_ubuntu_base_desc">Downloads a minimal official Ubuntu image (~30 MB) with APT package manager support.</string>
+    <string name="feature_cli_title">CLI &amp; Developer Tools</string>
+    <string name="feature_cli_desc">Install and run Python, Git, GCC, Curl, Node.js, and command-line utilities directly on your phone.</string>
+    <string name="btn_download_ubuntu">Download &amp; Setup Ubuntu 26.04</string>
+    <string name="btn_retry_download">Retry Download</string>
+    <string name="btn_view_failure_logs">View Failure Logs</string>
 </resources>

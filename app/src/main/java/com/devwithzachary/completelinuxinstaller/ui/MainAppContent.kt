@@ -4,15 +4,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.devwithzachary.completelinuxinstaller.engine.DownloadState
-import androidx.compose.material.icons.filled.Info
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.ui.screens.about.AboutScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.dashboard.DashboardScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.hub.SoftwareHubScreen
@@ -21,14 +22,14 @@ import com.devwithzachary.completelinuxinstaller.ui.screens.splash.SplashScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.wizard.WizardScreen
 
-enum class AppScreen(val title: String) {
-    SPLASH("Splash"),
-    DASHBOARD("Dashboard"),
-    WIZARD("Installer Wizard"),
-    TERMINAL("Terminal"),
-    SOFTWARE_HUB("Software Hub"),
-    SETTINGS("Settings"),
-    ABOUT("About")
+enum class AppScreen(val titleRes: Int) {
+    SPLASH(R.string.app_name),
+    DASHBOARD(R.string.nav_dashboard),
+    WIZARD(R.string.app_title),
+    TERMINAL(R.string.nav_terminal),
+    SOFTWARE_HUB(R.string.hub_title),
+    SETTINGS(R.string.nav_settings),
+    ABOUT(R.string.nav_about)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,7 +38,6 @@ fun MainAppContent(viewModel: MainViewModel) {
     val dashboardState by viewModel.dashboardState.collectAsStateWithLifecycle()
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
     val packages by viewModel.packages.collectAsStateWithLifecycle()
-    val isSessionRunning by viewModel.isSessionRunning.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
@@ -62,7 +62,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                 TopAppBar(
                     title = {
                         Text(
-                            text = if (!isInstalled) "Complete Linux Installer" else currentScreen.title,
+                            text = if (!isInstalled) stringResource(R.string.app_title) else stringResource(currentScreen.titleRes),
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -77,32 +77,32 @@ fun MainAppContent(viewModel: MainViewModel) {
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.DASHBOARD,
                             onClick = { currentScreen = AppScreen.DASHBOARD },
-                            icon = { Icon(Icons.Default.Home, contentDescription = "Dashboard") },
-                            label = { Text("Dashboard") }
+                            icon = { Icon(Icons.Default.Home, contentDescription = stringResource(R.string.nav_dashboard)) },
+                            label = { Text(stringResource(R.string.nav_dashboard)) }
                         )
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.TERMINAL,
                             onClick = { currentScreen = AppScreen.TERMINAL },
-                            icon = { Icon(Icons.Default.Terminal, contentDescription = "Terminal") },
-                            label = { Text("Terminal") }
+                            icon = { Icon(Icons.Default.Terminal, contentDescription = stringResource(R.string.nav_terminal)) },
+                            label = { Text(stringResource(R.string.nav_terminal)) }
                         )
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.SOFTWARE_HUB,
                             onClick = { currentScreen = AppScreen.SOFTWARE_HUB },
-                            icon = { Icon(Icons.Default.Apps, contentDescription = "Hub") },
-                            label = { Text("Software") }
+                            icon = { Icon(Icons.Default.Apps, contentDescription = stringResource(R.string.nav_software)) },
+                            label = { Text(stringResource(R.string.nav_software)) }
                         )
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.SETTINGS,
                             onClick = { currentScreen = AppScreen.SETTINGS },
-                            icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                            label = { Text("Settings") }
+                            icon = { Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings)) },
+                            label = { Text(stringResource(R.string.nav_settings)) }
                         )
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.ABOUT,
                             onClick = { currentScreen = AppScreen.ABOUT },
-                            icon = { Icon(Icons.Default.Info, contentDescription = "About") },
-                            label = { Text("About") }
+                            icon = { Icon(Icons.Default.Info, contentDescription = stringResource(R.string.nav_about)) },
+                            label = { Text(stringResource(R.string.nav_about)) }
                         )
                     }
                 }
