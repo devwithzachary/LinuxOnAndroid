@@ -23,12 +23,14 @@ Powered by a native **PRoot** engine, a JNI-backed **PTY pseudo-terminal**, and 
 ## 🚀 Key Features
 
 * **🔒 100% Rootless Operation**: Runs entirely in Android user-space using PRoot ptrace system call interception. No root access or bootloader unlocking required.
+* **🖥️ Full Graphical Desktop Access (GUI)**: One-click installation of a complete **XFCE4 Desktop Environment** with TigerVNC and noVNC support for full windowed GUI desktop access right on your phone or tablet.
 * **⚡ Interactive Native Terminal**: Built-in VT100/XTerm-compatible terminal emulator with full ANSI color support, buffer scrolling, and custom quick-action keys (Ctrl, Alt, Esc, Tab, Arrow navigation).
-* **🖥️ Graphical Desktop (XFCE4 + VNC)**: One-click installation of XFCE4 desktop environment paired with TigerVNC server for a complete graphical Linux desktop experience accessible via VNC.
 * **🛠️ Software Hub & One-Click Stacks**: Pre-configured software installers for common stacks:
-  * **Developer Stack**: Python 3, pip, Node.js, npm, Git, C/C++ GCC build-essential, Neovim.
+  * **Desktop Environments**: XFCE4 Desktop, XFCE Terminal, TigerVNC Server, noVNC web interface.
+  * **Python 3 Developer Stack**: Python 3, pip, venv, Git, C/C++ GCC build-essential, Neovim.
+  * **Node.js Developer Stack**: Node.js, npm, Yarn, Git, C/C++ GCC build-essential, Neovim.
+  * **Android Developer Tools**: OpenJDK 17, Android Platform Tools (adb, fastboot), Gradle, Git.
   * **Web & Database**: NGINX high-performance HTTP web server + SQLite3.
-  * **CLI Superpack**: Zsh, Oh My Zsh, Tmux terminal multiplexer, Htop system monitor, Fastfetch.
   * **Remote Access**: OpenSSH Server daemon setup for SSH remote terminal access from PC or LAN.
 * **🌐 Multi-Architecture Support**: Automatic detection and support for **ARM64 (aarch64)**, **x86_64 (amd64)**, and **ARMv7 (armhf)** processor architectures.
 * **📁 Storage & Device Binding**: Automatic mounting of Android SDCard/storage (`/sdcard`) and key system file descriptors (`/proc`, `/sys`, `/dev`).

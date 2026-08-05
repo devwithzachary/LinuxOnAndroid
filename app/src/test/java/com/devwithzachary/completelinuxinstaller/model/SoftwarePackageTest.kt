@@ -12,7 +12,7 @@ class SoftwarePackageTest {
     fun testGetPresets_returnsNonEmptyList() {
         val presets = SoftwarePackage.getPresets()
         assertTrue("Preset package list should not be empty", presets.isNotEmpty())
-        assertEquals(5, presets.size)
+        assertEquals(6, presets.size)
     }
 
     @Test

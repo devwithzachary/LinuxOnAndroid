@@ -79,6 +79,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 pkg.copy(status = InstallStatus.NOT_INSTALLED, progressMessage = "", installLogs = "")
             } else {
                 val actualStatus = when (pkg.id) {
+                    "xfce_desktop" -> if (File(rootfsDir, "usr/bin/startxfce4").exists()) InstallStatus.INSTALLED else pkg.status
                     "python_dev" -> if (File(rootfsDir, "usr/bin/python3").exists()) InstallStatus.INSTALLED else pkg.status
                     "node_dev" -> if (File(rootfsDir, "usr/bin/node").exists()) InstallStatus.INSTALLED else pkg.status
                     "android_dev" -> if (File(rootfsDir, "usr/bin/adb").exists()) InstallStatus.INSTALLED else pkg.status

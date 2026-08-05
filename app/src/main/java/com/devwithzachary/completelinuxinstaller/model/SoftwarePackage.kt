@@ -4,7 +4,8 @@ enum class SoftwareCategory(val displayName: String) {
     DEVELOPMENT("Developer Tools"),
     WEB_SERVER("Web & Database"),
     UTILITIES("CLI & System Utilities"),
-    NETWORKING("Remote & SSH")
+    NETWORKING("Remote & SSH"),
+    DESKTOP_GUI("Desktop Environments")
 }
 
 enum class InstallStatus {
@@ -34,6 +35,17 @@ data class SoftwarePackage(
 
         fun getPresets(): List<SoftwarePackage> {
             return listOf(
+                SoftwarePackage(
+                    id = "xfce_desktop",
+                    name = "XFCE 4 Desktop & VNC",
+                    category = SoftwareCategory.DESKTOP_GUI,
+                    description = "Full lightweight graphical desktop environment with XFCE4 and TigerVNC server.",
+                    iconName = "DesktopWindows",
+                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS xfce4 xfce4-terminal dbus-x11 tigervnc-standalone-server tigervnc-xorg-extension tightvncserver novnc websockify curl ca-certificates && mkdir -p /root/.vnc && echo '#!/bin/sh\\nunset SESSION_MANAGER\\nunset DBUS_SESSION_BUS_ADDRESS\\nexec startxfce4' > /root/.vnc/xstartup && chmod +x /root/.vnc/xstartup",
+                    launchCommand = "vncserver :1 -geometry 1280x720 -depth 24",
+                    postInstallNotes = "VNC Server starts on port 5901 (:1). Connect via any VNC viewer client or noVNC web browser interface.",
+                    expectedBinaries = listOf("usr/bin/startxfce4", "usr/bin/vncserver")
+                ),
                 SoftwarePackage(
                     id = "python_dev",
                     name = "Python 3 Developer Stack",
