@@ -157,6 +157,58 @@ fun AboutScreen() {
             }
         }
 
+        // Alpha Status & Bug Reporting Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.BugReport,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Alpha Software & Issue Reporting",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+
+                Text(
+                    text = "Complete Linux Installer is currently in early alpha stage. You may encounter bugs or unexpected behavior. If you discover any issues, please report them on GitHub!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+
+                OutlinedButton(
+                    onClick = {
+                        try {
+                            uriHandler.openUri("https://github.com/devwithzachary/LinuxOnAndroid/issues")
+                        } catch (_: Exception) {}
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Report an Issue on GitHub")
+                }
+            }
+        }
+
         // Version & Build Metadata Card
         Card(
             modifier = Modifier.fillMaxWidth(),
