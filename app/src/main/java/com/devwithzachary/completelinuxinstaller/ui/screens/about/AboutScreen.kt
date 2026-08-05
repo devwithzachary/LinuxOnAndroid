@@ -206,12 +206,7 @@ fun AboutScreen() {
                 ChangelogItem(
                     version = "v0.0.2",
                     date = "In Development",
-                    highlights = listOf(
-                        "PRoot Link2Symlink SELinux architecture fixes for Ubuntu APT package manager.",
-                        "Fixed OpenSSH Server installation and Perl taint mode security permissions.",
-                        "Added Play Store listing metadata, feature graphic, and phone & tablet screenshots.",
-                        "Updated repository license to GNU General Public License v2.0 (GPL-2.0)."
-                    )
+                    highlights = emptyList()
                 )
 
                 ChangelogItem(
