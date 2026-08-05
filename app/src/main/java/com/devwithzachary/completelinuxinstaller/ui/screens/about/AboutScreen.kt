@@ -262,13 +262,18 @@ fun AboutScreen() {
 
                 ChangelogItem(
                     version = "v0.0.2",
-                    date = "In Development",
-                    highlights = emptyList()
+                    date = "August 5, 2026",
+                    highlights = listOf(
+                        "Extracted and modularized UI component architecture for cleaner maintainability.",
+                        "Centralized all user-facing UI text, button labels, and titles into strings.xml resources.",
+                        "Added Alpha notice & direct GitHub issue reporting integration for community feedback.",
+                        "Cleaned up repository asset structure and removed default leftover template icons."
+                    )
                 )
 
                 ChangelogItem(
                     version = "v0.0.1",
-                    date = "Initial Open Testing Release",
+                    date = "August 4, 2026",
                     highlights = listOf(
                         "2-step setup wizard: Download -> User account & SSH password configuration.",
                         "Multi-user management: Set Root password, create Sudo users, and change user passwords.",
