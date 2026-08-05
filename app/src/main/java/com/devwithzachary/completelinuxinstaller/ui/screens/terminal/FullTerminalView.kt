@@ -4,18 +4,25 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
@@ -32,6 +39,7 @@ fun FullTerminalView(
 ) {
     val density = LocalDensity.current
     val fontSizePx = with(density) { 13.sp.toPx() }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val paint = remember {
         Paint().apply {
@@ -46,14 +54,19 @@ fun FullTerminalView(
     val charHeight = fontMetrics.bottom - fontMetrics.top
     val baselineOffset = -fontMetrics.top
 
+    // Baseline text state used to capture character additions, backspaces, and IME events
+    var textFieldValue by remember {
+        mutableStateOf(TextFieldValue("  ", TextRange(2)))
+    }
+
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0xFF1E1E1E))
-            .focusRequester(focusRequester)
-            .focusable()
             .pointerInput(Unit) {
                 detectTapGestures {
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
                     onTapTerminal()
                 }
             }
@@ -68,8 +81,98 @@ fun FullTerminalView(
             terminalBridge.updateTerminalSize(cols, rows)
         }
 
+        // Invisible BasicTextField to capture all software and physical keyboard inputs directly into PTY
+        BasicTextField(
+            value = textFieldValue,
+            onValueChange = { newValue ->
+                val oldText = textFieldValue.text
+                val newText = newValue.text
+
+                if (newText.length > oldText.length) {
+                    val added = newText.substring(oldText.length)
+                    if (added.contains("\n")) {
+                        terminalBridge.sendInput("\n")
+                    } else {
+                        terminalBridge.sendInput(added)
+                    }
+                } else if (newText.length < oldText.length) {
+                    // Backspace pressed
+                    terminalBridge.sendInput("\u007F")
+                }
+
+                // Reset to baseline "  "
+                textFieldValue = TextFieldValue("  ", TextRange(2))
+            },
+            modifier = Modifier
+                .size(1.dp)
+                .alpha(0.01f)
+                .focusRequester(focusRequester)
+                .onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown) {
+                        when (event.key) {
+                            Key.Enter -> {
+                                terminalBridge.sendInput("\n")
+                                textFieldValue = TextFieldValue("  ", TextRange(2))
+                                true
+                            }
+                            Key.Backspace -> {
+                                terminalBridge.sendInput("\u007F")
+                                textFieldValue = TextFieldValue("  ", TextRange(2))
+                                true
+                            }
+                            Key.Tab -> {
+                                terminalBridge.sendTab()
+                                true
+                            }
+                            Key.Escape -> {
+                                terminalBridge.sendEsc()
+                                true
+                            }
+                            Key.DirectionUp -> {
+                                terminalBridge.sendArrowUp()
+                                true
+                            }
+                            Key.DirectionDown -> {
+                                terminalBridge.sendArrowDown()
+                                true
+                            }
+                            Key.DirectionLeft -> {
+                                terminalBridge.sendArrowLeft()
+                                true
+                            }
+                            Key.DirectionRight -> {
+                                terminalBridge.sendArrowRight()
+                                true
+                            }
+                            else -> false
+                        }
+                    } else {
+                        false
+                    }
+                },
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.None,
+                autoCorrectEnabled = false,
+                keyboardType = KeyboardType.Ascii,
+                imeAction = ImeAction.Send
+            ),
+            keyboardActions = KeyboardActions(
+                onSend = {
+                    terminalBridge.sendInput("\n")
+                    textFieldValue = TextFieldValue("  ", TextRange(2))
+                },
+                onDone = {
+                    terminalBridge.sendInput("\n")
+                    textFieldValue = TextFieldValue("  ", TextRange(2))
+                },
+                onGo = {
+                    terminalBridge.sendInput("\n")
+                    textFieldValue = TextFieldValue("  ", TextRange(2))
+                }
+            )
+        )
+
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // Explicitly read refreshTrigger inside draw scope to trigger immediate Canvas redraws on PTY output
             @Suppress("UNUSED_VARIABLE")
             val renderTick = refreshTrigger
 
@@ -84,7 +187,6 @@ fun FullTerminalView(
 
             val canvas = drawContext.canvas.nativeCanvas
 
-            // Always scroll viewport to keep active cursor & command output visible above keyboard
             val visibleRows = rows
             val startRow = (curY - visibleRows + 1).coerceAtLeast(0)
             val endRow = (startRow + visibleRows).coerceAtMost(actualRows)
@@ -96,13 +198,11 @@ fun FullTerminalView(
                     val cell: TerminalChar = rowChars[c]
                     val cellX = c * charWidth
 
-                    // Draw Background
                     if (cell.bgColor != Color.Transparent) {
                         paint.color = cell.bgColor.toArgb()
                         canvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)
                     }
 
-                    // Draw Cursor Block
                     if (cursorVisible && r == curY && c == curX) {
                         paint.color = Color(0xFF00FF00).toArgb()
                         canvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)

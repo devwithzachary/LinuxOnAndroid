@@ -1,6 +1,6 @@
 package com.devwithzachary.completelinuxinstaller.ui
 
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Home
@@ -32,7 +32,7 @@ enum class AppScreen(val titleRes: Int) {
     ABOUT(R.string.nav_about)
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MainAppContent(viewModel: MainViewModel) {
     val dashboardState by viewModel.dashboardState.collectAsStateWithLifecycle()
@@ -72,7 +72,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                 )
             },
             bottomBar = {
-                if (isInstalled && currentScreen != AppScreen.WIZARD) {
+                val isImeVisible = WindowInsets.isImeVisible
+                if (isInstalled && currentScreen != AppScreen.WIZARD && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
                     NavigationBar {
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.DASHBOARD,
