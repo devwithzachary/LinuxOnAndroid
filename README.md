@@ -10,8 +10,6 @@
 
 Powered by a native **PRoot** engine, a JNI-backed **PTY pseudo-terminal**, and a modern **Jetpack Compose** interface, this app brings a true Linux development and desktop environment straight to your mobile device or tablet.
 
-![Linux on Android App Interface](screen.png)
-
 ---
 
 ## 🚀 Key Features

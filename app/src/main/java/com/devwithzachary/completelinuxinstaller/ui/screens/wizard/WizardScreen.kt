@@ -1,18 +1,13 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.wizard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Storage
@@ -24,19 +19,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.devwithzachary.completelinuxinstaller.engine.DownloadState
+import com.devwithzachary.completelinuxinstaller.ui.components.FeatureInfoRow
+import com.devwithzachary.completelinuxinstaller.ui.components.SetupLogDialog
 
 @Composable
 fun WizardScreen(
@@ -348,156 +340,9 @@ fun WizardScreen(
             else -> emptyList()
         }
 
-        Dialog(
-            onDismissRequest = { showLogDialog = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth(0.94f)
-                    .fillMaxHeight(0.85f)
-                    .border(1.dp, Color(0xFF30363D), RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                color = Color(0xFF161B22),
-                tonalElevation = 8.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Terminal,
-                                contentDescription = null,
-                                tint = Color(0xFF58A6FF)
-                            )
-                            Text(
-                                text = "Ubuntu First Launch Setup Log",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-
-                        IconButton(onClick = { showLogDialog = false }) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = Color(0xFF8B949E)
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(color = Color(0xFF30363D))
-
-                    val lazyListState = rememberLazyListState()
-                    LaunchedEffect(currentLogs.size) {
-                        if (currentLogs.isNotEmpty()) {
-                            lazyListState.animateScrollToItem(currentLogs.size - 1)
-                        }
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .background(Color(0xFF0D1117), shape = RoundedCornerShape(10.dp))
-                            .border(1.dp, Color(0xFF21262D), RoundedCornerShape(10.dp))
-                            .padding(12.dp)
-                    ) {
-                        if (currentLogs.isEmpty()) {
-                            Text(
-                                text = "Initializing installation processes...",
-                                color = Color(0xFF8B949E),
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp
-                            )
-                        } else {
-                            LazyColumn(
-                                state = lazyListState,
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(2.dp)
-                            ) {
-                                items(currentLogs) { line ->
-                                    Text(
-                                        text = line,
-                                        color = when {
-                                            line.startsWith("ERROR") || line.contains("E: ") -> Color(0xFFF85149)
-                                            line.startsWith("Get:") || line.startsWith("Executing") -> Color(0xFF58A6FF)
-                                            line.contains("successfully") || line.startsWith("Extracted") -> Color(0xFF3FB950)
-                                            else -> Color(0xFFC9D1D9)
-                                        },
-                                        fontFamily = FontFamily.Monospace,
-                                        fontSize = 11.sp,
-                                        lineHeight = 15.sp
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Button(
-                            onClick = { showLogDialog = false },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF238636))
-                        ) {
-                            Text("Close Log", color = Color.White)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FeatureInfoRow(
-    icon: ImageVector,
-    title: String,
-    description: String
-) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        SetupLogDialog(
+            logs = currentLogs,
+            onDismiss = { showLogDialog = false }
+        )
     }
 }
