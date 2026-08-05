@@ -7,9 +7,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
 
 @Composable
@@ -26,7 +28,7 @@ fun SystemStatusCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "System Environment Status",
+                text = stringResource(R.string.status_card_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -37,7 +39,7 @@ fun SystemStatusCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Distribution:", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.label_distribution), style = MaterialTheme.typography.bodyMedium)
                 Text(
                     text = state.distroName,
                     style = MaterialTheme.typography.bodyMedium,
@@ -49,7 +51,7 @@ fun SystemStatusCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Storage Allocated:", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.label_storage_allocated), style = MaterialTheme.typography.bodyMedium)
                 Text(
                     text = "${state.storageUsedMb} MB",
                     style = MaterialTheme.typography.bodyMedium,
@@ -70,9 +72,9 @@ fun SystemStatusCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("SDCard Bound:", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.label_sdcard_bound), style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    text = if (state.bindSdCard) "Yes (/sdcard)" else "Disabled",
+                    text = if (state.bindSdCard) stringResource(R.string.value_sdcard_yes) else stringResource(R.string.value_sdcard_disabled),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (state.bindSdCard) Color(0xFF4CAF50) else Color.Gray
                 )

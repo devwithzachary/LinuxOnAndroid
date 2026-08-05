@@ -16,12 +16,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.devwithzachary.completelinuxinstaller.R
 
 @Composable
 fun SetupLogDialog(
@@ -62,7 +64,7 @@ fun SetupLogDialog(
                             tint = Color(0xFF58A6FF)
                         )
                         Text(
-                            text = "Ubuntu First Launch Setup Log",
+                            text = stringResource(R.string.log_viewer_setup_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
@@ -97,7 +99,7 @@ fun SetupLogDialog(
                 ) {
                     if (logs.isEmpty()) {
                         Text(
-                            text = "Initializing installation processes...",
+                            text = stringResource(R.string.log_initializing),
                             color = Color(0xFF8B949E),
                             fontFamily = FontFamily.Monospace,
                             fontSize = 12.sp
@@ -134,7 +136,7 @@ fun SetupLogDialog(
                         onClick = onDismiss,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF238636))
                     ) {
-                        Text("Close Log", color = Color.White)
+                        Text(stringResource(R.string.btn_close_log), color = Color.White)
                     }
                 }
             }

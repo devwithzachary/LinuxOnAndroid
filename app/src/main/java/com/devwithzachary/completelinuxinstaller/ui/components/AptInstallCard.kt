@@ -10,10 +10,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.R
 
 @Composable
 fun AptInstallCard(
@@ -32,7 +34,7 @@ fun AptInstallCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Install Any Apt Package",
+                text = stringResource(R.string.hub_apt_card_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -45,7 +47,7 @@ fun AptInstallCard(
                 OutlinedTextField(
                     value = value,
                     onValueChange = onValueChange,
-                    placeholder = { Text("e.g. ffmpeg, rustc, golang, git", fontSize = 12.sp) },
+                    placeholder = { Text(stringResource(R.string.hub_apt_placeholder), fontSize = 12.sp) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -66,7 +68,7 @@ fun AptInstallCard(
                 ) {
                     Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Install")
+                    Text(stringResource(R.string.btn_install))
                 }
             }
         }

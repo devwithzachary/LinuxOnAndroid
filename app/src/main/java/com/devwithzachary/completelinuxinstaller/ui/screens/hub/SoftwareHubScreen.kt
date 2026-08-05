@@ -7,8 +7,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.model.SoftwareCategory
 import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
 import com.devwithzachary.completelinuxinstaller.ui.components.AptInstallCard
@@ -43,7 +45,7 @@ fun SoftwareHubScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Software & Package Hub",
+            text = stringResource(R.string.hub_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )

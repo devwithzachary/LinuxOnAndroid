@@ -18,12 +18,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
 
@@ -74,7 +76,7 @@ fun LogViewerDialog(
                                 color = Color.White
                             )
                             Text(
-                                text = "Terminal Output Log",
+                                text = stringResource(R.string.log_viewer_terminal_output_log),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF8B949E)
                             )
@@ -110,7 +112,7 @@ fun LogViewerDialog(
                                     color = Color(0xFF58A6FF)
                                 )
                                 Text(
-                                    text = "INSTALLING PACKAGES...",
+                                    text = stringResource(R.string.log_status_installing),
                                     color = Color(0xFF58A6FF),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -119,7 +121,7 @@ fun LogViewerDialog(
                             InstallStatus.INSTALLED -> {
                                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF3FB950), modifier = Modifier.size(16.dp))
                                 Text(
-                                    text = "INSTALLATION COMPLETE",
+                                    text = stringResource(R.string.log_status_complete),
                                     color = Color(0xFF3FB950),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -128,7 +130,7 @@ fun LogViewerDialog(
                             InstallStatus.FAILED -> {
                                 Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFF85149), modifier = Modifier.size(16.dp))
                                 Text(
-                                    text = "INSTALLATION FAILED",
+                                    text = stringResource(R.string.log_status_failed),
                                     color = Color(0xFFF85149),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -136,7 +138,7 @@ fun LogViewerDialog(
                             }
                             InstallStatus.NOT_INSTALLED -> {
                                 Text(
-                                    text = "NOT INSTALLED",
+                                    text = stringResource(R.string.log_status_not_installed),
                                     color = Color.Gray,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp
@@ -206,7 +208,7 @@ fun LogViewerDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(8.dp)
                     ) {
-                        Text("Close Log Viewer")
+                        Text(stringResource(R.string.btn_close_log_viewer))
                     }
                 }
             }

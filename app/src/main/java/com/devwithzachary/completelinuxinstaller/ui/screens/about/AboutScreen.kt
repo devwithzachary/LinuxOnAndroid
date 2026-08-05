@@ -13,15 +13,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.ui.components.ChangelogItem
 import com.devwithzachary.completelinuxinstaller.ui.components.InfoRow
 
 @Composable
 fun AboutScreen() {
     val uriHandler = LocalUriHandler.current
+    val websiteUrl = stringResource(R.string.website_url)
+    val patreonUrl = stringResource(R.string.patreon_url)
+    val githubIssuesUrl = stringResource(R.string.github_issues_url)
 
     Column(
         modifier = Modifier
@@ -62,14 +67,14 @@ fun AboutScreen() {
                 }
 
                 Text(
-                    text = "Complete Linux Installer",
+                    text = stringResource(R.string.app_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Text(
-                    text = "PRoot-based Linux container manager for Android",
+                    text = stringResource(R.string.app_tagline),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -79,7 +84,7 @@ fun AboutScreen() {
                     shape = RoundedCornerShape(8.dp),
                     onClick = {
                         try {
-                            uriHandler.openUri("https://linuxonandroid.com")
+                            uriHandler.openUri(websiteUrl)
                         } catch (_: Exception) {}
                     }
                 ) {
@@ -95,7 +100,7 @@ fun AboutScreen() {
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "linuxonandroid.com",
+                            text = stringResource(R.string.website_domain),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -126,14 +131,14 @@ fun AboutScreen() {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Support the Project",
+                        text = stringResource(R.string.patreon_support_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
                 Text(
-                    text = "Complete Linux Installer is free and open-source software. If you find this app helpful and want to support ongoing development, new features, and distros, join my Patreon from $1/month!",
+                    text = stringResource(R.string.patreon_support_text),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -141,7 +146,7 @@ fun AboutScreen() {
                 Button(
                     onClick = {
                         try {
-                            uriHandler.openUri("https://www.patreon.com/cw/DevWithZachary/membership")
+                            uriHandler.openUri(patreonUrl)
                         } catch (_: Exception) {}
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -152,7 +157,7 @@ fun AboutScreen() {
                 ) {
                     Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Join my Patreon ($1/mo)")
+                    Text(stringResource(R.string.btn_join_patreon))
                 }
             }
         }
@@ -177,7 +182,7 @@ fun AboutScreen() {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Alpha Software & Issue Reporting",
+                        text = stringResource(R.string.alpha_card_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onErrorContainer
@@ -185,7 +190,7 @@ fun AboutScreen() {
                 }
 
                 Text(
-                    text = "Complete Linux Installer is currently in early alpha stage. You may encounter bugs or unexpected behavior. If you discover any issues, please report them on GitHub!",
+                    text = stringResource(R.string.alpha_card_text),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer
                 )
@@ -193,7 +198,7 @@ fun AboutScreen() {
                 OutlinedButton(
                     onClick = {
                         try {
-                            uriHandler.openUri("https://github.com/devwithzachary/LinuxOnAndroid/issues")
+                            uriHandler.openUri(githubIssuesUrl)
                         } catch (_: Exception) {}
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -204,7 +209,7 @@ fun AboutScreen() {
                 ) {
                     Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Report an Issue on GitHub")
+                    Text(stringResource(R.string.btn_report_github_issue))
                 }
             }
         }
@@ -222,17 +227,17 @@ fun AboutScreen() {
                     Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "App & Environment Information",
+                        text = stringResource(R.string.about_info_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                InfoRow(label = "Application Version", value = "v0.0.2")
-                InfoRow(label = "Build Target", value = "Release (ARM64-v8a)")
-                InfoRow(label = "Linux Distribution", value = "Ubuntu 26.04 LTS (Noble)")
-                InfoRow(label = "Virtualization Engine", value = "PRoot 5.3 (Link2Symlink)")
-                InfoRow(label = "Developer", value = "DevWithZachary")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v0.0.2")
+                InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
+                InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
+                InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
+                InfoRow(label = stringResource(R.string.label_developer), value = "DevWithZachary")
             }
         }
 
@@ -249,7 +254,7 @@ fun AboutScreen() {
                     Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Changelog History",
+                        text = stringResource(R.string.about_changelog_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )

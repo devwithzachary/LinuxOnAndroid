@@ -9,11 +9,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
 
@@ -86,14 +88,14 @@ fun SoftwareCard(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Installed", color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
+                                Text(stringResource(R.string.status_installed), color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
                             }
                         }
                         InstallStatus.INSTALLING -> {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         }
                         InstallStatus.FAILED -> {
-                            Text("Failed", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
+                            Text(stringResource(R.string.status_failed), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
                         }
                         InstallStatus.NOT_INSTALLED -> {
                             Surface(
@@ -101,7 +103,7 @@ fun SoftwareCard(
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    text = "Not Installed",
+                                    text = stringResource(R.string.status_not_installed),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Medium,
@@ -147,7 +149,7 @@ fun SoftwareCard(
                     ) {
                         Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("View Terminal Output")
+                        Text(stringResource(R.string.btn_view_terminal_output))
                     }
                 } else if (pkg.status == InstallStatus.NOT_INSTALLED || pkg.status == InstallStatus.FAILED) {
                     Button(
@@ -156,7 +158,7 @@ fun SoftwareCard(
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("1-Click Install")
+                        Text(stringResource(R.string.btn_one_click_install))
                     }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -167,13 +169,13 @@ fun SoftwareCard(
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Start Service")
+                                Text(stringResource(R.string.btn_start_service))
                             }
                         }
                         OutlinedButton(onClick = onViewLogsClick) {
                             Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("View Logs")
+                            Text(stringResource(R.string.btn_view_logs))
                         }
                     }
                 }

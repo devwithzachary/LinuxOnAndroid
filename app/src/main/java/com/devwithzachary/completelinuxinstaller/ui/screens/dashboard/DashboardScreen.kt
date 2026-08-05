@@ -12,9 +12,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
 import com.devwithzachary.completelinuxinstaller.ui.components.PatreonBanner
 import com.devwithzachary.completelinuxinstaller.ui.components.SystemStatusCard
@@ -58,7 +60,7 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Complete Linux Installer",
+                        text = stringResource(R.string.app_title),
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -67,7 +69,7 @@ fun DashboardScreen(
                         containerColor = if (state.isInstalled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
                     ) {
                         Text(
-                            text = if (state.isInstalled) "READY" else "NOT INSTALLED",
+                            text = if (state.isInstalled) stringResource(R.string.status_ready) else stringResource(R.string.status_not_installed),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
@@ -76,7 +78,7 @@ fun DashboardScreen(
                     }
                 }
                 Text(
-                    text = "PRoot-based Linux image manager for non-rooted Android devices.",
+                    text = stringResource(R.string.app_tagline_hero),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                 )
@@ -106,7 +108,7 @@ fun DashboardScreen(
                             tint = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            text = "Ubuntu 26.04 LTS rootfs is not initialized yet.",
+                            text = stringResource(R.string.dashboard_setup_required_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onErrorContainer
@@ -121,14 +123,14 @@ fun DashboardScreen(
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Install Barebones Ubuntu RootFS")
+                        Text(stringResource(R.string.btn_install_barebones))
                     }
                 }
             }
         } else {
             // Quick Launcher Actions Grid
             Text(
-                text = "Quick Actions",
+                text = stringResource(R.string.section_quick_actions),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -146,7 +148,7 @@ fun DashboardScreen(
                 ) {
                     Icon(Icons.Default.Terminal, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Terminal")
+                    Text(stringResource(R.string.btn_terminal))
                 }
 
                 if (state.isRunning) {
@@ -159,7 +161,7 @@ fun DashboardScreen(
                     ) {
                         Icon(Icons.Default.Stop, contentDescription = null)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Stop")
+                        Text(stringResource(R.string.btn_stop))
                     }
                 } else {
                     Button(
@@ -171,7 +173,7 @@ fun DashboardScreen(
                     ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Start Shell")
+                        Text(stringResource(R.string.btn_start_shell))
                     }
                 }
             }
@@ -192,7 +194,7 @@ fun DashboardScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = "One-Touch Service Launchers",
+                            text = stringResource(R.string.section_one_touch_launchers),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -204,7 +206,7 @@ fun DashboardScreen(
                             ) {
                                 Icon(Icons.Default.Computer, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Start TigerVNC Desktop Server (Port 5901)")
+                                Text(stringResource(R.string.btn_start_vnc))
                             }
                         }
 
@@ -215,7 +217,7 @@ fun DashboardScreen(
                             ) {
                                 Icon(Icons.Default.Dns, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Start NGINX HTTP Web Server (Port 80)")
+                                Text(stringResource(R.string.btn_start_nginx))
                             }
                         }
 
@@ -226,7 +228,7 @@ fun DashboardScreen(
                             ) {
                                 Icon(Icons.Default.Security, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Start OpenSSH Server (Port 2222)")
+                                Text(stringResource(R.string.btn_start_ssh))
                             }
                         }
                     }

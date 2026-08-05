@@ -12,8 +12,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.R
 
 @Composable
 fun PatreonBanner(
@@ -21,6 +23,7 @@ fun PatreonBanner(
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
+    val patreonUrl = stringResource(R.string.patreon_url)
     val prefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
     var isBannerDismissed by remember { mutableStateOf(prefs.getBoolean("patreon_banner_dismissed", false)) }
 
@@ -53,7 +56,7 @@ fun PatreonBanner(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Support on Patreon",
+                            text = stringResource(R.string.patreon_banner_title),
                             fontWeight = FontWeight.Bold,
                             style = MaterialTheme.typography.titleSmall
                         )
@@ -75,7 +78,7 @@ fun PatreonBanner(
                 }
 
                 Text(
-                    text = "Love Complete Linux Installer? Join my Patreon from $1/month to support ongoing development!",
+                    text = stringResource(R.string.patreon_banner_text),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
@@ -83,14 +86,14 @@ fun PatreonBanner(
                 OutlinedButton(
                     onClick = {
                         try {
-                            uriHandler.openUri("https://www.patreon.com/cw/DevWithZachary/membership")
+                            uriHandler.openUri(patreonUrl)
                         } catch (_: Exception) {}
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Join my Patreon ($1/mo)")
+                    Text(stringResource(R.string.btn_join_patreon))
                 }
             }
         }

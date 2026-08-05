@@ -20,12 +20,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.DownloadState
 import com.devwithzachary.completelinuxinstaller.ui.components.FeatureInfoRow
 import com.devwithzachary.completelinuxinstaller.ui.components.SetupLogDialog
@@ -39,6 +41,8 @@ fun WizardScreen(
 ) {
     val scrollState = rememberScrollState()
     val uriHandler = LocalUriHandler.current
+    val websiteUrl = stringResource(R.string.website_url)
+    val websiteDomain = stringResource(R.string.website_domain)
     var showLogDialog by remember { mutableStateOf(false) }
 
     var rootPassword by remember { mutableStateOf("root") }
@@ -75,13 +79,13 @@ fun WizardScreen(
                         )
 
                         Text(
-                            text = "Account & Password Setup",
+                            text = stringResource(R.string.wizard_step2_title),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
 
                         Text(
-                            text = "Configure your Linux root administrator password and create a regular user for secure SSH logins and sudo privileges.",
+                            text = stringResource(R.string.wizard_step2_description),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -98,7 +102,7 @@ fun WizardScreen(
                                 OutlinedTextField(
                                     value = rootPassword,
                                     onValueChange = { rootPassword = it },
-                                    label = { Text("Root User Password") },
+                                    label = { Text(stringResource(R.string.label_root_password)) },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -106,7 +110,7 @@ fun WizardScreen(
                                 OutlinedTextField(
                                     value = username,
                                     onValueChange = { username = it },
-                                    label = { Text("Regular Username (Sudo)") },
+                                    label = { Text(stringResource(R.string.label_regular_username)) },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -114,7 +118,7 @@ fun WizardScreen(
                                 OutlinedTextField(
                                     value = userPassword,
                                     onValueChange = { userPassword = it },
-                                    label = { Text("Regular User Password") },
+                                    label = { Text(stringResource(R.string.label_regular_password)) },
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -136,7 +140,7 @@ fun WizardScreen(
                         ) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Save Account & Open Dashboard")
+                            Text(stringResource(R.string.btn_save_account))
                         }
 
                         if (downloadState.logs.isNotEmpty()) {
@@ -146,7 +150,7 @@ fun WizardScreen(
                             ) {
                                 Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("View Setup Logs")
+                                Text(stringResource(R.string.btn_view_setup_logs))
                             }
                         }
                     }
@@ -161,14 +165,17 @@ fun WizardScreen(
                         )
 
                         Text(
-                            text = "Complete Linux Installer",
+                            text = stringResource(R.string.app_title),
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
 
+                        val introPart1 = stringResource(R.string.wizard_intro_part1)
+                        val introPart2 = stringResource(R.string.wizard_intro_part2)
+
                         val annotatedLinkString = buildAnnotatedString {
-                            append("Part of the LinuxonAndroid project (")
-                            pushStringAnnotation(tag = "URL", annotation = "https://linuxonandroid.com")
+                            append(introPart1)
+                            pushStringAnnotation(tag = "URL", annotation = websiteUrl)
                             withStyle(
                                 style = SpanStyle(
                                     color = MaterialTheme.colorScheme.primary,
@@ -176,10 +183,10 @@ fun WizardScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                             ) {
-                                append("linuxonandroid.com")
+                                append(websiteDomain)
                             }
                             pop()
-                            append("). Run a full Linux distribution on your phone without root access.")
+                            append(introPart2)
                         }
 
                         ClickableText(
@@ -201,18 +208,18 @@ fun WizardScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             FeatureInfoRow(
                                 icon = Icons.Default.Lock,
-                                title = "No Root Required",
-                                description = "Uses PRoot user-space virtualization to safely execute Linux binaries inside an isolated app sandbox."
+                                title = stringResource(R.string.feature_no_root_title),
+                                description = stringResource(R.string.feature_no_root_desc)
                             )
                             FeatureInfoRow(
                                 icon = Icons.Default.Storage,
-                                title = "Official Ubuntu 26.04 LTS Base",
-                                description = "Downloads a minimal official Ubuntu image (~30 MB) with APT package manager support."
+                                title = stringResource(R.string.feature_ubuntu_base_title),
+                                description = stringResource(R.string.feature_ubuntu_base_desc)
                             )
                             FeatureInfoRow(
                                 icon = Icons.Default.Terminal,
-                                title = "CLI & Developer Tools",
-                                description = "Install and run Python, Git, GCC, Curl, Node.js, and command-line utilities directly on your phone."
+                                title = stringResource(R.string.feature_cli_title),
+                                description = stringResource(R.string.feature_cli_desc)
                             )
                         }
 
@@ -227,7 +234,7 @@ fun WizardScreen(
                                 ) {
                                     Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(20.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Download & Setup Ubuntu 26.04")
+                                    Text(stringResource(R.string.btn_download_ubuntu))
                                 }
                             }
 
@@ -310,7 +317,7 @@ fun WizardScreen(
                                     ) {
                                         Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("View Failure Logs")
+                                        Text(stringResource(R.string.btn_view_failure_logs))
                                     }
                                 }
 
@@ -321,7 +328,7 @@ fun WizardScreen(
                                         containerColor = MaterialTheme.colorScheme.error
                                     )
                                 ) {
-                                    Text("Retry Download")
+                                    Text(stringResource(R.string.btn_retry_download))
                                 }
                             }
                         }
