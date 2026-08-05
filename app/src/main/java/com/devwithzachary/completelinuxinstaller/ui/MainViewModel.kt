@@ -61,8 +61,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshStatus() {
         val installed = rootfsManager.isInstalled()
-        val storage = rootfsManager.getStorageUsedMb()
         val rootfsDir = pRootEngine.rootfsDir
+
+        val hasVnc = installed && (
+            File(rootfsDir, "usr/bin/vncserver").exists() ||
+            File(rootfsDir, "usr/bin/tigervncserver").exists() ||
+            File(rootfsDir, "usr/bin/startxfce4").exists()
+        )
+
+        val hasNginx = installed && File(rootfsDir, "usr/sbin/nginx").exists()
+        val hasSsh = installed && File(rootfsDir, "usr/sbin/sshd").exists()
+        val users = if (installed) rootfsManager.getContainerUsers() else emptyList()
 
         // Sync individual package states against rootfs file system
         val syncedPackages = _packages.value.map { pkg ->
@@ -70,9 +79,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 pkg.copy(status = InstallStatus.NOT_INSTALLED, progressMessage = "", installLogs = "")
             } else {
                 val actualStatus = when (pkg.id) {
-                    "dev_stack" -> if (File(rootfsDir, "usr/bin/node").exists() || File(rootfsDir, "usr/bin/gcc").exists()) InstallStatus.INSTALLED else pkg.status
+                    "python_dev" -> if (File(rootfsDir, "usr/bin/python3").exists()) InstallStatus.INSTALLED else pkg.status
+                    "node_dev" -> if (File(rootfsDir, "usr/bin/node").exists()) InstallStatus.INSTALLED else pkg.status
+                    "android_dev" -> if (File(rootfsDir, "usr/bin/adb").exists()) InstallStatus.INSTALLED else pkg.status
                     "nginx_web" -> if (File(rootfsDir, "usr/sbin/nginx").exists()) InstallStatus.INSTALLED else pkg.status
-                    "cli_superpack" -> if (File(rootfsDir, "usr/bin/zsh").exists()) InstallStatus.INSTALLED else pkg.status
                     "openssh_server" -> if (File(rootfsDir, "usr/sbin/sshd").exists()) InstallStatus.INSTALLED else pkg.status
                     else -> {
                         if (pkg.id.startsWith("custom_")) {
@@ -88,25 +98,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         _packages.value = syncedPackages
 
-        val hasVnc = installed && (
-            File(rootfsDir, "usr/bin/vncserver").exists() ||
-            File(rootfsDir, "usr/bin/tigervncserver").exists() ||
-            File(rootfsDir, "usr/bin/startxfce4").exists()
-        )
-
-        val hasNginx = installed && File(rootfsDir, "usr/sbin/nginx").exists()
-        val hasSsh = installed && File(rootfsDir, "usr/sbin/sshd").exists()
-        val users = if (installed) rootfsManager.getContainerUsers() else emptyList()
-
         _dashboardState.value = _dashboardState.value.copy(
             isInstalled = installed,
-            storageUsedMb = storage,
             isRunning = terminalBridge.isRunning.value,
             isVncInstalled = hasVnc,
             isNginxInstalled = hasNginx,
             isSshInstalled = hasSsh,
             containerUsers = users
         )
+
+        // Asynchronously calculate folder disk usage on background thread to prevent UI thread ANR
+        if (installed) {
+            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val storage = rootfsManager.getStorageUsedMb()
+                _dashboardState.value = _dashboardState.value.copy(storageUsedMb = storage)
+            }
+        }
     }
 
     fun installUbuntu() {
