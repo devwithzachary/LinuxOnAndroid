@@ -233,7 +233,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v0.0.2")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v0.0.3")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
@@ -259,6 +259,12 @@ fun AboutScreen() {
                         fontWeight = FontWeight.Bold
                     )
                 }
+
+                ChangelogItem(
+                    version = "v0.0.3",
+                    date = "In Development",
+                    highlights = emptyList()
+                )
 
                 ChangelogItem(
                     version = "v0.0.2",
