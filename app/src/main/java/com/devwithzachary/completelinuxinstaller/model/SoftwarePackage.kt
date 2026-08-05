@@ -23,6 +23,7 @@ data class SoftwarePackage(
     val installCommand: String,
     val launchCommand: String? = null,
     val postInstallNotes: String? = null,
+    val expectedBinaries: List<String> = emptyList(),
     val status: InstallStatus = InstallStatus.NOT_INSTALLED,
     val progressMessage: String = "",
     val installLogs: String = ""
@@ -40,7 +41,8 @@ data class SoftwarePackage(
                     description = "Python 3, pip, venv, Git, C/C++ GCC build-essential, and Neovim.",
                     iconName = "Code",
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS python3 python3-pip python3-venv git build-essential neovim curl wget ca-certificates",
-                    postInstallNotes = "Includes Python3, pip3, venv, gcc/g++, git, and neovim."
+                    postInstallNotes = "Includes Python3, pip3, venv, gcc/g++, git, and neovim.",
+                    expectedBinaries = listOf("usr/bin/python3", "usr/bin/pip3", "usr/bin/git", "usr/bin/gcc", "usr/bin/nvim")
                 ),
                 SoftwarePackage(
                     id = "node_dev",
@@ -49,7 +51,8 @@ data class SoftwarePackage(
                     description = "Node.js, npm, Yarn, Git, C/C++ GCC build-essential, and Neovim.",
                     iconName = "Code",
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS nodejs npm yarnpkg git build-essential neovim curl wget ca-certificates",
-                    postInstallNotes = "Includes Node.js, npm, yarn, gcc/g++, git, and neovim."
+                    postInstallNotes = "Includes Node.js, npm, yarn, gcc/g++, git, and neovim.",
+                    expectedBinaries = listOf("usr/bin/node", "usr/bin/npm", "usr/bin/git", "usr/bin/gcc", "usr/bin/nvim")
                 ),
                 SoftwarePackage(
                     id = "android_dev",
@@ -58,7 +61,8 @@ data class SoftwarePackage(
                     description = "OpenJDK 17, Android Platform Tools (adb, fastboot), Gradle, and Git.",
                     iconName = "Android",
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS openjdk-17-jdk-headless android-sdk-platform-tools gradle git curl wget unzip ca-certificates",
-                    postInstallNotes = "Includes OpenJDK 17, adb, fastboot, and Gradle for building Android projects."
+                    postInstallNotes = "Includes OpenJDK 17, adb, fastboot, and Gradle for building Android projects.",
+                    expectedBinaries = listOf("usr/bin/java", "usr/bin/adb", "usr/bin/gradle", "usr/bin/git")
                 ),
                 SoftwarePackage(
                     id = "nginx_web",
@@ -68,7 +72,8 @@ data class SoftwarePackage(
                     iconName = "Dns",
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS nginx sqlite3 curl ca-certificates",
                     launchCommand = "service nginx start",
-                    postInstallNotes = "Server starts on port 80 or 8080. Test with 'curl http://localhost'."
+                    postInstallNotes = "Server starts on port 80 or 8080. Test with 'curl http://localhost'.",
+                    expectedBinaries = listOf("usr/sbin/nginx", "usr/bin/sqlite3")
                 ),
                 SoftwarePackage(
                     id = "openssh_server",
@@ -78,7 +83,8 @@ data class SoftwarePackage(
                     iconName = "Security",
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS openssh-server && mkdir -p /run/sshd /etc/ssh/sshd_config.d && [ -f /etc/ssh/ssh_host_rsa_key ] || ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N \"\" && [ -f /etc/ssh/ssh_host_ecdsa_key ] || ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -N \"\" && [ -f /etc/ssh/ssh_host_ed25519_key ] || ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N \"\" && ssh-keygen -A 2>/dev/null || true && echo \"PermitRootLogin yes\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"Port 2222\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd 2>/dev/null || true",
                     launchCommand = "mkdir -p /run/sshd && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd 2>/dev/null || true && (killall sshd 2>/dev/null || true) && /usr/sbin/sshd -p 2222",
-                    postInstallNotes = "SSH server listening on port 2222. Connect via 'ssh root@<phone-ip> -p 2222' using your Linux password."
+                    postInstallNotes = "SSH server listening on port 2222. Connect via 'ssh root@<phone-ip> -p 2222' using your Linux password.",
+                    expectedBinaries = listOf("usr/sbin/sshd", "usr/bin/ssh-keygen")
                 )
             )
         }
