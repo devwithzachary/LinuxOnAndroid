@@ -153,9 +153,11 @@ Launch the application and follow the setup wizard:
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contributing & AI Policy
 
 Contributions, bug reports, and feature requests are welcome! Feel free to check out the issues page or submit a pull request.
+
+Please review our **[AI Usage Policy](AI.md)** for guidelines on using AI coding assistants when contributing to this project. All code submitted must be thoroughly reviewed and personally owned by the human author; automated bot PRs are not accepted.
 
 ---
 
