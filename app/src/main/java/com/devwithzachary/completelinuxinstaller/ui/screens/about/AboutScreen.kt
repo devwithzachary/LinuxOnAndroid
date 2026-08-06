@@ -233,7 +233,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v0.0.3")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.0.0")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
@@ -261,9 +261,16 @@ fun AboutScreen() {
                 }
 
                 ChangelogItem(
-                    version = "v0.0.3",
-                    date = "In Development",
-                    highlights = emptyList()
+                    version = "v1.0.0",
+                    date = "August 6, 2026",
+                    highlights = listOf(
+                        "Official v1.0.0 release now live on the Google Play Store.",
+                        "Vim & TUI Navigation: Added Application Cursor Keys mode (DECCKM) and quick-access Esc / directional keys.",
+                        "ANSI Progress Bar Fix: Added DECSTBM scrolling margins so apt upgrade and dpkg progress bars remain fixed at the bottom.",
+                        "Terminal Control Fixes: Corrected OSC String Terminator (ESC \\) parsing to eliminate stray prompt backslashes.",
+                        "Software Hub & UI Improvements: Optimized custom apt package installer hints and single-line prompt constraints.",
+                        "Active Development Notice: Reworded in-app development notice with direct GitHub issue submission."
+                    )
                 )
 
                 ChangelogItem(

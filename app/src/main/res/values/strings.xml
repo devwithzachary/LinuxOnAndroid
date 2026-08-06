@@ -44,9 +44,9 @@
     <string name="patreon_support_title">Support the Project</string>
     <string name="patreon_support_text">Complete Linux Installer is free and open-source software. If you find this app helpful and want to support ongoing development, new features, and distros, join my Patreon from $1/month!</string>
 
-    <!-- Alpha Notice & Bug Reporting -->
-    <string name="alpha_card_title">Alpha Software &amp; Issue Reporting</string>
-    <string name="alpha_card_text">Complete Linux Installer is currently in early alpha stage. You may encounter bugs or unexpected behavior. If you discover any issues, please report them on GitHub!</string>
+    <!-- Active Development & Bug Reporting -->
+    <string name="alpha_card_title">Active Development &amp; Issue Reporting</string>
+    <string name="alpha_card_text">Complete Linux Installer is under constant development. You may encounter bugs or unexpected behavior. If you discover any issues, please submit them on GitHub!</string>
     <string name="btn_report_github_issue">Report an Issue on GitHub</string>
 
     <!-- About Screen -->

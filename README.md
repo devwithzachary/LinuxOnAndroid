@@ -16,8 +16,8 @@
 
 Powered by a native **PRoot** engine, a JNI-backed **PTY pseudo-terminal**, and a modern **Jetpack Compose** interface, this app brings a true Linux development and desktop environment straight to your mobile device or tablet.
 
-> [!WARNING]
-> **Alpha Software Notice**: Complete Linux Installer is currently in **early alpha**. You may encounter bugs, unexpected behavior, or package edge cases. If you encounter any issues, please [raise an issue on GitHub](https://github.com/devwithzachary/LinuxOnAndroid/issues)!
+> [!NOTE]
+> **Active Development & Bug Reporting**: Complete Linux Installer is under constant development. You may encounter bugs or unexpected behavior. If you discover any issues, please [submit an issue on GitHub](https://github.com/devwithzachary/LinuxOnAndroid/issues)!
 
 ---
 
