@@ -1,6 +1,6 @@
 # AI Usage Policy & Guidelines
 
-At **Complete Linux Installer (Linux on Android)**, we view Artificial Intelligence (AI) coding assistants as standard, modern developer tools — much like IDEs, linters, compilers, and debuggers.
+We view Artificial Intelligence (AI) coding assistants as standard, modern developer tools — much like IDEs, linters, compilers, and debuggers.
 
 When used responsibly, AI tools accelerate development, eliminate tedious tasks, and allow contributors to focus on core architecture and user experience.
 
