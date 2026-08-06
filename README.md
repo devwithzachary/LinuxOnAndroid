@@ -1,6 +1,7 @@
 # Complete Linux Installer (Linux on Android)
 
-[![Google Play Open Testing](https://img.shields.io/badge/Google%20Play-Open%20Testing-brightgreen.svg?logo=googleplay)](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)
+[![Google Play Store](https://img.shields.io/badge/Google%20Play-Download-brightgreen.svg?logo=googleplay)](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)
+[![Google Play Open Testing](https://img.shields.io/badge/Google%20Play-Open%20Beta-blue.svg?logo=googleplay)](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)
 [![Android MinSDK](https://img.shields.io/badge/Min%20SDK-24%20%28Android%207.0%2B%29-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg)](https://kotlinlang.org/)
 [![UI Framework](https://img.shields.io/badge/UI-Jetpack%20Compose%20Material3-purple.svg)](https://developer.android.com/jetpack/compose)
@@ -10,8 +11,8 @@
 **Complete Linux Installer** is an open-source Android application designed to download, provision, and run full-featured Linux distributions (such as Ubuntu 26.04 LTS) natively on Android devices **without requiring root permissions**.
 
 > [!TIP]
-> 📲 **Google Play Store Open Testing**: Complete Linux Installer is now live on Google Play!  
-> **[Join the Open Testing Track on Google Play](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)**
+> 📲 **Now Live on the Google Play Store!**  
+> **[Download on Google Play](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)** | **[Join Beta Testing Track](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)**
 
 Powered by a native **PRoot** engine, a JNI-backed **PTY pseudo-terminal**, and a modern **Jetpack Compose** interface, this app brings a true Linux development and desktop environment straight to your mobile device or tablet.
 
