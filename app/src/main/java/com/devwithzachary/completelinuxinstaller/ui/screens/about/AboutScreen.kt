@@ -233,7 +233,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.0.0")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.0.1")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
@@ -261,8 +261,18 @@ fun AboutScreen() {
                 }
 
                 ChangelogItem(
+                    version = "v1.0.1",
+                    date = "In Development",
+                    initialExpanded = true,
+                    highlights = listOf(
+                        "Collapsible Changelog: Tap any version entry to expand or collapse its release notes, keeping the history view compact and easy to read."
+                    )
+                )
+
+                ChangelogItem(
                     version = "v1.0.0",
                     date = "August 6, 2026",
+                    initialExpanded = false,
                     highlights = listOf(
                         "Official v1.0.0 release now live on the Google Play Store.",
                         "Vim & TUI Navigation: Added Application Cursor Keys mode (DECCKM) and quick-access Esc / directional keys.",
@@ -276,6 +286,7 @@ fun AboutScreen() {
                 ChangelogItem(
                     version = "v0.0.2",
                     date = "August 5, 2026",
+                    initialExpanded = false,
                     highlights = listOf(
                         "Extracted and modularized UI component architecture for cleaner maintainability.",
                         "Centralized all user-facing UI text, button labels, and titles into strings.xml resources.",
@@ -287,6 +298,7 @@ fun AboutScreen() {
                 ChangelogItem(
                     version = "v0.0.1",
                     date = "August 4, 2026",
+                    initialExpanded = false,
                     highlights = listOf(
                         "2-step setup wizard: Download -> User account & SSH password configuration.",
                         "Multi-user management: Set Root password, create Sudo users, and change user passwords.",
