@@ -30,6 +30,17 @@ class TerminalEmulator(
         private set
     var cursorVisible = true
         private set
+    var appCursorKeys = false
+        private set
+
+    private var savedCursorX = 0
+    private var savedCursorY = 0
+
+    // Top and Bottom Scrolling Margins (DECSTBM)
+    var scrollTop = 0
+        private set
+    var scrollBottom = rows - 1
+        private set
 
     private var currentFg: Color = Color(0xFFE0E0E0)
     private var currentBg: Color = Color.Transparent
@@ -40,7 +51,7 @@ class TerminalEmulator(
     private var inAltBuffer = false
 
     // ANSI Escape Sequence Parser State
-    private enum class State { NORMAL, ESCAPE, CSI, OSC }
+    private enum class State { NORMAL, ESCAPE, CSI, OSC, CHARSET }
     private var state = State.NORMAL
     private val csiParams = StringBuilder()
 
@@ -78,6 +89,9 @@ class TerminalEmulator(
         }
         altGrid = Array(rows) { Array(cols) { TerminalChar() } }
         grid = if (inAltBuffer) altGrid else primaryGrid
+
+        scrollTop = 0
+        scrollBottom = rows - 1
 
         cursorX = cursorX.coerceIn(0, cols - 1)
         cursorY = cursorY.coerceIn(0, rows - 1)
@@ -130,17 +144,41 @@ class TerminalEmulator(
                     ']' -> {
                         state = State.OSC
                     }
-                    'M' -> { // Reverse index (scroll down)
-                        if (cursorY > 0) cursorY--
+                    '\\' -> { // ST (String Terminator: ESC \)
                         state = State.NORMAL
                     }
-                    'E' -> { // Next line
+                    '(', ')', '*', '+' -> { // Designate Character Set G0..G3 (e.g. ESC ( B)
+                        state = State.CHARSET
+                    }
+                    '7' -> { // DECSC - Save cursor
+                        savedCursorX = cursorX
+                        savedCursorY = cursorY
+                        state = State.NORMAL
+                    }
+                    '8' -> { // DECRC - Restore cursor
+                        cursorX = savedCursorX.coerceIn(0, cols - 1)
+                        cursorY = savedCursorY.coerceIn(0, rows - 1)
+                        state = State.NORMAL
+                    }
+                    'D' -> { // Index (IND)
+                        lineFeed()
+                        state = State.NORMAL
+                    }
+                    'M' -> { // Reverse Index (RI)
+                        reverseIndex()
+                        state = State.NORMAL
+                    }
+                    'E' -> { // Next Line (NEL)
                         cursorX = 0
                         lineFeed()
                         state = State.NORMAL
                     }
                     else -> state = State.NORMAL
                 }
+            }
+
+            State.CHARSET -> {
+                state = State.NORMAL
             }
 
             State.CSI -> {
@@ -153,28 +191,42 @@ class TerminalEmulator(
             }
 
             State.OSC -> {
-                if (ch == '\u0007' || ch == '\u001B') {
-                    state = State.NORMAL
+                when (ch) {
+                    '\u0007' -> state = State.NORMAL
+                    '\u001B' -> state = State.ESCAPE
                 }
             }
         }
     }
 
     private fun lineFeed() {
-        if (cursorY < rows - 1) {
+        if (cursorY < scrollBottom) {
             cursorY++
-        } else {
-            // Scroll line
-            if (!inAltBuffer) {
+        } else if (cursorY == scrollBottom) {
+            // Scroll line within top & bottom scrolling margins [scrollTop .. scrollBottom]
+            if (!inAltBuffer && scrollTop == 0) {
                 scrollback.add(grid[0].copyOf())
                 if (scrollback.size > maxScrollback) {
                     scrollback.removeAt(0)
                 }
             }
-            for (r in 0 until rows - 1) {
+            for (r in scrollTop until scrollBottom) {
                 grid[r] = grid[r + 1]
             }
-            grid[rows - 1] = Array(cols) { TerminalChar() }
+            grid[scrollBottom] = Array(cols) { TerminalChar() }
+        } else if (cursorY < rows - 1) {
+            cursorY++
+        }
+    }
+
+    private fun reverseIndex() {
+        if (cursorY > scrollTop) {
+            cursorY--
+        } else if (cursorY == scrollTop) {
+            for (r in scrollBottom downTo scrollTop + 1) {
+                grid[r] = grid[r - 1]
+            }
+            grid[scrollTop] = Array(cols) { TerminalChar() }
         }
     }
 
@@ -198,6 +250,29 @@ class TerminalEmulator(
             'B' -> cursorY = (cursorY + getArg(0, 1)).coerceAtMost(rows - 1) // Down
             'C' -> cursorX = (cursorX + getArg(0, 1)).coerceAtMost(cols - 1) // Forward
             'D' -> cursorX = (cursorX - getArg(0, 1)).coerceAtLeast(0) // Back
+            'G', '`' -> cursorX = (getArg(0, 1) - 1).coerceIn(0, cols - 1) // Cursor Horizontal Absolute
+            'd' -> cursorY = (getArg(0, 1) - 1).coerceIn(0, rows - 1) // Vertical Line Position Absolute
+            's' -> { // Save cursor position
+                savedCursorX = cursorX
+                savedCursorY = cursorY
+            }
+            'u' -> { // Restore cursor position
+                cursorX = savedCursorX.coerceIn(0, cols - 1)
+                cursorY = savedCursorY.coerceIn(0, rows - 1)
+            }
+            'r' -> { // DECSTBM - Set Top and Bottom Margins
+                val top = (getArg(0, 1) - 1).coerceIn(0, rows - 1)
+                val bottom = (getArg(1, rows) - 1).coerceIn(0, rows - 1)
+                if (top < bottom) {
+                    scrollTop = top
+                    scrollBottom = bottom
+                } else {
+                    scrollTop = 0
+                    scrollBottom = rows - 1
+                }
+                cursorY = scrollTop
+                cursorX = 0
+            }
             'J' -> { // Erase in display
                 val mode = getArg(0, 0)
                 when (mode) {
@@ -220,27 +295,80 @@ class TerminalEmulator(
                     2 -> for (c in 0 until cols) grid[cursorY][c] = TerminalChar()
                 }
             }
+            'L' -> { // Insert Lines
+                val count = getArg(0, 1).coerceIn(1, rows - cursorY)
+                for (r in scrollBottom downTo cursorY + count) {
+                    grid[r] = grid[r - count]
+                }
+                for (r in cursorY until cursorY + count) {
+                    grid[r] = Array(cols) { TerminalChar() }
+                }
+            }
+            'M' -> { // Delete Lines
+                val count = getArg(0, 1).coerceIn(1, rows - cursorY)
+                for (r in cursorY until scrollBottom - count + 1) {
+                    grid[r] = grid[r + count]
+                }
+                for (r in scrollBottom - count + 1..scrollBottom) {
+                    grid[r] = Array(cols) { TerminalChar() }
+                }
+            }
+            'P' -> { // Delete Characters
+                val count = getArg(0, 1).coerceIn(1, cols - cursorX)
+                val line = grid[cursorY]
+                for (c in cursorX until cols - count) {
+                    line[c] = line[c + count]
+                }
+                for (c in cols - count until cols) {
+                    line[c] = TerminalChar()
+                }
+            }
+            '@' -> { // Insert Characters
+                val count = getArg(0, 1).coerceIn(1, cols - cursorX)
+                val line = grid[cursorY]
+                for (c in cols - 1 downTo cursorX + count) {
+                    line[c] = line[c - count]
+                }
+                for (c in cursorX until cursorX + count) {
+                    line[c] = TerminalChar()
+                }
+            }
+            'X' -> { // Erase Characters
+                val count = getArg(0, 1).coerceIn(1, cols - cursorX)
+                val line = grid[cursorY]
+                for (c in cursorX until cursorX + count) {
+                    line[c] = TerminalChar()
+                }
+            }
             'h' -> {
+                val arg = getArg(0, 0)
                 if (isPrivate) {
-                    when (getArg(0, 0)) {
+                    when (arg) {
+                        1 -> appCursorKeys = true
                         25 -> cursorVisible = true
-                        1049 -> { // Enable alt screen buffer
+                        1049, 47 -> { // Enable alt screen buffer
                             inAltBuffer = true
                             grid = altGrid
                             clearRange(0, 0, rows - 1, cols - 1)
                         }
                     }
+                } else if (arg == 1) {
+                    appCursorKeys = true
                 }
             }
             'l' -> {
+                val arg = getArg(0, 0)
                 if (isPrivate) {
-                    when (getArg(0, 0)) {
+                    when (arg) {
+                        1 -> appCursorKeys = false
                         25 -> cursorVisible = false
-                        1049 -> { // Disable alt screen buffer
+                        1049, 47 -> { // Disable alt screen buffer
                             inAltBuffer = false
                             grid = primaryGrid
                         }
                     }
+                } else if (arg == 1) {
+                    appCursorKeys = false
                 }
             }
         }

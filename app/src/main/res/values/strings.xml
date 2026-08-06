@@ -44,9 +44,9 @@
     <string name="patreon_support_title">Support the Project</string>
     <string name="patreon_support_text">Complete Linux Installer is free and open-source software. If you find this app helpful and want to support ongoing development, new features, and distros, join my Patreon from $1/month!</string>
 
-    <!-- Alpha Notice & Bug Reporting -->
-    <string name="alpha_card_title">Alpha Software &amp; Issue Reporting</string>
-    <string name="alpha_card_text">Complete Linux Installer is currently in early alpha stage. You may encounter bugs or unexpected behavior. If you discover any issues, please report them on GitHub!</string>
+    <!-- Active Development & Bug Reporting -->
+    <string name="alpha_card_title">Active Development &amp; Issue Reporting</string>
+    <string name="alpha_card_text">Complete Linux Installer is under constant development. You may encounter bugs or unexpected behavior. If you discover any issues, please submit them on GitHub!</string>
     <string name="btn_report_github_issue">Report an Issue on GitHub</string>
 
     <!-- About Screen -->
@@ -61,7 +61,7 @@
     <!-- Software Hub -->
     <string name="hub_title">Software &amp; Package Hub</string>
     <string name="hub_apt_card_title">Install Any Apt Package</string>
-    <string name="hub_apt_placeholder">e.g. ffmpeg, rustc, golang, git</string>
+    <string name="hub_apt_placeholder">e.g. ffmpeg, rustc, git</string>
     <string name="btn_install">Install</string>
     <string name="btn_one_click_install">1-Click Install</string>
     <string name="btn_view_logs">View Logs</string>
@@ -101,4 +101,12 @@
     <string name="btn_download_ubuntu">Download &amp; Setup Ubuntu 26.04</string>
     <string name="btn_retry_download">Retry Download</string>
     <string name="btn_view_failure_logs">View Failure Logs</string>
+
+    <!-- Hotkeys Editor -->
+    <string name="hotkey_editor_title">Custom Hotkeys Manager</string>
+    <string name="hotkey_editor_desc">Add, remove, or reorder touch hotkeys and quick commands shown above the keyboard.</string>
+    <string name="hotkey_add_placeholder">Add key or command (e.g. ls -la)</string>
+    <string name="btn_add_key">Add Key</string>
+    <string name="btn_reset_default_keys">Reset Defaults</string>
+    <string name="btn_save_keys">Save Hotkeys</string>
 </resources>

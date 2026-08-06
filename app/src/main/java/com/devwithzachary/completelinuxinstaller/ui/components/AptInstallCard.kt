@@ -47,7 +47,7 @@ fun AptInstallCard(
                 OutlinedTextField(
                     value = value,
                     onValueChange = onValueChange,
-                    placeholder = { Text(stringResource(R.string.hub_apt_placeholder), fontSize = 12.sp) },
+                    placeholder = { Text(stringResource(R.string.hub_apt_placeholder), fontSize = 12.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),

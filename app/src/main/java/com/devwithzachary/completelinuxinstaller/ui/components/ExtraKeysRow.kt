@@ -1,15 +1,9 @@
 package com.devwithzachary.completelinuxinstaller.ui.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -19,11 +13,10 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun ExtraKeysRow(
+    keys: List<String>,
     onKeyClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val keys = listOf("Ctrl+C", "Ctrl+Z", "Ctrl+D", "Tab", "Esc", "▲", "▼", "◄", "►", "|", "~", "/", "-", "_", "clear", "htop", "uname -a", "df -h")
-
     LazyRow(
         modifier = modifier
             .fillMaxWidth()

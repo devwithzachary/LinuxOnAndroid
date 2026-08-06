@@ -1,5 +1,7 @@
 # Complete Linux Installer (Linux on Android)
 
+[![Google Play Store](https://img.shields.io/badge/Google%20Play-Download-brightgreen.svg?logo=googleplay)](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)
+[![Google Play Open Testing](https://img.shields.io/badge/Google%20Play-Open%20Beta-blue.svg?logo=googleplay)](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)
 [![Android MinSDK](https://img.shields.io/badge/Min%20SDK-24%20%28Android%207.0%2B%29-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg)](https://kotlinlang.org/)
 [![UI Framework](https://img.shields.io/badge/UI-Jetpack%20Compose%20Material3-purple.svg)](https://developer.android.com/jetpack/compose)
@@ -8,22 +10,28 @@
 
 **Complete Linux Installer** is an open-source Android application designed to download, provision, and run full-featured Linux distributions (such as Ubuntu 26.04 LTS) natively on Android devices **without requiring root permissions**.
 
+> [!TIP]
+> 📲 **Now Live on the Google Play Store!**  
+> **[Download on Google Play](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)** | **[Join Beta Testing Track](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)**
+
 Powered by a native **PRoot** engine, a JNI-backed **PTY pseudo-terminal**, and a modern **Jetpack Compose** interface, this app brings a true Linux development and desktop environment straight to your mobile device or tablet.
 
-> [!WARNING]
-> **Alpha Software Notice**: Complete Linux Installer is currently in **early alpha**. You may encounter bugs, unexpected behavior, or package edge cases. If you encounter any issues, please [raise an issue on GitHub](https://github.com/devwithzachary/LinuxOnAndroid/issues)!
+> [!NOTE]
+> **Active Development & Bug Reporting**: Complete Linux Installer is under constant development. You may encounter bugs or unexpected behavior. If you discover any issues, please [submit an issue on GitHub](https://github.com/devwithzachary/LinuxOnAndroid/issues)!
 
 ---
 
 ## 🚀 Key Features
 
 * **🔒 100% Rootless Operation**: Runs entirely in Android user-space using PRoot ptrace system call interception. No root access or bootloader unlocking required.
+* **🖥️ Full Graphical Desktop Access (GUI)**: One-click installation of a complete **XFCE4 Desktop Environment** with TigerVNC and noVNC support for full windowed GUI desktop access right on your phone or tablet.
 * **⚡ Interactive Native Terminal**: Built-in VT100/XTerm-compatible terminal emulator with full ANSI color support, buffer scrolling, and custom quick-action keys (Ctrl, Alt, Esc, Tab, Arrow navigation).
-* **🖥️ Graphical Desktop (XFCE4 + VNC)**: One-click installation of XFCE4 desktop environment paired with TigerVNC server for a complete graphical Linux desktop experience accessible via VNC.
 * **🛠️ Software Hub & One-Click Stacks**: Pre-configured software installers for common stacks:
-  * **Developer Stack**: Python 3, pip, Node.js, npm, Git, C/C++ GCC build-essential, Neovim.
+  * **Desktop Environments**: XFCE4 Desktop, XFCE Terminal, TigerVNC Server, noVNC web interface.
+  * **Python 3 Developer Stack**: Python 3, pip, venv, Git, C/C++ GCC build-essential, Neovim.
+  * **Node.js Developer Stack**: Node.js, npm, Yarn, Git, C/C++ GCC build-essential, Neovim.
+  * **Android Developer Tools**: OpenJDK 17, Android Platform Tools (adb, fastboot), Gradle, Git.
   * **Web & Database**: NGINX high-performance HTTP web server + SQLite3.
-  * **CLI Superpack**: Zsh, Oh My Zsh, Tmux terminal multiplexer, Htop system monitor, Fastfetch.
   * **Remote Access**: OpenSSH Server daemon setup for SSH remote terminal access from PC or LAN.
 * **🌐 Multi-Architecture Support**: Automatic detection and support for **ARM64 (aarch64)**, **x86_64 (amd64)**, and **ARMv7 (armhf)** processor architectures.
 * **📁 Storage & Device Binding**: Automatic mounting of Android SDCard/storage (`/sdcard`) and key system file descriptors (`/proc`, `/sys`, `/dev`).
@@ -145,9 +153,11 @@ Launch the application and follow the setup wizard:
 
 ---
 
-## 🤝 Contributing
+## 🤝 Contributing & AI Policy
 
 Contributions, bug reports, and feature requests are welcome! Feel free to check out the issues page or submit a pull request.
+
+Please review our **[AI Usage Policy](AI.md)** for guidelines on using AI coding assistants when contributing to this project. All code submitted must be thoroughly reviewed and personally owned by the human author; automated bot PRs are not accepted.
 
 ---
 

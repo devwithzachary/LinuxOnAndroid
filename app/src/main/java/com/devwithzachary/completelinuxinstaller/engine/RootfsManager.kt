@@ -33,9 +33,13 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     fun isInstalled(): Boolean = pRootEngine.isRootfsInstalled()
 
-    fun getStorageUsedMb(): Long {
-        if (!rootfsDir.exists()) return 0L
-        return calculateFolderSize(rootfsDir) / (1024 * 1024)
+    suspend fun getStorageUsedMb(): Long = withContext(Dispatchers.IO) {
+        if (!rootfsDir.exists()) return@withContext 0L
+        try {
+            calculateFolderSize(rootfsDir) / (1024 * 1024)
+        } catch (_: Exception) {
+            0L
+        }
     }
 
     private fun calculateFolderSize(dir: File): Long {
@@ -435,6 +439,40 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             )
         } catch (_: Exception) {}
 
+        // Create /usr/sbin/policy-rc.d (exit 101) to prevent package installation scripts from attempting to start systemd services in PRoot
+        val usrSbinDir = File(rootfsDir, "usr/sbin").apply { mkdirs() }
+        val policyRcD = File(usrSbinDir, "policy-rc.d")
+        try {
+            policyRcD.writeText("#!/bin/sh\nexit 101\n")
+            policyRcD.setExecutable(true, false)
+        } catch (_: Exception) {}
+
+        val systemctlFile = File(rootfsDir, "usr/bin/systemctl")
+        if (!systemctlFile.exists()) {
+            try {
+                systemctlFile.parentFile?.mkdirs()
+                systemctlFile.writeText("#!/bin/sh\nexit 0\n")
+                systemctlFile.setExecutable(true, false)
+            } catch (_: Exception) {}
+        }
+
+        // Ensure system groups (messagebus, www-data, sshd) exist so dpkg-statoverride does not fail in postinst scripts
+        try {
+            val groupFile = File(etcDir, "group")
+            val passwdFile = File(etcDir, "passwd")
+            val shadowFile = File(etcDir, "shadow")
+
+            if (groupFile.exists() && !groupFile.readText().contains("messagebus:")) {
+                groupFile.appendText("messagebus:x:101:\nwww-data:x:33:\nsshd:x:102:\n")
+            }
+            if (passwdFile.exists() && !passwdFile.readText().contains("messagebus:")) {
+                passwdFile.appendText("messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nsshd:x:102:102:Privilege-separated SSH:/run/sshd:/usr/sbin/nologin\n")
+            }
+            if (shadowFile.exists() && !shadowFile.readText().contains("messagebus:")) {
+                shadowFile.appendText("messagebus:*:19700:0:99999:7:::\nwww-data:*:19700:0:99999:7:::\nsshd:*:19700:0:99999:7:::\n")
+            }
+        } catch (_: Exception) {}
+
         val dpkgDir = File(rootfsDir, "var/lib/dpkg").apply { if (!exists()) mkdirs() }
         val statusFile = File(dpkgDir, "status")
         if (!statusFile.exists()) {
@@ -481,6 +519,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
             val setupScript = "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; chmod 777 /usr /etc 2>/dev/null; " +
                     "rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /etc/*.lock /etc/*.PID /etc/*~ /etc/apt/sources.list.d/* 2>/dev/null; " +
+                    "mkdir -p /usr/sbin /var/lib/dbus 2>/dev/null; printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; " +
                     "echo 'deb $repoUrl $codename main restricted universe multiverse' > /etc/apt/sources.list && " +
                     "echo 'deb $repoUrl $codename-updates main restricted universe multiverse' >> /etc/apt/sources.list && " +
                     "echo 'deb $repoUrl $codename-security main restricted universe multiverse' >> /etc/apt/sources.list; " +

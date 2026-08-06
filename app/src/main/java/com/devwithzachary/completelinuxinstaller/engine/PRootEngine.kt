@@ -15,7 +15,7 @@ data class PRootConfig(
     val defaultShell: String = "/bin/bash"
 )
 
-class PRootEngine(private val context: Context) {
+class PRootEngine(val context: Context) {
 
     companion object {
         private const val TAG = "PRootEngine"
@@ -64,6 +64,39 @@ class PRootEngine(private val context: Context) {
             cmdList.add("-b")
             cmdList.add(file.absolutePath)
         }
+    }
+
+    private fun ensureFakeProcFiles(): File {
+        val fakeProcDir = File(filesDir, "fake_proc").apply { if (!exists()) mkdirs() }
+        val numCores = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+
+        val statFile = File(fakeProcDir, "stat")
+        val statContent = buildString {
+            appendLine("cpu  2000 0 2000 200000 0 0 0 0 0 0")
+            for (i in 0 until numCores) {
+                appendLine("cpu$i ${2000 / numCores} 0 ${2000 / numCores} ${200000 / numCores} 0 0 0 0 0 0")
+            }
+            appendLine("intr 1000 0 0")
+            appendLine("ctxt 5000")
+            appendLine("btime ${System.currentTimeMillis() / 1000 - 86400}")
+            appendLine("processes 1000")
+            appendLine("procs_running 1")
+            appendLine("procs_blocked 0")
+            appendLine("softirq 1000 0 0 0 0 0 0 0 0 0")
+        }
+        statFile.writeText(statContent)
+
+        val versionFile = File(fakeProcDir, "version")
+        if (!versionFile.exists() || versionFile.length() == 0L) {
+            versionFile.writeText("Linux version 6.1.0-android-proot (gcc version 11.4.0) #1 SMP PREEMPT\n")
+        }
+
+        val vmstatFile = File(fakeProcDir, "vmstat")
+        if (!vmstatFile.exists() || vmstatFile.length() == 0L) {
+            vmstatFile.writeText("nr_free_pages 100000\nnr_alloc_batch 1000\npgpgin 50000\npgpgout 50000\npswpin 0\npswpout 0\n")
+        }
+
+        return fakeProcDir
     }
 
     fun buildPRootCommand(
@@ -117,6 +150,24 @@ class PRootEngine(private val context: Context) {
                 }
             }
 
+            // Bind-mount synthetic /proc files to bypass Android 10+ SELinux restrictions for htop/top/free
+            val fakeProcDir = ensureFakeProcFiles()
+            val fakeStat = File(fakeProcDir, "stat")
+            if (fakeStat.exists()) {
+                cmdList.add("-b")
+                cmdList.add("${fakeStat.absolutePath}:/proc/stat")
+            }
+            val fakeVersion = File(fakeProcDir, "version")
+            if (fakeVersion.exists()) {
+                cmdList.add("-b")
+                cmdList.add("${fakeVersion.absolutePath}:/proc/version")
+            }
+            val fakeVmstat = File(fakeProcDir, "vmstat")
+            if (fakeVmstat.exists()) {
+                cmdList.add("-b")
+                cmdList.add("${fakeVmstat.absolutePath}:/proc/vmstat")
+            }
+
             if (config.tmpDir.exists()) {
                 cmdList.add("-b")
                 cmdList.add("${config.tmpDir.absolutePath}:/tmp")
@@ -141,9 +192,9 @@ class PRootEngine(private val context: Context) {
         } else {
             cmdList.add("/system/bin/sh")
             cmdList.add("-c")
-            val execCmd = if (command.size >= 3 && command[0] == "/bin/sh" && command[1] == "-c") {
+            val execCmd = if (command.size >= 3 && (command[0] == "/bin/sh" || command[0] == "/bin/bash") && command[1] == "-c") {
                 command[2]
-            } else if (command.isNotEmpty() && command[0] != "/bin/bash") {
+            } else if (command.isNotEmpty()) {
                 command.joinToString(" ")
             } else {
                 "/system/bin/sh"
@@ -190,7 +241,10 @@ class PRootEngine(private val context: Context) {
             "PROOT_NO_SECCOMP" to "1",
             "PROOT_FORCE_SETID" to "1",
             "PROOT_LINK2SYMLINK" to "1",
+            "USER" to "root",
+            "LOGNAME" to "root",
             "HOME" to "/root",
+            "PYTHONPATH" to "/usr/lib/python3/dist-packages",
             "PATH" to guestPath,
             "TERM" to "xterm-256color",
             "LANG" to "C.UTF-8",

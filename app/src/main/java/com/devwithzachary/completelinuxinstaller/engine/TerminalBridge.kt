@@ -143,19 +143,19 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
     }
 
     fun sendArrowUp() {
-        sendInput("\u001B[A")
+        if (emulator.appCursorKeys) sendInput("\u001BOA") else sendInput("\u001B[A")
     }
 
     fun sendArrowDown() {
-        sendInput("\u001B[B")
+        if (emulator.appCursorKeys) sendInput("\u001BOB") else sendInput("\u001B[B")
     }
 
     fun sendArrowRight() {
-        sendInput("\u001B[C")
+        if (emulator.appCursorKeys) sendInput("\u001BOC") else sendInput("\u001B[C")
     }
 
     fun sendArrowLeft() {
-        sendInput("\u001B[D")
+        if (emulator.appCursorKeys) sendInput("\u001BOD") else sendInput("\u001B[D")
     }
 
     fun stopSession() {
