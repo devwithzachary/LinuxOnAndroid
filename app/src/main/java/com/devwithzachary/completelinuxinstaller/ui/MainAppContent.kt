@@ -62,7 +62,9 @@ fun MainAppContent(viewModel: MainViewModel) {
                 TopAppBar(
                     title = {
                         Text(
-                            text = if (!isInstalled) stringResource(R.string.app_title) else stringResource(currentScreen.titleRes),
+                            text = if (!isInstalled) stringResource(R.string.app_title) else stringResource(
+                                currentScreen.titleRes
+                            ),
                             fontWeight = FontWeight.Bold
                         )
                     },
@@ -78,31 +80,56 @@ fun MainAppContent(viewModel: MainViewModel) {
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.DASHBOARD,
                             onClick = { currentScreen = AppScreen.DASHBOARD },
-                            icon = { Icon(Icons.Default.Home, contentDescription = stringResource(R.string.nav_dashboard)) },
+                            icon = {
+                                Icon(
+                                    Icons.Default.Home,
+                                    contentDescription = stringResource(R.string.nav_dashboard)
+                                )
+                            },
                             label = { Text(stringResource(R.string.nav_dashboard)) }
                         )
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.TERMINAL,
                             onClick = { currentScreen = AppScreen.TERMINAL },
-                            icon = { Icon(Icons.Default.Terminal, contentDescription = stringResource(R.string.nav_terminal)) },
+                            icon = {
+                                Icon(
+                                    Icons.Default.Terminal,
+                                    contentDescription = stringResource(R.string.nav_terminal)
+                                )
+                            },
                             label = { Text(stringResource(R.string.nav_terminal)) }
                         )
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.SOFTWARE_HUB,
                             onClick = { currentScreen = AppScreen.SOFTWARE_HUB },
-                            icon = { Icon(Icons.Default.Apps, contentDescription = stringResource(R.string.nav_software)) },
+                            icon = {
+                                Icon(
+                                    Icons.Default.Apps,
+                                    contentDescription = stringResource(R.string.nav_software)
+                                )
+                            },
                             label = { Text(stringResource(R.string.nav_software)) }
                         )
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.SETTINGS,
                             onClick = { currentScreen = AppScreen.SETTINGS },
-                            icon = { Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings)) },
+                            icon = {
+                                Icon(
+                                    Icons.Default.Settings,
+                                    contentDescription = stringResource(R.string.nav_settings)
+                                )
+                            },
                             label = { Text(stringResource(R.string.nav_settings)) }
                         )
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.ABOUT,
                             onClick = { currentScreen = AppScreen.ABOUT },
-                            icon = { Icon(Icons.Default.Info, contentDescription = stringResource(R.string.nav_about)) },
+                            icon = {
+                                Icon(
+                                    Icons.Default.Info,
+                                    contentDescription = stringResource(R.string.nav_about)
+                                )
+                            },
                             label = { Text(stringResource(R.string.nav_about)) }
                         )
                     }

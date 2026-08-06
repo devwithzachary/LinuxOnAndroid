@@ -15,7 +15,7 @@ data class PRootConfig(
     val defaultShell: String = "/bin/bash"
 )
 
-class PRootEngine(private val context: Context) {
+class PRootEngine(val context: Context) {
 
     companion object {
         private const val TAG = "PRootEngine"
@@ -192,9 +192,9 @@ class PRootEngine(private val context: Context) {
         } else {
             cmdList.add("/system/bin/sh")
             cmdList.add("-c")
-            val execCmd = if (command.size >= 3 && command[0] == "/bin/sh" && command[1] == "-c") {
+            val execCmd = if (command.size >= 3 && (command[0] == "/bin/sh" || command[0] == "/bin/bash") && command[1] == "-c") {
                 command[2]
-            } else if (command.isNotEmpty() && command[0] != "/bin/bash") {
+            } else if (command.isNotEmpty()) {
                 command.joinToString(" ")
             } else {
                 "/system/bin/sh"
@@ -241,7 +241,10 @@ class PRootEngine(private val context: Context) {
             "PROOT_NO_SECCOMP" to "1",
             "PROOT_FORCE_SETID" to "1",
             "PROOT_LINK2SYMLINK" to "1",
+            "USER" to "root",
+            "LOGNAME" to "root",
             "HOME" to "/root",
+            "PYTHONPATH" to "/usr/lib/python3/dist-packages",
             "PATH" to guestPath,
             "TERM" to "xterm-256color",
             "LANG" to "C.UTF-8",
