@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
 import com.devwithzachary.completelinuxinstaller.engine.TerminalChar
 import kotlin.math.max
+import kotlin.math.min
 
 @Composable
 fun FullTerminalView(
@@ -91,7 +92,7 @@ fun FullTerminalView(
                 if (newText.length > oldText.length) {
                     val added = newText.substring(oldText.length)
                     if (added.contains("\n")) {
-                        terminalBridge.sendInput("\n")
+                        terminalBridge.sendInput("\r")
                     } else {
                         terminalBridge.sendInput(added)
                     }
@@ -111,7 +112,7 @@ fun FullTerminalView(
                     if (event.type == KeyEventType.KeyDown) {
                         when (event.key) {
                             Key.Enter -> {
-                                terminalBridge.sendInput("\n")
+                                terminalBridge.sendInput("\r")
                                 textFieldValue = TextFieldValue("  ", TextRange(2))
                                 true
                             }
@@ -158,15 +159,15 @@ fun FullTerminalView(
             ),
             keyboardActions = KeyboardActions(
                 onSend = {
-                    terminalBridge.sendInput("\n")
+                    terminalBridge.sendInput("\r")
                     textFieldValue = TextFieldValue("  ", TextRange(2))
                 },
                 onDone = {
-                    terminalBridge.sendInput("\n")
+                    terminalBridge.sendInput("\r")
                     textFieldValue = TextFieldValue("  ", TextRange(2))
                 },
                 onGo = {
-                    terminalBridge.sendInput("\n")
+                    terminalBridge.sendInput("\r")
                     textFieldValue = TextFieldValue("  ", TextRange(2))
                 }
             )
@@ -186,13 +187,10 @@ fun FullTerminalView(
             val actualCols = if (actualRows > 0) grid[0].size else 0
 
             val canvas = drawContext.canvas.nativeCanvas
+            val renderRows = min(rows, actualRows)
 
-            val visibleRows = rows
-            val startRow = (curY - visibleRows + 1).coerceAtLeast(0)
-            val endRow = (startRow + visibleRows).coerceAtMost(actualRows)
-
-            for (r in startRow until endRow) {
-                val rowY = (r - startRow) * charHeight
+            for (r in 0 until renderRows) {
+                val rowY = r * charHeight
                 val rowChars = grid[r]
                 for (c in 0 until actualCols) {
                     val cell: TerminalChar = rowChars[c]

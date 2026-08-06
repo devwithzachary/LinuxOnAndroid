@@ -61,7 +61,7 @@
     <!-- Software Hub -->
     <string name="hub_title">Software &amp; Package Hub</string>
     <string name="hub_apt_card_title">Install Any Apt Package</string>
-    <string name="hub_apt_placeholder">e.g. ffmpeg, rustc, golang, git</string>
+    <string name="hub_apt_placeholder">e.g. ffmpeg, rustc, git</string>
     <string name="btn_install">Install</string>
     <string name="btn_one_click_install">1-Click Install</string>
     <string name="btn_view_logs">View Logs</string>
