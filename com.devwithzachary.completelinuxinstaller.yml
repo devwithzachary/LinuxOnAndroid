@@ -6,6 +6,8 @@ IssueTracker: https://github.com/devwithzachary/LinuxOnAndroid/issues
 AuthorName: Zachary Powell
 RepoType: git
 Repo: https://github.com/devwithzachary/LinuxOnAndroid.git
+AllowedAPKSigningKeys:
+  - c532d763fd4ec838fa118005d9eb51ec13ce72167d2b0a1a8452ce36fc49199e
 
 Builds:
   - versionName: 1.0.0
@@ -14,6 +16,7 @@ Builds:
     subdir: app
     gradle:
       - yes
+    binary: https://github.com/devwithzachary/LinuxOnAndroid/releases/download/1.0.0/LinuxOnAndroid-1.0.0.apk
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
