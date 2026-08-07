@@ -10,7 +10,7 @@ Repo: https://github.com/devwithzachary/LinuxOnAndroid.git
 Builds:
   - versionName: 1.0.0
     versionCode: 1
-    commit: 1.0.0
+    commit: 7ff3f4081f0a6eb32683789ae4fba26bc7475b46
     subdir: app
     gradle:
       - yes
