@@ -1,1 +1,1 @@
-Run full, native Ubuntu Linux command-line environments directly on your Android phone or tablet — 100% rootless!
+Run full Ubuntu Linux terminal environments on Android without root

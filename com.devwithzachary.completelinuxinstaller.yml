@@ -3,13 +3,7 @@ Categories:
 License: GPL-2.0-or-later
 SourceCode: https://github.com/devwithzachary/LinuxOnAndroid
 IssueTracker: https://github.com/devwithzachary/LinuxOnAndroid/issues
-
-Summary: Run full Ubuntu Linux terminal environments on Android without root
-Description: |-
-  Complete Linux Installer brings a real Linux terminal emulator, APT package manager, and one-click developer stacks directly to your mobile device without requiring root access or custom ROMs.
-
-  Powered by a high-performance native PRoot user-space engine and POSIX PTY pseudo-terminal bridge, Complete Linux Installer lets you turn your Android device into a portable CLI workstation, server host, or learning environment.
-
+AuthorName: Zachary Powell
 RepoType: git
 Repo: https://github.com/devwithzachary/LinuxOnAndroid.git
 

@@ -17,6 +17,11 @@ android {
         versionName = "1.0.0"
     }
 
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     signingConfigs {
         create("release") {
             val keyPropertiesFile = rootProject.file("key.properties")
