@@ -1,0 +1,30 @@
+Complete Linux Installer (Linux on Android) brings a real Linux terminal emulator, APT package manager, and one-click developer stacks directly to your mobile device without requiring root access or custom ROMs.
+
+Powered by a high-performance native PRoot user-space engine and POSIX PTY pseudo-terminal bridge, Complete Linux Installer lets you turn your Android device into a portable CLI workstation, server host, or learning environment.
+
+🔒 100% ROOTLESS OPERATION
+• Runs entirely in Android user-space via PRoot ptrace system call virtualization.
+• Zero root access, unlocked bootloaders, or system partition modifications required.
+• Fully compatible with standard Android security permissions.
+
+⚡ INTERACTIVE NATIVE TERMINAL
+• Full VT100 / XTerm terminal emulator with ANSI color support.
+• Real-time POSIX PTY window resizing and scrollback buffer.
+• Built-in quick-action toolbar with Ctrl, Alt, Esc, Tab, and directional arrow keys.
+
+🛠️ ONE-CLICK DEVELOPER SOFTWARE STACKS
+• Node.js Stack: Install Node.js, npm, Yarn, Git, build-essential GCC, and Neovim in one tap.
+• Python 3 Stack: Complete Python 3, pip3, virtualenv, and C/C++ compilation tools.
+• Android Dev Tools: Run OpenJDK 17, Gradle, ADB, and Android platform-tools inside Linux.
+• NGINX & SQLite: Turn your device into a portable local web server and database.
+• OpenSSH Server: Access your Android Linux shell remotely from any PC or laptop via SSH.
+
+🌐 MULTI-ARCHITECTURE & FAST APT UPDATES
+• Native architecture detection for ARM64 (aarch64), x86_64 (amd64), and ARMv7 (armhf).
+• Zero-hang APT engine with arch-aware repository mirrors (ports.ubuntu.com) for fast updates.
+• Automatic storage mounting for external SD Card access (/sdcard).
+
+📜 15 YEARS OF OPEN-SOURCE HERITAGE
+Evolved from the original Complete Linux Installer project launched on XDA Developers in 2011. Built with open-source Jetpack Compose and C++ PRoot engine technology.
+
+License: Released under GNU General Public License v2.0 (GPL-2.0).
