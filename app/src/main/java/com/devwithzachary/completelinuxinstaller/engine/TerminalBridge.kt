@@ -118,6 +118,20 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
         }
     }
 
+    fun pasteText(text: String) {
+        if (text.isNotEmpty()) {
+            val formatted = text.replace("\r\n", "\r").replace("\n", "\r")
+            sendInput(formatted)
+        }
+    }
+
+    fun getScreenText(): String = emulator.getVisibleText()
+
+    fun getAllTerminalText(): String = emulator.getAllText()
+
+    fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String =
+        emulator.getSelectedText(startRow, startCol, endRow, endCol)
+
     fun sendCommand(command: String) {
         sendInput(command + "\n")
     }

@@ -454,4 +454,55 @@ class TerminalEmulator(
             else -> Color(0xFFE0E0E0)
         }
     }
+
+    fun getVisibleText(): String {
+        val sb = StringBuilder()
+        for (r in 0 until rows) {
+            val rowChars = grid[r]
+            val rowStr = rowChars.map { it.ch }.joinToString("").trimEnd()
+            sb.append(rowStr).append("\n")
+        }
+        return sb.toString().trimEnd()
+    }
+
+    fun getAllText(): String {
+        val sb = StringBuilder()
+        for (row in scrollback) {
+            val rowStr = row.map { it.ch }.joinToString("").trimEnd()
+            sb.append(rowStr).append("\n")
+        }
+        for (r in 0 until rows) {
+            val rowChars = grid[r]
+            val rowStr = rowChars.map { it.ch }.joinToString("").trimEnd()
+            sb.append(rowStr).append("\n")
+        }
+        return sb.toString().trimEnd()
+    }
+
+    fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String {
+        if (rows == 0 || cols == 0) return ""
+        val minR = minOf(startRow, endRow).coerceIn(0, rows - 1)
+        val maxR = maxOf(startRow, endRow).coerceIn(0, rows - 1)
+        val minC = minOf(startCol, endCol).coerceIn(0, cols - 1)
+        val maxC = maxOf(startCol, endCol).coerceIn(0, cols - 1)
+
+        val sb = StringBuilder()
+        for (r in minR..maxR) {
+            val line = grid[r]
+            val c1 = if (r == minR) minC else 0
+            val c2 = if (r == maxR) maxC else cols - 1
+
+            val lineChars = CharArray(maxOf(0, c2 - c1 + 1))
+            for (c in c1..c2) {
+                lineChars[c - c1] = line[c].ch
+            }
+            val lineStr = String(lineChars)
+            if (r < maxR) {
+                sb.append(lineStr.trimEnd()).append("\n")
+            } else {
+                sb.append(lineStr)
+            }
+        }
+        return sb.toString()
+    }
 }

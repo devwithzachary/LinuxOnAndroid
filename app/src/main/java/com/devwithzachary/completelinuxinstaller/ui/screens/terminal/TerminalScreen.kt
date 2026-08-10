@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontFamily
@@ -34,6 +36,7 @@ fun TerminalScreen(
     onStopSession: () -> Unit
 ) {
     val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     val isRunning by terminalBridge.isRunning.collectAsStateWithLifecycle()
     val refreshTrigger by terminalBridge.refreshTrigger.collectAsStateWithLifecycle()
 
@@ -91,6 +94,19 @@ fun TerminalScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(onClick = {
+                        val clipText = clipboardManager.getText()?.text
+                        if (!clipText.isNullOrEmpty()) {
+                            terminalBridge.pasteText(clipText)
+                        }
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.ContentPaste,
+                            contentDescription = "Paste Clipboard",
+                            tint = Color(0xFF81D4FA)
+                        )
+                    }
+
                     IconButton(onClick = { showEditHotkeysDialog = true }) {
                         Icon(
                             imageVector = Icons.Default.Tune,
@@ -144,6 +160,12 @@ fun TerminalScreen(
             keys = customHotkeys,
             onKeyClick = { key ->
                 when (key) {
+                    "Paste" -> {
+                        val clipText = clipboardManager.getText()?.text
+                        if (!clipText.isNullOrEmpty()) {
+                            terminalBridge.pasteText(clipText)
+                        }
+                    }
                     "Ctrl+C" -> terminalBridge.sendCtrlC()
                     "Ctrl+Z" -> terminalBridge.sendCtrlZ()
                     "Ctrl+D" -> terminalBridge.sendCtrlD()
