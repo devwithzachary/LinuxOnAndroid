@@ -34,6 +34,13 @@ data class DashboardUiState(
     val containerUsers: List<String> = emptyList()
 )
 
+sealed class BackupState {
+    data object Idle : BackupState()
+    data class Processing(val message: String, val progressPercent: Int = -1) : BackupState()
+    data class Success(val message: String) : BackupState()
+    data class Error(val message: String) : BackupState()
+}
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val pRootEngine = PRootEngine(application)
@@ -46,6 +53,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
     val downloadState: StateFlow<DownloadState> = _downloadState.asStateFlow()
+
+    private val _backupState = MutableStateFlow<BackupState>(BackupState.Idle)
+    val backupState: StateFlow<BackupState> = _backupState.asStateFlow()
 
     private val _packages = MutableStateFlow(SoftwarePackage.getPresets())
     val packages: StateFlow<List<SoftwarePackage>> = _packages.asStateFlow()
@@ -272,5 +282,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _packages.value = SoftwarePackage.getPresets()
             refreshStatus()
         }
+    }
+
+    fun exportContainer(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
+        viewModelScope.launch {
+            _backupState.value = BackupState.Processing("Exporting RootFS container archive...", 0)
+            try {
+                contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    val success = rootfsManager.exportContainerToStream(outputStream) { msg, percent ->
+                        _backupState.value = BackupState.Processing(msg, percent)
+                    }
+                    if (success) {
+                        _backupState.value = BackupState.Success("RootFS container exported successfully!")
+                    } else {
+                        _backupState.value = BackupState.Error("Failed to export RootFS container archive.")
+                    }
+                } ?: run {
+                    _backupState.value = BackupState.Error("Unable to open destination file stream.")
+                }
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error exporting container", e)
+                _backupState.value = BackupState.Error("Export failed: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun importContainer(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
+        viewModelScope.launch {
+            terminalBridge.stopSession()
+            _backupState.value = BackupState.Processing("Importing RootFS container archive...", 0)
+            try {
+                contentResolver.openInputStream(uri)?.use { inputStream ->
+                    val success = rootfsManager.importContainerFromStream(inputStream) { msg, percent ->
+                        _backupState.value = BackupState.Processing(msg, percent)
+                    }
+                    if (success) {
+                        refreshStatus()
+                        _backupState.value = BackupState.Success("RootFS container restored successfully!")
+                    } else {
+                        _backupState.value = BackupState.Error("Failed to import container archive.")
+                    }
+                } ?: run {
+                    _backupState.value = BackupState.Error("Unable to read backup file stream.")
+                }
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error importing container", e)
+                _backupState.value = BackupState.Error("Import failed: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun dismissBackupStatus() {
+        _backupState.value = BackupState.Idle
     }
 }

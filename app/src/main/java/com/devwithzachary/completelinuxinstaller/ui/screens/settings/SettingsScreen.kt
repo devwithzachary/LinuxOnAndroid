@@ -1,5 +1,7 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -7,40 +9,42 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
-
-import androidx.compose.foundation.text.ClickableText
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
-
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
 
 @Composable
 fun SettingsScreen(
     state: DashboardUiState,
+    backupState: BackupState = BackupState.Idle,
     onToggleBindSdCard: () -> Unit,
     onWipeRootfsClick: () -> Unit,
     onRefreshStatusClick: () -> Unit,
     onChangeRootPassword: (String) -> Unit = {},
     onCreateUser: (String, String) -> Unit = { _, _ -> },
-    onDeleteUser: (String) -> Unit = {}
+    onDeleteUser: (String) -> Unit = {},
+    onExportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
+    onImportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
+    onDismissBackupStatus: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val contentResolver = context.contentResolver
+
     var showWipeConfirm by remember { mutableStateOf(false) }
+    var showImportConfirm by remember { mutableStateOf(false) }
     var showRootPasswordDialog by remember { mutableStateOf(false) }
     var showAddUserDialog by remember { mutableStateOf(false) }
 
@@ -51,7 +55,21 @@ fun SettingsScreen(
     var changePasswordUser by remember { mutableStateOf<String?>(null) }
     var changePasswordUserNewPass by remember { mutableStateOf("") }
 
-    val uriHandler = LocalUriHandler.current
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/gzip")
+    ) { uri ->
+        if (uri != null) {
+            onExportContainer(contentResolver, uri)
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            onImportContainer(contentResolver, uri)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -66,6 +84,59 @@ fun SettingsScreen(
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
+
+        // 1-Tap RootFS Container Backup & Restore Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Container Backup & Restore",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Create a 1-tap backup archive (.tar.gz) of your complete Linux rootfs environment or restore an existing container archive from device storage.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            val defaultName = "linux_on_android_backup_${System.currentTimeMillis() / 1000}.tar.gz"
+                            exportLauncher.launch(defaultName)
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = state.isInstalled && backupState is BackupState.Idle,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Export Container")
+                    }
+
+                    OutlinedButton(
+                        onClick = { showImportConfirm = true },
+                        modifier = Modifier.weight(1f),
+                        enabled = backupState is BackupState.Idle,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Import Container")
+                    }
+                }
+            }
+        }
 
         // Users & Account Management Card
         if (state.isInstalled) {
@@ -240,6 +311,124 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    // Confirmation for Container Import
+    if (showImportConfirm) {
+        AlertDialog(
+            onDismissRequest = { showImportConfirm = false },
+            title = { Text("Import RootFS Container?") },
+            text = { Text("Restoring a backup container will replace your current active RootFS and all installed software. Are you sure you want to select a backup file to restore?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showImportConfirm = false
+                        importLauncher.launch(arrayOf("application/gzip", "application/x-gzip", "application/x-tar", "*/*"))
+                    }
+                ) {
+                    Text("Proceed & Select Backup")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showImportConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Backup Processing / Success / Error Modal Dialog
+    if (backupState !is BackupState.Idle) {
+        AlertDialog(
+            onDismissRequest = {
+                if (backupState !is BackupState.Processing) {
+                    onDismissBackupStatus()
+                }
+            },
+            title = {
+                Text(
+                    text = when (backupState) {
+                        is BackupState.Processing -> "Container Backup Operation"
+                        is BackupState.Success -> "Backup Operation Complete"
+                        is BackupState.Error -> "Backup Error"
+                        else -> ""
+                    },
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    when (backupState) {
+                        is BackupState.Processing -> {
+                            if (backupState.progressPercent >= 0) {
+                                LinearProgressIndicator(
+                                    progress = { (backupState.progressPercent / 100f).coerceIn(0f, 1f) },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(8.dp),
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = backupState.message,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontSize = 13.sp,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "${backupState.progressPercent}%",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            } else {
+                                CircularProgressIndicator()
+                                Text(
+                                    text = backupState.message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                        is BackupState.Success -> {
+                            Text(
+                                text = backupState.message,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        is BackupState.Error -> {
+                            Text(
+                                text = backupState.message,
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        else -> {}
+                    }
+                }
+            },
+            confirmButton = {
+                if (backupState !is BackupState.Processing) {
+                    TextButton(onClick = onDismissBackupStatus) {
+                        Text("OK")
+                    }
+                }
+            }
+        )
     }
 
     if (showWipeConfirm) {

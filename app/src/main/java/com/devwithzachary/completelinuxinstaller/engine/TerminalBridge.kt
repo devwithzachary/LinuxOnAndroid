@@ -103,6 +103,7 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
     }
 
     fun sendInput(input: String) {
+        emulator.scrollToBottom()
         scope.launch {
             try {
                 val proc = ptyProcess
@@ -116,6 +117,21 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
                 Log.e(TAG, "Error writing to PTY stream via POSIX write", e)
             }
         }
+    }
+
+    fun scrollUp(lines: Int = 3) {
+        emulator.scrollUp(lines)
+        _refreshTrigger.value = System.currentTimeMillis()
+    }
+
+    fun scrollDown(lines: Int = 3) {
+        emulator.scrollDown(lines)
+        _refreshTrigger.value = System.currentTimeMillis()
+    }
+
+    fun scrollToBottom() {
+        emulator.scrollToBottom()
+        _refreshTrigger.value = System.currentTimeMillis()
     }
 
     fun pasteText(text: String) {

@@ -23,6 +23,38 @@ class TerminalEmulator(
         private set
 
     val scrollback = mutableListOf<Array<TerminalChar>>()
+    var scrollOffset = 0
+        private set
+
+    fun scrollUp(lines: Int = 1) {
+        if (scrollback.isNotEmpty()) {
+            scrollOffset = (scrollOffset + lines).coerceIn(0, scrollback.size)
+        }
+    }
+
+    fun scrollDown(lines: Int = 1) {
+        scrollOffset = (scrollOffset - lines).coerceIn(0, scrollback.size)
+    }
+
+    fun scrollToBottom() {
+        scrollOffset = 0
+    }
+
+    fun getRenderRow(r: Int): Array<TerminalChar> {
+        if (scrollOffset == 0 || scrollback.isEmpty()) {
+            return if (r < grid.size) grid[r] else Array(cols) { TerminalChar() }
+        }
+        val totalHistory = scrollback.size
+        val targetIndex = (totalHistory + r) - scrollOffset
+        return when {
+            targetIndex < 0 -> Array(cols) { TerminalChar() }
+            targetIndex < totalHistory -> scrollback[targetIndex]
+            else -> {
+                val gridIndex = targetIndex - totalHistory
+                if (gridIndex < grid.size) grid[gridIndex] else Array(cols) { TerminalChar() }
+            }
+        }
+    }
 
     var cursorX = 0
         private set

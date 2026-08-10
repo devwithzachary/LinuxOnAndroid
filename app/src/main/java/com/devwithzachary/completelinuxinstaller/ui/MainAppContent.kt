@@ -37,6 +37,7 @@ enum class AppScreen(val titleRes: Int) {
 fun MainAppContent(viewModel: MainViewModel) {
     val dashboardState by viewModel.dashboardState.collectAsStateWithLifecycle()
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
+    val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val packages by viewModel.packages.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
@@ -201,12 +202,16 @@ fun MainAppContent(viewModel: MainViewModel) {
                     AppScreen.SETTINGS -> {
                         SettingsScreen(
                             state = dashboardState,
+                            backupState = backupState,
                             onToggleBindSdCard = { viewModel.toggleBindSdCard() },
                             onWipeRootfsClick = { viewModel.wipeRootfs() },
                             onRefreshStatusClick = { viewModel.refreshStatus() },
                             onChangeRootPassword = { pass -> viewModel.changeRootPassword(pass) },
                             onCreateUser = { user, pass -> viewModel.createUser(user, pass) },
-                            onDeleteUser = { user -> viewModel.deleteUser(user) }
+                            onDeleteUser = { user -> viewModel.deleteUser(user) },
+                            onExportContainer = { cr, uri -> viewModel.exportContainer(cr, uri) },
+                            onImportContainer = { cr, uri -> viewModel.importContainer(cr, uri) },
+                            onDismissBackupStatus = { viewModel.dismissBackupStatus() }
                         )
                     }
 

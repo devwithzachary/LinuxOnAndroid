@@ -4,6 +4,7 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -15,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.*
@@ -64,6 +66,7 @@ fun FullTerminalView(
     var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) } // (row, col)
     var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // (row, col)
     var showSelectPortionDialog by remember { mutableStateOf(false) }
+    var accumulatedScrollY by remember { mutableFloatStateOf(0f) }
 
     val paint = remember {
         Paint().apply {
@@ -98,22 +101,50 @@ fun FullTerminalView(
             terminalBridge.updateTerminalSize(cols, rows)
         }
 
+        var isSelecting by remember { mutableStateOf(false) }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(cols, rows) {
                     detectDragGestures(
-                        onDragStart = { offset ->
-                            val c = (offset.x / charWidth).toInt().coerceIn(0, cols - 1)
-                            val r = (offset.y / charHeight).toInt().coerceIn(0, rows - 1)
-                            selectionStart = Pair(r, c)
-                            selectionEnd = Pair(r, c)
+                        onDragStart = { _ ->
+                            accumulatedScrollY = 0f
+                            isSelecting = false
                         },
-                        onDrag = { change, _ ->
-                            val offset = change.position
-                            val c = (offset.x / charWidth).toInt().coerceIn(0, cols - 1)
-                            val r = (offset.y / charHeight).toInt().coerceIn(0, rows - 1)
-                            selectionEnd = Pair(r, c)
+                        onDrag = { change, dragAmount ->
+                            // Check if gesture is primarily horizontal text selection vs vertical scrolling
+                            val absX = kotlin.math.abs(dragAmount.x)
+                            val absY = kotlin.math.abs(dragAmount.y)
+
+                            if (!isSelecting && absX > absY * 1.5f && selectionStart == null) {
+                                isSelecting = true
+                                val offset = change.position
+                                val c = (offset.x / charWidth).toInt().coerceIn(0, cols - 1)
+                                val r = (offset.y / charHeight).toInt().coerceIn(0, rows - 1)
+                                selectionStart = Pair(r, c)
+                                selectionEnd = Pair(r, c)
+                            }
+
+                            if (isSelecting || selectionStart != null) {
+                                val offset = change.position
+                                val c = (offset.x / charWidth).toInt().coerceIn(0, cols - 1)
+                                val r = (offset.y / charHeight).toInt().coerceIn(0, rows - 1)
+                                selectionEnd = Pair(r, c)
+                            } else {
+                                // Pure Vertical Scroll Mode - No selection highlighting interference
+                                accumulatedScrollY += dragAmount.y
+                                val threshold = charHeight * 0.8f
+                                if (accumulatedScrollY > threshold) {
+                                    val lines = (accumulatedScrollY / charHeight).toInt()
+                                    terminalBridge.scrollUp(lines)
+                                    accumulatedScrollY %= charHeight
+                                } else if (accumulatedScrollY < -threshold) {
+                                    val lines = (-accumulatedScrollY / charHeight).toInt()
+                                    terminalBridge.scrollDown(lines)
+                                    accumulatedScrollY %= charHeight
+                                }
+                            }
                         }
                     )
                 }
@@ -218,6 +249,14 @@ fun FullTerminalView(
                                     }
                                     true
                                 }
+                                event.key == Key.PageUp -> {
+                                    terminalBridge.scrollUp(rows / 2)
+                                    true
+                                }
+                                event.key == Key.PageDown -> {
+                                    terminalBridge.scrollDown(rows / 2)
+                                    true
+                                }
                                 event.key == Key.Enter -> {
                                     terminalBridge.sendInput("\r")
                                     textFieldValue = TextFieldValue("  ", TextRange(2))
@@ -285,16 +324,13 @@ fun FullTerminalView(
                 val renderTick = refreshTrigger
 
                 val emulator = terminalBridge.emulator
-                val grid = emulator.grid
                 val curX = emulator.cursorX
                 val curY = emulator.cursorY
                 val cursorVisible = emulator.cursorVisible
+                val isScrolledBack = emulator.scrollOffset > 0
 
-                val actualRows = grid.size
-                val actualCols = if (actualRows > 0) grid[0].size else 0
-
-                val canvas = drawContext.canvas.nativeCanvas
-                val renderRows = min(rows, actualRows)
+                val renderRows = min(rows, emulator.rows)
+                val nativeCanvas = drawContext.canvas.nativeCanvas
 
                 // Selection calculation
                 val selStart = selectionStart
@@ -306,7 +342,9 @@ fun FullTerminalView(
 
                 for (r in 0 until renderRows) {
                     val rowY = r * charHeight
-                    val rowChars = grid[r]
+                    val rowChars = emulator.getRenderRow(r)
+                    val actualCols = rowChars.size
+
                     for (c in 0 until actualCols) {
                         val cell: TerminalChar = rowChars[c]
                         val cellX = c * charWidth
@@ -316,15 +354,15 @@ fun FullTerminalView(
 
                         if (isSelected) {
                             paint.color = Color(0x99007ACC).toArgb()
-                            canvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)
+                            nativeCanvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)
                         } else if (cell.bgColor != Color.Transparent) {
                             paint.color = cell.bgColor.toArgb()
-                            canvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)
+                            nativeCanvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)
                         }
 
-                        if (cursorVisible && r == curY && c == curX) {
+                        if (!isScrolledBack && cursorVisible && r == curY && c == curX) {
                             paint.color = Color(0xFF00FF00).toArgb()
-                            canvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)
+                            nativeCanvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)
                             paint.color = Color.Black.toArgb()
                         } else if (isSelected) {
                             paint.color = Color.White.toArgb()
@@ -336,7 +374,7 @@ fun FullTerminalView(
                         paint.isUnderlineText = cell.underline
 
                         if (cell.ch != ' ') {
-                            canvas.drawText(
+                            nativeCanvas.drawText(
                                 cell.ch.toString(),
                                 cellX,
                                 rowY + baselineOffset,
@@ -392,6 +430,39 @@ fun FullTerminalView(
                         ) {
                             Icon(Icons.Default.Close, contentDescription = "Clear Selection", tint = Color.LightGray)
                         }
+                    }
+                }
+            }
+
+            // Floating "Scroll to Bottom" Button when scrolled up into history
+            if (terminalBridge.emulator.scrollOffset > 0) {
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(bottom = 16.dp, end = 16.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color(0xFF007ACC),
+                    shadowElevation = 6.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .clickable { terminalBridge.scrollToBottom() }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowDownward,
+                            contentDescription = "Scroll to Bottom",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Scroll to Bottom (${terminalBridge.emulator.scrollOffset})",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
