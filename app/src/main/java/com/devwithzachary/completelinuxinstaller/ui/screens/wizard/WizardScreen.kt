@@ -227,9 +227,38 @@ fun WizardScreen(
                         }
 
                         val context = LocalContext.current
-                        val isStorageGranted = remember {
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                android.os.Environment.isExternalStorageManager()
+                        var isStorageGranted by remember {
+                            mutableStateOf(
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    androidx.core.content.ContextCompat.checkSelfPermission(
+                                        context,
+                                        android.Manifest.permission.READ_MEDIA_IMAGES
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                                    androidx.core.content.ContextCompat.checkSelfPermission(
+                                        context,
+                                        android.Manifest.permission.READ_MEDIA_VIDEO
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                } else {
+                                    androidx.core.content.ContextCompat.checkSelfPermission(
+                                        context,
+                                        android.Manifest.permission.READ_EXTERNAL_STORAGE
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                }
+                            )
+                        }
+
+                        val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                            contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+                        ) { _ ->
+                            isStorageGranted = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context,
+                                    android.Manifest.permission.READ_MEDIA_IMAGES
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                                androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context,
+                                    android.Manifest.permission.READ_MEDIA_VIDEO
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                             } else {
                                 androidx.core.content.ContextCompat.checkSelfPermission(
                                     context,
@@ -259,14 +288,14 @@ fun WizardScreen(
                                         tint = if (isStorageGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                                     )
                                     Text(
-                                        text = "Storage & File Access Permission",
+                                        text = "Device Storage & Media Access",
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.titleMedium
                                     )
                                 }
 
                                 Text(
-                                    text = "LinuxOnAndroid uses storage access to mount your device's files (/sdcard and Downloads) directly into the Linux environment, and to save container backup archives.",
+                                    text = "LinuxOnAndroid mounts host storage (/sdcard and Downloads) directly into your Linux environment. Grant storage permission so Linux container apps can read your device files.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -277,18 +306,26 @@ fun WizardScreen(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
-                                        Text("Storage Access Permission Granted", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50), fontSize = 13.sp)
+                                        Text("Storage & Media Permission Granted", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50), fontSize = 13.sp)
                                     }
                                 } else {
                                     Button(
                                         onClick = {
-                                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                                try {
-                                                    val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                                        data = android.net.Uri.parse("package:${context.packageName}")
-                                                    }
-                                                    context.startActivity(intent)
-                                                } catch (_: Exception) {}
+                                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                                permissionLauncher.launch(
+                                                    arrayOf(
+                                                        android.Manifest.permission.READ_MEDIA_IMAGES,
+                                                        android.Manifest.permission.READ_MEDIA_VIDEO,
+                                                        android.Manifest.permission.READ_MEDIA_AUDIO
+                                                    )
+                                                )
+                                            } else {
+                                                permissionLauncher.launch(
+                                                    arrayOf(
+                                                        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                                                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                                    )
+                                                )
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth(),
@@ -297,7 +334,7 @@ fun WizardScreen(
                                     ) {
                                         Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Grant Storage Permission")
+                                        Text("Grant Storage & Media Permission")
                                     }
                                 }
                             }

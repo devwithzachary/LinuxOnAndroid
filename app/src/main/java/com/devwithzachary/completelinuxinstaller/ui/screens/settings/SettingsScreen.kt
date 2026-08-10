@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -653,9 +654,38 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Bold
                 )
 
-                val isStorageGranted = remember {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                        android.os.Environment.isExternalStorageManager()
+                var isStorageGranted by remember {
+                    mutableStateOf(
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.READ_MEDIA_IMAGES
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.READ_MEDIA_VIDEO
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        } else {
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        }
+                    )
+                }
+
+                val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+                ) { _ ->
+                    isStorageGranted = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.READ_MEDIA_IMAGES
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.READ_MEDIA_VIDEO
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                     } else {
                         androidx.core.content.ContextCompat.checkSelfPermission(
                             context,
@@ -664,9 +694,9 @@ fun SettingsScreen(
                     }
                 }
 
-                // Storage Permission Explanation Card
+                // Storage Information Card
                 Surface(
-                    color = if (isStorageGranted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.errorContainer,
+                    color = if (isStorageGranted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -679,27 +709,27 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = if (isStorageGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                imageVector = if (isStorageGranted) Icons.Default.CheckCircle else Icons.Default.Folder,
                                 contentDescription = null,
-                                tint = if (isStorageGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                tint = if (isStorageGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                             )
                             Text(
                                 text = "Device File & Storage Permission",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleSmall,
-                                color = if (isStorageGranted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
 
                         Text(
-                            text = "LinuxOnAndroid requires All Files Access permission to expose your host storage (/sdcard, /storage/emulated/0, and ~/Downloads) inside the Linux container, and to save/restore container backup archives. Without this permission, /sdcard will appear empty.",
+                            text = "LinuxOnAndroid exposes host storage (/sdcard, /storage/emulated/0, and ~/Downloads) inside the Linux container. Backup exports & imports use standard Storage Access Framework (SAF) document pickers.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isStorageGranted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         if (isStorageGranted) {
                             Text(
-                                text = "✓ All Files Storage Access Enabled",
+                                text = "✓ Storage & Media Access Enabled",
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF4CAF50),
                                 fontSize = 12.sp
@@ -707,22 +737,29 @@ fun SettingsScreen(
                         } else {
                             Button(
                                 onClick = {
-                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                        try {
-                                            val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                                data = android.net.Uri.parse("package:${context.packageName}")
-                                            }
-                                            context.startActivity(intent)
-                                        } catch (_: Exception) {}
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                        permissionLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.READ_MEDIA_IMAGES,
+                                                android.Manifest.permission.READ_MEDIA_VIDEO,
+                                                android.Manifest.permission.READ_MEDIA_AUDIO
+                                            )
+                                        )
+                                    } else {
+                                        permissionLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                            )
+                                        )
                                     }
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Grant Storage Access")
+                                Text("Grant Storage & Media Access")
                             }
                         }
                     }

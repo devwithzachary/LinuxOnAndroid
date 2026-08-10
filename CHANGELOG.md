@@ -2,6 +2,11 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.1.1] - 2026-08-10
+
+### 🛡️ Play Store Policy & Storage Compliance
+- **Scoped Storage & SAF Compliance**: Full Play Store policy compliance with Android Scoped Storage (`getExternalFilesDir`) and Storage Access Framework (SAF) document pickers, removing `MANAGE_EXTERNAL_STORAGE` permission.
+
 ## [1.1.0] - 2026-08-10
 
 ### 💾 RootFS Container Backup & Restore

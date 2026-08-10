@@ -257,9 +257,18 @@ fun AboutScreen() {
                 }
 
                 ChangelogItem(
-                    version = "v1.1.0",
+                    version = "v1.1.1",
                     date = "August 10, 2026",
                     initialExpanded = true,
+                    highlights = listOf(
+                        "Google Play Policy Compliance: Switched storage mounting to Android Scoped Storage & Storage Access Framework (SAF), removing MANAGE_EXTERNAL_STORAGE permission."
+                    )
+                )
+
+                ChangelogItem(
+                    version = "v1.1.0",
+                    date = "August 10, 2026",
+                    initialExpanded = false,
                     highlights = listOf(
                         "1-Tap RootFS Container Backup & Restore: Export and import complete Ubuntu rootfs archives (.tar.gz) with real-time extraction and compression progress bars.",
                         "Terminal Color Theme Packs: Added Dracula, Solarized Dark, Monokai, One Dark, and Cyberpunk ANSI color palettes.",

@@ -137,25 +137,49 @@ class PRootEngine(val context: Context) {
                 "/proc/self:/proc/1"
             )
             if (config.bindSdCard) {
+                val appExternalFilesDir = context.getExternalFilesDir(null)
+                val appSdcard = if (appExternalFilesDir != null) {
+                    File(appExternalFilesDir, "sdcard").apply { if (!exists()) mkdirs() }
+                } else null
+
+                try {
+                    File(config.rootfsDir, "sdcard").mkdirs()
+                    File(config.rootfsDir, "mnt/sdcard").mkdirs()
+                    File(config.rootfsDir, "storage/emulated/0").mkdirs()
+                    File(config.rootfsDir, "root/Downloads").mkdirs()
+                    File(config.rootfsDir, "sdcard/AppStorage").mkdirs()
+                    File(config.rootfsDir, "sdcard/Download").mkdirs()
+                    File(config.rootfsDir, "sdcard/Documents").mkdirs()
+                } catch (_: Exception) {}
+
+                if (appSdcard != null) {
+                    mounts.add("${appSdcard.absolutePath}:/sdcard")
+                    mounts.add("${appSdcard.absolutePath}:/mnt/sdcard")
+                } else if (appExternalFilesDir != null) {
+                    mounts.add("${appExternalFilesDir.absolutePath}:/sdcard")
+                    mounts.add("${appExternalFilesDir.absolutePath}:/mnt/sdcard")
+                }
+
                 val hostSdcard = Environment.getExternalStorageDirectory()
                 if (hostSdcard.exists()) {
-                    val hostPath = hostSdcard.absolutePath
-                    try {
-                        File(config.rootfsDir, "sdcard").mkdirs()
-                        File(config.rootfsDir, "mnt/sdcard").mkdirs()
-                        File(config.rootfsDir, "storage/emulated/0").mkdirs()
-                    } catch (_: Exception) {}
-
-                    mounts.add("$hostPath:/sdcard")
-                    mounts.add("$hostPath:/storage/emulated/0")
-                    mounts.add("$hostPath:/mnt/sdcard")
-
-                    val downloadsHost = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-                    if (downloadsHost.exists()) {
-                        try { File(config.rootfsDir, "root/Downloads").mkdirs() } catch (_: Exception) {}
-                        mounts.add("${downloadsHost.absolutePath}:/root/Downloads")
-                    }
+                    mounts.add("${hostSdcard.absolutePath}:/storage/emulated/0")
                 }
+
+                val downloadsHost = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                if (downloadsHost.exists()) {
+                    mounts.add("${downloadsHost.absolutePath}:/root/Downloads")
+                    mounts.add("${downloadsHost.absolutePath}:/sdcard/Download")
+                }
+
+                val documentsHost = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+                if (documentsHost.exists()) {
+                    mounts.add("${documentsHost.absolutePath}:/sdcard/Documents")
+                }
+
+                if (appExternalFilesDir != null) {
+                    mounts.add("${appExternalFilesDir.absolutePath}:/sdcard/AppStorage")
+                }
+
                 val storageDir = File("/storage")
                 if (storageDir.exists()) {
                     mounts.add("/storage")
