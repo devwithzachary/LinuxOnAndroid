@@ -74,7 +74,10 @@ class TerminalEmulator(
     var scrollBottom = rows - 1
         private set
 
-    private var currentFg: Color = Color(0xFFE0E0E0)
+    var theme: com.devwithzachary.completelinuxinstaller.theme.TerminalTheme = com.devwithzachary.completelinuxinstaller.theme.TerminalTheme.DRACULA
+        private set
+
+    private var currentFg: Color = theme.defaultFg
     private var currentBg: Color = Color.Transparent
     private var isBold = false
     private var isUnderline = false
@@ -88,24 +91,17 @@ class TerminalEmulator(
     private val csiParams = StringBuilder()
 
     // 16 Standard ANSI Colors
-    private val ansiColors = arrayOf(
-        Color(0xFF000000), // Black
-        Color(0xFFCD0000), // Red
-        Color(0xFF00CD00), // Green
-        Color(0xFFCDCD00), // Yellow
-        Color(0xFF0000EE), // Blue
-        Color(0xFFCD00CD), // Magenta
-        Color(0xFF00CDCD), // Cyan
-        Color(0xFFE5E5E5), // White
-        Color(0xFF7F7F7F), // Bright Black
-        Color(0xFFFF0000), // Bright Red
-        Color(0xFF00FF00), // Bright Green
-        Color(0xFFFFFF00), // Bright Yellow
-        Color(0xFF5C5CFF), // Bright Blue
-        Color(0xFFFF00FF), // Bright Magenta
-        Color(0xFF00FFFF), // Bright Cyan
-        Color(0xFFFFFFFF)  // Bright White
-    )
+    private val ansiColors = Array(16) { i -> theme.ansiColors.getOrElse(i) { Color.White } }
+
+    fun applyTheme(newTheme: com.devwithzachary.completelinuxinstaller.theme.TerminalTheme) {
+        theme = newTheme
+        for (i in 0 until 16) {
+            if (i < newTheme.ansiColors.size) {
+                ansiColors[i] = newTheme.ansiColors[i]
+            }
+        }
+        resetSgr()
+    }
 
     fun resize(newCols: Int, newRows: Int) {
         if (newCols <= 0 || newRows <= 0) return
@@ -462,7 +458,7 @@ class TerminalEmulator(
     }
 
     private fun resetSgr() {
-        currentFg = Color(0xFFE0E0E0)
+        currentFg = theme.defaultFg
         currentBg = Color.Transparent
         isBold = false
         isUnderline = false

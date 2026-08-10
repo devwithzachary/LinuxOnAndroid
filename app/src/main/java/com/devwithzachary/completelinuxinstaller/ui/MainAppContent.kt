@@ -185,9 +185,15 @@ fun MainAppContent(viewModel: MainViewModel) {
                     }
 
                     AppScreen.SETTINGS -> {
+                        val terminalTheme by viewModel.terminalTheme.collectAsState()
                         SettingsScreen(
                             state = dashboardState,
                             backupState = backupState,
+                            terminalTheme = terminalTheme,
+                            onSelectTheme = { themeId -> viewModel.setTerminalTheme(themeId) },
+                            onUpdateCustomTheme = { fg, bg, cursor, sel, ansi ->
+                                viewModel.updateCustomTheme(fg, bg, cursor, sel, ansi)
+                            },
                             onToggleBindSdCard = { viewModel.toggleBindSdCard() },
                             onWipeRootfsClick = { viewModel.wipeRootfs() },
                             onRefreshStatusClick = { viewModel.refreshStatus() },

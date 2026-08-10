@@ -7,11 +7,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
@@ -21,11 +28,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
 
@@ -33,6 +43,9 @@ import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
 fun SettingsScreen(
     state: DashboardUiState,
     backupState: BackupState = BackupState.Idle,
+    terminalTheme: TerminalTheme = TerminalTheme.DRACULA,
+    onSelectTheme: (String) -> Unit = {},
+    onUpdateCustomTheme: (Color, Color, Color, Color, List<Color>) -> Unit = { _, _, _, _, _ -> },
     onToggleBindSdCard: () -> Unit,
     onWipeRootfsClick: () -> Unit,
     onRefreshStatusClick: () -> Unit,
@@ -139,6 +152,388 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+
+        // Terminal Color Theme Pack Card
+        var showCustomThemeDialog by remember { mutableStateOf(false) }
+        var editingColorTarget by remember { mutableStateOf<String?>(null) }
+        var colorHexInput by remember { mutableStateOf("") }
+
+        var customFg by remember(terminalTheme) { mutableStateOf(terminalTheme.defaultFg) }
+        var customBg by remember(terminalTheme) { mutableStateOf(terminalTheme.defaultBg) }
+        var customCursor by remember(terminalTheme) { mutableStateOf(terminalTheme.cursorColor) }
+        var customSelection by remember(terminalTheme) { mutableStateOf(terminalTheme.selectionColor) }
+        var customAnsiColors by remember(terminalTheme) { mutableStateOf(terminalTheme.ansiColors.toMutableList()) }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Palette,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Column {
+                        Text(
+                            text = "Terminal Color Theme",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Choose from standard color themes or create your own custom ANSI palette.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Horizontal Preset Chips
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(vertical = 4.dp)
+                ) {
+                    val allThemes = TerminalTheme.PRESETS + listOf(
+                        TerminalTheme(
+                            id = "custom",
+                            name = "Custom",
+                            defaultFg = customFg,
+                            defaultBg = customBg,
+                            cursorColor = customCursor,
+                            selectionColor = customSelection,
+                            ansiColors = customAnsiColors
+                        )
+                    )
+
+                    items(allThemes) { theme ->
+                        val isSelected = terminalTheme.id == theme.id
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                if (theme.id == "custom" && isSelected) {
+                                    showCustomThemeDialog = true
+                                } else {
+                                    onSelectTheme(theme.id)
+                                }
+                            },
+                            label = { Text(theme.name) },
+                            leadingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(theme.defaultBg)
+                                        .border(1.dp, theme.defaultFg, CircleShape)
+                                )
+                            },
+                            trailingIcon = if (theme.id == "custom") {
+                                {
+                                    IconButton(
+                                        onClick = { showCustomThemeDialog = true },
+                                        modifier = Modifier.size(16.dp)
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Edit Custom Theme", modifier = Modifier.size(12.dp))
+                                    }
+                                }
+                            } else null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
+                }
+
+                // Interactive Live Terminal Preview Box
+                Surface(
+                    color = terminalTheme.defaultBg,
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, terminalTheme.selectionColor),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "root@ubuntu:~# ",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = terminalTheme.ansiColors.getOrElse(2) { Color.Green }
+                            )
+                            Text(
+                                text = "neofetch",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                color = terminalTheme.defaultFg
+                            )
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "OS: ",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = terminalTheme.ansiColors.getOrElse(6) { Color.Cyan }
+                            )
+                            Text(
+                                text = "Ubuntu 26.04 LTS (ARM64)",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                color = terminalTheme.defaultFg
+                            )
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Kernel: ",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = terminalTheme.ansiColors.getOrElse(3) { Color.Yellow }
+                            )
+                            Text(
+                                text = "6.1.0-linuxonandroid",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                color = terminalTheme.defaultFg
+                            )
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Terminal: ",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = terminalTheme.ansiColors.getOrElse(5) { Color.Magenta }
+                            )
+                            Text(
+                                text = "LinuxOnAndroid PTY ",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 12.sp,
+                                color = terminalTheme.defaultFg
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp, 14.dp)
+                                    .background(terminalTheme.cursorColor)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Palette 16 Color Dots Row
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            terminalTheme.ansiColors.take(16).forEach { color ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clip(CircleShape)
+                                        .background(color)
+                                        .border(0.5.dp, Color.White.copy(alpha = 0.3f), CircleShape)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (terminalTheme.id == "custom") {
+                    Button(
+                        onClick = { showCustomThemeDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Customize Palette & Colors")
+                    }
+                }
+            }
+        }
+
+        // Custom Theme Editor Dialog
+        if (showCustomThemeDialog) {
+            AlertDialog(
+                onDismissRequest = { showCustomThemeDialog = false },
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Palette, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text("Custom Theme Creator")
+                    }
+                },
+                text = {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Tap any color swatch to edit its Hex color value.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Text("Base Interface Colors", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+
+                        ColorSwatchPickerRow("Foreground (Text)", customFg) {
+                            editingColorTarget = "fg"
+                            colorHexInput = TerminalTheme.colorToHex(customFg)
+                        }
+
+                        ColorSwatchPickerRow("Background (Canvas)", customBg) {
+                            editingColorTarget = "bg"
+                            colorHexInput = TerminalTheme.colorToHex(customBg)
+                        }
+
+                        ColorSwatchPickerRow("Cursor Color", customCursor) {
+                            editingColorTarget = "cursor"
+                            colorHexInput = TerminalTheme.colorToHex(customCursor)
+                        }
+
+                        ColorSwatchPickerRow("Selection Highlight", customSelection) {
+                            editingColorTarget = "selection"
+                            colorHexInput = TerminalTheme.colorToHex(customSelection)
+                        }
+
+                        HorizontalDivider()
+
+                        Text("ANSI 16 Color Palette", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+
+                        val colorNames = listOf(
+                            "0: Black", "1: Red", "2: Green", "3: Yellow",
+                            "4: Blue", "5: Magenta", "6: Cyan", "7: White",
+                            "8: Bright Black", "9: Bright Red", "10: Bright Green", "11: Bright Yellow",
+                            "12: Bright Blue", "13: Bright Magenta", "14: Bright Cyan", "15: Bright White"
+                        )
+
+                        colorNames.forEachIndexed { index, name ->
+                            val color = customAnsiColors.getOrElse(index) { Color.White }
+                            ColorSwatchPickerRow(name, color) {
+                                editingColorTarget = "ansi_$index"
+                                colorHexInput = TerminalTheme.colorToHex(color)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showCustomThemeDialog = false
+                            onUpdateCustomTheme(customFg, customBg, customCursor, customSelection, customAnsiColors)
+                        }
+                    ) {
+                        Text("Save Theme")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCustomThemeDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
+        // Inner Hex Picker Dialog
+        editingColorTarget?.let { target ->
+            AlertDialog(
+                onDismissRequest = { editingColorTarget = null },
+                title = { Text("Edit Hex Color") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(
+                            value = colorHexInput,
+                            onValueChange = { colorHexInput = it },
+                            label = { Text("Hex Code (e.g. #FF0055)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("Preview:", fontWeight = FontWeight.SemiBold)
+                            val parsed = TerminalTheme.hexToColor(colorHexInput, Color.Gray)
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(parsed)
+                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                            )
+                        }
+
+                        Text("Quick Swatches", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                        val quickSwatches = listOf(
+                            Color(0xFF282A36), Color(0xFF002B36), Color(0xFF272822), Color(0xFF0D0221),
+                            Color(0xFFFF5555), Color(0xFF50FA7B), Color(0xFFF1FA8C), Color(0xFFBD93F9),
+                            Color(0xFFFF79C6), Color(0xFF8BE9FD), Color(0xFF00FF9F), Color(0xFFFF0055)
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            quickSwatches.take(6).forEach { swatch ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(swatch)
+                                        .clickable { colorHexInput = TerminalTheme.colorToHex(swatch) }
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val newColor = TerminalTheme.hexToColor(colorHexInput, Color.White)
+                            when {
+                                target == "fg" -> customFg = newColor
+                                target == "bg" -> customBg = newColor
+                                target == "cursor" -> customCursor = newColor
+                                target == "selection" -> customSelection = newColor
+                                target.startsWith("ansi_") -> {
+                                    val idx = target.removePrefix("ansi_").toIntOrNull() ?: 0
+                                    if (idx in 0..15) {
+                                        val newList = customAnsiColors.toMutableList()
+                                        newList[idx] = newColor
+                                        customAnsiColors = newList
+                                    }
+                                }
+                            }
+                            editingColorTarget = null
+                        }
+                    ) {
+                        Text("Apply Color")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { editingColorTarget = null }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
 
         // Users & Account Management Card
@@ -650,5 +1045,41 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun ColorSwatchPickerRow(
+    title: String,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(title, style = MaterialTheme.typography.bodyMedium)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = TerminalTheme.colorToHex(color),
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(color)
+                    .border(1.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+            )
+        }
     }
 }

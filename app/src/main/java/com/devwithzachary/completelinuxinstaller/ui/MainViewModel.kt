@@ -1,7 +1,9 @@
 package com.devwithzachary.completelinuxinstaller.ui
 
 import android.app.Application
+import android.content.Context
 import android.util.Log
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.devwithzachary.completelinuxinstaller.engine.DownloadState
@@ -14,6 +16,7 @@ import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.LinuxDistribution
 import com.devwithzachary.completelinuxinstaller.model.SoftwareCategory
 import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
+import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +51,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val softwareInstaller = SoftwareInstaller(pRootEngine)
     val terminalBridge = TerminalBridge(pRootEngine)
 
+    private val prefs = application.getSharedPreferences("terminal_theme_prefs", Context.MODE_PRIVATE)
+
+    private val _terminalTheme = MutableStateFlow(loadTerminalTheme())
+    val terminalTheme: StateFlow<TerminalTheme> = _terminalTheme.asStateFlow()
+
     private val _dashboardState = MutableStateFlow(DashboardUiState())
     val dashboardState: StateFlow<DashboardUiState> = _dashboardState.asStateFlow()
 
@@ -69,6 +77,91 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             kotlinx.coroutines.delay(800)
             _dashboardState.value = _dashboardState.value.copy(isInitializing = false)
         }
+    }
+
+    private fun loadTerminalTheme(): TerminalTheme {
+        val themeId = prefs.getString("theme_id", "dracula") ?: "dracula"
+        if (themeId == "custom") {
+            return loadCustomTheme()
+        }
+        val theme = TerminalTheme.getById(themeId)
+        terminalBridge.emulator.applyTheme(theme)
+        return theme
+    }
+
+    private fun loadCustomTheme(): TerminalTheme {
+        val defaultCustom = TerminalTheme.DRACULA.copy(id = "custom", name = "Custom")
+        val fgHex = prefs.getString("custom_fg", TerminalTheme.colorToHex(defaultCustom.defaultFg)) ?: ""
+        val bgHex = prefs.getString("custom_bg", TerminalTheme.colorToHex(defaultCustom.defaultBg)) ?: ""
+        val cursorHex = prefs.getString("custom_cursor", TerminalTheme.colorToHex(defaultCustom.cursorColor)) ?: ""
+        val selHex = prefs.getString("custom_selection", TerminalTheme.colorToHex(defaultCustom.selectionColor)) ?: ""
+        val ansiHexStr = prefs.getString("custom_ansi", "") ?: ""
+
+        val fg = TerminalTheme.hexToColor(fgHex, defaultCustom.defaultFg)
+        val bg = TerminalTheme.hexToColor(bgHex, defaultCustom.defaultBg)
+        val cursor = TerminalTheme.hexToColor(cursorHex, defaultCustom.cursorColor)
+        val sel = TerminalTheme.hexToColor(selHex, defaultCustom.selectionColor)
+
+        val ansiList = if (ansiHexStr.isNotBlank()) {
+            val parts = ansiHexStr.split(",")
+            if (parts.size >= 16) {
+                parts.take(16).mapIndexed { idx, hex ->
+                    TerminalTheme.hexToColor(hex, defaultCustom.ansiColors.getOrElse(idx) { Color.White })
+                }
+            } else defaultCustom.ansiColors
+        } else defaultCustom.ansiColors
+
+        val customTheme = TerminalTheme(
+            id = "custom",
+            name = "Custom",
+            defaultFg = fg,
+            defaultBg = bg,
+            cursorColor = cursor,
+            selectionColor = sel,
+            ansiColors = ansiList
+        )
+        terminalBridge.emulator.applyTheme(customTheme)
+        return customTheme
+    }
+
+    fun setTerminalTheme(themeId: String) {
+        prefs.edit().putString("theme_id", themeId).apply()
+        val theme = if (themeId == "custom") loadCustomTheme() else {
+            val t = TerminalTheme.getById(themeId)
+            terminalBridge.emulator.applyTheme(t)
+            t
+        }
+        _terminalTheme.value = theme
+    }
+
+    fun updateCustomTheme(
+        fg: Color,
+        bg: Color,
+        cursorColor: Color,
+        selectionColor: Color,
+        ansiColors: List<Color>
+    ) {
+        val ansiHex = ansiColors.joinToString(",") { TerminalTheme.colorToHex(it) }
+        prefs.edit()
+            .putString("theme_id", "custom")
+            .putString("custom_fg", TerminalTheme.colorToHex(fg))
+            .putString("custom_bg", TerminalTheme.colorToHex(bg))
+            .putString("custom_cursor", TerminalTheme.colorToHex(cursorColor))
+            .putString("custom_selection", TerminalTheme.colorToHex(selectionColor))
+            .putString("custom_ansi", ansiHex)
+            .apply()
+
+        val customTheme = TerminalTheme(
+            id = "custom",
+            name = "Custom",
+            defaultFg = fg,
+            defaultBg = bg,
+            cursorColor = cursorColor,
+            selectionColor = selectionColor,
+            ansiColors = ansiColors
+        )
+        terminalBridge.emulator.applyTheme(customTheme)
+        _terminalTheme.value = customTheme
     }
 
     fun refreshStatus() {

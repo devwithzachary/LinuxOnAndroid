@@ -324,6 +324,9 @@ fun FullTerminalView(
                 val renderTick = refreshTrigger
 
                 val emulator = terminalBridge.emulator
+                val theme = emulator.theme
+                drawRect(color = theme.defaultBg)
+
                 val curX = emulator.cursorX
                 val curY = emulator.cursorY
                 val cursorVisible = emulator.cursorVisible
@@ -353,7 +356,7 @@ fun FullTerminalView(
                                 (r > minR || c >= minC) && (r < maxR || c <= maxC)
 
                         if (isSelected) {
-                            paint.color = Color(0x99007ACC).toArgb()
+                            paint.color = theme.selectionColor.toArgb()
                             nativeCanvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)
                         } else if (cell.bgColor != Color.Transparent) {
                             paint.color = cell.bgColor.toArgb()
@@ -361,11 +364,11 @@ fun FullTerminalView(
                         }
 
                         if (!isScrolledBack && cursorVisible && r == curY && c == curX) {
-                            paint.color = Color(0xFF00FF00).toArgb()
+                            paint.color = theme.cursorColor.toArgb()
                             nativeCanvas.drawRect(cellX, rowY, cellX + charWidth, rowY + charHeight, paint)
-                            paint.color = Color.Black.toArgb()
+                            paint.color = theme.defaultBg.toArgb()
                         } else if (isSelected) {
-                            paint.color = Color.White.toArgb()
+                            paint.color = theme.defaultFg.toArgb()
                         } else {
                             paint.color = cell.fgColor.toArgb()
                         }
