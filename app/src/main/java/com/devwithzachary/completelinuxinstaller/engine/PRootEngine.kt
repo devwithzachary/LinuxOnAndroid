@@ -1,6 +1,7 @@
 package com.devwithzachary.completelinuxinstaller.engine
 
 import android.content.Context
+import android.os.Environment
 import android.util.Log
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -136,8 +137,29 @@ class PRootEngine(val context: Context) {
                 "/proc/self:/proc/1"
             )
             if (config.bindSdCard) {
-                mounts.add("/sdcard")
-                mounts.add("/storage")
+                val hostSdcard = Environment.getExternalStorageDirectory()
+                if (hostSdcard.exists()) {
+                    val hostPath = hostSdcard.absolutePath
+                    try {
+                        File(config.rootfsDir, "sdcard").mkdirs()
+                        File(config.rootfsDir, "mnt/sdcard").mkdirs()
+                        File(config.rootfsDir, "storage/emulated/0").mkdirs()
+                    } catch (_: Exception) {}
+
+                    mounts.add("$hostPath:/sdcard")
+                    mounts.add("$hostPath:/storage/emulated/0")
+                    mounts.add("$hostPath:/mnt/sdcard")
+
+                    val downloadsHost = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    if (downloadsHost.exists()) {
+                        try { File(config.rootfsDir, "root/Downloads").mkdirs() } catch (_: Exception) {}
+                        mounts.add("${downloadsHost.absolutePath}:/root/Downloads")
+                    }
+                }
+                val storageDir = File("/storage")
+                if (storageDir.exists()) {
+                    mounts.add("/storage")
+                }
             }
             mounts.addAll(config.customMounts)
 

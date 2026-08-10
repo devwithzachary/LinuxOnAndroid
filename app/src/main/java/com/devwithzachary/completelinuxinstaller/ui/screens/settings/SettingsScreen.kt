@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Lock
@@ -15,10 +16,12 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -255,15 +258,90 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Bold
                 )
 
+                val isStorageGranted = remember {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                        android.os.Environment.isExternalStorageManager()
+                    } else {
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.READ_EXTERNAL_STORAGE
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    }
+                }
+
+                // Storage Permission Explanation Card
+                Surface(
+                    color = if (isStorageGranted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isStorageGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = if (isStorageGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "Device File & Storage Permission",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = if (isStorageGranted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+
+                        Text(
+                            text = "LinuxOnAndroid requires All Files Access permission to expose your host storage (/sdcard, /storage/emulated/0, and ~/Downloads) inside the Linux container, and to save/restore container backup archives. Without this permission, /sdcard will appear empty.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isStorageGranted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                        )
+
+                        if (isStorageGranted) {
+                            Text(
+                                text = "✓ All Files Storage Access Enabled",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF4CAF50),
+                                fontSize = 12.sp
+                            )
+                        } else {
+                            Button(
+                                onClick = {
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                        try {
+                                            val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                                                data = android.net.Uri.parse("package:${context.packageName}")
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {}
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Grant Storage Access")
+                            }
+                        }
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Bind Mount /sdcard", fontWeight = FontWeight.SemiBold)
+                        Text("Bind Mount /sdcard & Downloads", fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Expose external Android storage inside /sdcard in PRoot.",
+                            "Expose host storage inside /sdcard, /storage/emulated/0, and ~/Downloads in PRoot.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
