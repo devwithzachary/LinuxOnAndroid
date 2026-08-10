@@ -85,6 +85,7 @@ fun FullTerminalView(
     var textFieldValue by remember {
         mutableStateOf(TextFieldValue("  ", TextRange(2)))
     }
+    var lastText by remember { mutableStateOf("  ") }
 
     BoxWithConstraints(
         modifier = modifier
@@ -213,19 +214,39 @@ fun FullTerminalView(
             BasicTextField(
                 value = textFieldValue,
                 onValueChange = { newValue ->
-                    val oldText = textFieldValue.text
+                    val oldText = lastText
                     val newText = newValue.text
 
-                    if (newText.length > oldText.length) {
-                        val added = newText.substring(oldText.length)
-                        terminalBridge.pasteText(added)
-                    } else if (newText.length < oldText.length) {
-                        // Backspace pressed
-                        terminalBridge.sendInput("\u007F")
+                    if (newText != oldText) {
+                        if (newText.length < oldText.length && (oldText.startsWith(newText) || newText.length < 2)) {
+                            // Backspace pressed
+                            val deleteCount = oldText.length - newText.length
+                            repeat(deleteCount) {
+                                terminalBridge.sendInput("\u007F")
+                            }
+                        } else {
+                            // Text typed or IME composition replacement
+                            val addedText = when {
+                                newText.startsWith(oldText) -> newText.substring(oldText.length)
+                                newText.startsWith("  ") -> newText.substring(2)
+                                else -> {
+                                    var prefixLen = 0
+                                    while (prefixLen < oldText.length && prefixLen < newText.length && oldText[prefixLen] == newText[prefixLen]) {
+                                        prefixLen++
+                                    }
+                                    newText.substring(prefixLen)
+                                }
+                            }
+
+                            if (addedText.isNotEmpty()) {
+                                terminalBridge.pasteText(addedText)
+                            }
+                        }
                     }
 
                     // Reset to baseline "  "
                     textFieldValue = TextFieldValue("  ", TextRange(2))
+                    lastText = "  "
                 },
                 modifier = Modifier
                     .size(1.dp)
@@ -260,11 +281,13 @@ fun FullTerminalView(
                                 event.key == Key.Enter -> {
                                     terminalBridge.sendInput("\r")
                                     textFieldValue = TextFieldValue("  ", TextRange(2))
+                                    lastText = "  "
                                     true
                                 }
                                 event.key == Key.Backspace -> {
                                     terminalBridge.sendInput("\u007F")
                                     textFieldValue = TextFieldValue("  ", TextRange(2))
+                                    lastText = "  "
                                     true
                                 }
                                 event.key == Key.Tab -> {
@@ -307,14 +330,17 @@ fun FullTerminalView(
                     onSend = {
                         terminalBridge.sendInput("\r")
                         textFieldValue = TextFieldValue("  ", TextRange(2))
+                        lastText = "  "
                     },
                     onDone = {
                         terminalBridge.sendInput("\r")
                         textFieldValue = TextFieldValue("  ", TextRange(2))
+                        lastText = "  "
                     },
                     onGo = {
                         terminalBridge.sendInput("\r")
                         textFieldValue = TextFieldValue("  ", TextRange(2))
+                        lastText = "  "
                     }
                 )
             )

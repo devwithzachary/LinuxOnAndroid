@@ -102,9 +102,11 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
         }
     }
 
+    private val writeDispatcher = Dispatchers.IO.limitedParallelism(1)
+
     fun sendInput(input: String) {
         emulator.scrollToBottom()
-        scope.launch {
+        scope.launch(writeDispatcher) {
             try {
                 val proc = ptyProcess
                 if (proc != null && _isRunning.value) {
