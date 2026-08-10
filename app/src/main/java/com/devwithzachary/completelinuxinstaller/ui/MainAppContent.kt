@@ -59,21 +59,6 @@ fun MainAppContent(viewModel: MainViewModel) {
         SplashScreen()
     } else {
         Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = if (!isInstalled) stringResource(R.string.app_title) else stringResource(
-                                currentScreen.titleRes
-                            ),
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                )
-            },
             bottomBar = {
                 val isImeVisible = WindowInsets.isImeVisible
                 if (isInstalled && currentScreen != AppScreen.WIZARD && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
