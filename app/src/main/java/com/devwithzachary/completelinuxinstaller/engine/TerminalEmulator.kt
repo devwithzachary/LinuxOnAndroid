@@ -23,6 +23,38 @@ class TerminalEmulator(
         private set
 
     val scrollback = mutableListOf<Array<TerminalChar>>()
+    var scrollOffset = 0
+        private set
+
+    fun scrollUp(lines: Int = 1) {
+        if (scrollback.isNotEmpty()) {
+            scrollOffset = (scrollOffset + lines).coerceIn(0, scrollback.size)
+        }
+    }
+
+    fun scrollDown(lines: Int = 1) {
+        scrollOffset = (scrollOffset - lines).coerceIn(0, scrollback.size)
+    }
+
+    fun scrollToBottom() {
+        scrollOffset = 0
+    }
+
+    fun getRenderRow(r: Int): Array<TerminalChar> {
+        if (scrollOffset == 0 || scrollback.isEmpty()) {
+            return if (r < grid.size) grid[r] else Array(cols) { TerminalChar() }
+        }
+        val totalHistory = scrollback.size
+        val targetIndex = (totalHistory + r) - scrollOffset
+        return when {
+            targetIndex < 0 -> Array(cols) { TerminalChar() }
+            targetIndex < totalHistory -> scrollback[targetIndex]
+            else -> {
+                val gridIndex = targetIndex - totalHistory
+                if (gridIndex < grid.size) grid[gridIndex] else Array(cols) { TerminalChar() }
+            }
+        }
+    }
 
     var cursorX = 0
         private set
@@ -42,7 +74,10 @@ class TerminalEmulator(
     var scrollBottom = rows - 1
         private set
 
-    private var currentFg: Color = Color(0xFFE0E0E0)
+    var theme: com.devwithzachary.completelinuxinstaller.theme.TerminalTheme = com.devwithzachary.completelinuxinstaller.theme.TerminalTheme.DRACULA
+        private set
+
+    private var currentFg: Color = theme.defaultFg
     private var currentBg: Color = Color.Transparent
     private var isBold = false
     private var isUnderline = false
@@ -56,24 +91,17 @@ class TerminalEmulator(
     private val csiParams = StringBuilder()
 
     // 16 Standard ANSI Colors
-    private val ansiColors = arrayOf(
-        Color(0xFF000000), // Black
-        Color(0xFFCD0000), // Red
-        Color(0xFF00CD00), // Green
-        Color(0xFFCDCD00), // Yellow
-        Color(0xFF0000EE), // Blue
-        Color(0xFFCD00CD), // Magenta
-        Color(0xFF00CDCD), // Cyan
-        Color(0xFFE5E5E5), // White
-        Color(0xFF7F7F7F), // Bright Black
-        Color(0xFFFF0000), // Bright Red
-        Color(0xFF00FF00), // Bright Green
-        Color(0xFFFFFF00), // Bright Yellow
-        Color(0xFF5C5CFF), // Bright Blue
-        Color(0xFFFF00FF), // Bright Magenta
-        Color(0xFF00FFFF), // Bright Cyan
-        Color(0xFFFFFFFF)  // Bright White
-    )
+    private val ansiColors = Array(16) { i -> theme.ansiColors.getOrElse(i) { Color.White } }
+
+    fun applyTheme(newTheme: com.devwithzachary.completelinuxinstaller.theme.TerminalTheme) {
+        theme = newTheme
+        for (i in 0 until 16) {
+            if (i < newTheme.ansiColors.size) {
+                ansiColors[i] = newTheme.ansiColors[i]
+            }
+        }
+        resetSgr()
+    }
 
     fun resize(newCols: Int, newRows: Int) {
         if (newCols <= 0 || newRows <= 0) return
@@ -430,7 +458,7 @@ class TerminalEmulator(
     }
 
     private fun resetSgr() {
-        currentFg = Color(0xFFE0E0E0)
+        currentFg = theme.defaultFg
         currentBg = Color.Transparent
         isBold = false
         isUnderline = false
@@ -453,5 +481,56 @@ class TerminalEmulator(
             }
             else -> Color(0xFFE0E0E0)
         }
+    }
+
+    fun getVisibleText(): String {
+        val sb = StringBuilder()
+        for (r in 0 until rows) {
+            val rowChars = grid[r]
+            val rowStr = rowChars.map { it.ch }.joinToString("").trimEnd()
+            sb.append(rowStr).append("\n")
+        }
+        return sb.toString().trimEnd()
+    }
+
+    fun getAllText(): String {
+        val sb = StringBuilder()
+        for (row in scrollback) {
+            val rowStr = row.map { it.ch }.joinToString("").trimEnd()
+            sb.append(rowStr).append("\n")
+        }
+        for (r in 0 until rows) {
+            val rowChars = grid[r]
+            val rowStr = rowChars.map { it.ch }.joinToString("").trimEnd()
+            sb.append(rowStr).append("\n")
+        }
+        return sb.toString().trimEnd()
+    }
+
+    fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String {
+        if (rows == 0 || cols == 0) return ""
+        val minR = minOf(startRow, endRow).coerceIn(0, rows - 1)
+        val maxR = maxOf(startRow, endRow).coerceIn(0, rows - 1)
+        val minC = minOf(startCol, endCol).coerceIn(0, cols - 1)
+        val maxC = maxOf(startCol, endCol).coerceIn(0, cols - 1)
+
+        val sb = StringBuilder()
+        for (r in minR..maxR) {
+            val line = grid[r]
+            val c1 = if (r == minR) minC else 0
+            val c2 = if (r == maxR) maxC else cols - 1
+
+            val lineChars = CharArray(maxOf(0, c2 - c1 + 1))
+            for (c in c1..c2) {
+                lineChars[c - c1] = line[c].ch
+            }
+            val lineStr = String(lineChars)
+            if (r < maxR) {
+                sb.append(lineStr.trimEnd()).append("\n")
+            } else {
+                sb.append(lineStr)
+            }
+        }
+        return sb.toString()
     }
 }

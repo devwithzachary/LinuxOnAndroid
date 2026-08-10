@@ -145,12 +145,34 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun extractTarGz(tarGzFile: File, targetDir: File) {
+    private suspend fun extractTarGz(
+        tarGzFile: File,
+        targetDir: File,
+        onProgress: (suspend (String, Int) -> Unit)? = null
+    ) {
         try {
             Log.d(TAG, "Extracting tar.gz using native system tar tool...")
-            val pb = ProcessBuilder("tar", "-xzf", tarGzFile.absolutePath, "-C", targetDir.absolutePath)
+            val pb = ProcessBuilder("tar", "-xzvf", tarGzFile.absolutePath, "-C", targetDir.absolutePath)
             pb.redirectErrorStream(true)
             val proc = pb.start()
+
+            val reader = proc.inputStream.bufferedReader()
+            var extractedFiles = 0
+            var lastUpdate = System.currentTimeMillis()
+
+            var line: String? = reader.readLine()
+            while (line != null) {
+                extractedFiles++
+                val now = System.currentTimeMillis()
+                if (onProgress != null && now - lastUpdate > 100) {
+                    lastUpdate = now
+                    val fileName = line.removePrefix("./").takeLast(35)
+                    val percent = 50 + ((extractedFiles * 35) / 15000).coerceIn(0, 35)
+                    onProgress("Extracting: $fileName ($extractedFiles files)", percent)
+                }
+                line = reader.readLine()
+            }
+
             val exitVal = proc.waitFor()
             Log.d(TAG, "Native tar extraction exit code: $exitVal")
 
@@ -658,5 +680,141 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         if (rootfsDir.exists()) {
             rootfsDir.deleteRecursively()
         } else true
+    }
+
+    suspend fun exportContainerToStream(
+        outputStream: java.io.OutputStream,
+        onProgress: suspend (String, Int) -> Unit
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (!rootfsDir.exists()) {
+            onProgress("RootFS container directory does not exist.", -1)
+            return@withContext false
+        }
+        try {
+            onProgress("Counting files for compression...", 5)
+            val totalFiles = try {
+                rootfsDir.walkTopDown().count().coerceAtLeast(1)
+            } catch (_: Exception) { 10000 }
+
+            onProgress("Compressing container image...", 10)
+            val tempBackupFile = File(context.cacheDir, "container_export_temp.tar.gz")
+            if (tempBackupFile.exists()) tempBackupFile.delete()
+
+            val pb = ProcessBuilder("tar", "-czvf", tempBackupFile.absolutePath, "-C", rootfsDir.absolutePath, ".")
+            pb.redirectErrorStream(true)
+            val proc = pb.start()
+
+            val reader = proc.inputStream.bufferedReader()
+            var compressedFiles = 0
+            var lastUpdate = System.currentTimeMillis()
+
+            var line: String? = reader.readLine()
+            while (line != null) {
+                compressedFiles++
+                val now = System.currentTimeMillis()
+                if (now - lastUpdate > 100) {
+                    lastUpdate = now
+                    val fileName = line.removePrefix("./").takeLast(35)
+                    val percent = 10 + ((compressedFiles * 40) / totalFiles).coerceIn(0, 40)
+                    onProgress("Compressing: $fileName ($compressedFiles / $totalFiles files)", percent)
+                }
+                line = reader.readLine()
+            }
+            val exitCode = proc.waitFor()
+
+            if (exitCode != 0 || !tempBackupFile.exists()) {
+                onProgress("Native compression code $exitCode, generating stream archive...", 50)
+            } else {
+                onProgress("Writing backup archive to storage file...", 50)
+            }
+
+            if (tempBackupFile.exists() && tempBackupFile.length() > 0) {
+                val totalBytes = tempBackupFile.length()
+                var bytesWritten = 0L
+                val buffer = ByteArray(65536)
+
+                tempBackupFile.inputStream().use { input ->
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read == -1) break
+                        outputStream.write(buffer, 0, read)
+                        bytesWritten += read
+                        val percent = 50 + ((bytesWritten * 50) / totalBytes).toInt()
+                        onProgress("Saving backup file (${bytesWritten / (1024 * 1024)} MB)...", percent.coerceIn(50, 99))
+                    }
+                }
+                outputStream.flush()
+                tempBackupFile.delete()
+                onProgress("Container export completed successfully!", 100)
+                true
+            } else {
+                onProgress("Failed to create container archive.", -1)
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error exporting container", e)
+            onProgress("Export failed: ${e.localizedMessage}", -1)
+            false
+        }
+    }
+
+    suspend fun importContainerFromStream(
+        inputStream: java.io.InputStream,
+        onProgress: suspend (String, Int) -> Unit
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            onProgress("Reading container archive file...", 10)
+            val tempImportFile = File(context.cacheDir, "container_import_temp.tar.gz")
+            if (tempImportFile.exists()) tempImportFile.delete()
+
+            var totalBytesRead = 0L
+            val buffer = ByteArray(65536)
+            FileOutputStream(tempImportFile).use { out ->
+                while (true) {
+                    val read = inputStream.read(buffer)
+                    if (read == -1) break
+                    out.write(buffer, 0, read)
+                    totalBytesRead += read
+                    onProgress("Reading archive (${totalBytesRead / (1024 * 1024)} MB)...", 25)
+                }
+            }
+
+            if (!tempImportFile.exists() || tempImportFile.length() == 0L) {
+                onProgress("Imported backup file is empty or unreadable.", -1)
+                return@withContext false
+            }
+
+            onProgress("Clearing active RootFS container...", 35)
+            if (rootfsDir.exists()) {
+                rootfsDir.deleteRecursively()
+            }
+            rootfsDir.mkdirs()
+
+            onProgress("Extracting RootFS file system...", 50)
+            extractTarGz(tempImportFile, rootfsDir, onProgress)
+
+            // Fix any un-nested or nested wrapper directory structure (e.g. ubuntu_rootfs/)
+            val nestedDir = File(rootfsDir, "ubuntu_rootfs")
+            if (nestedDir.exists() && nestedDir.isDirectory) {
+                Log.d(TAG, "Un-nesting backup files from ubuntu_rootfs wrapper...")
+                nestedDir.listFiles()?.forEach { child ->
+                    val dest = File(rootfsDir, child.name)
+                    if (dest.exists()) dest.deleteRecursively()
+                    child.renameTo(dest)
+                }
+                nestedDir.deleteRecursively()
+            }
+
+            onProgress("Configuring DNS resolvers and permissions...", 85)
+            configureSystemFiles()
+
+            tempImportFile.delete()
+            onProgress("Container restored successfully!", 100)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error importing container", e)
+            onProgress("Import failed: ${e.localizedMessage}", -1)
+            false
+        }
     }
 }

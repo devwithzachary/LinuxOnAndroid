@@ -8,7 +8,7 @@ object HotkeyManager {
     const val KEY_CUSTOM_HOTKEYS = "custom_hotkeys"
 
     val DEFAULT_HOTKEYS = listOf(
-        "Esc", "Tab", "▲", "▼", "◄", "►", ":",
+        "Paste", "Esc", "Tab", "▲", "▼", "◄", "►", ":",
         "Ctrl+C", "Ctrl+Z", "Ctrl+D", "/", "-", "_", "~", "|",
         "clear", "htop", "uname -a", "df -h"
     )

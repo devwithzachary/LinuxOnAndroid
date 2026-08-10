@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Terminal
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -27,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.DownloadState
 import com.devwithzachary.completelinuxinstaller.ui.components.FeatureInfoRow
@@ -221,6 +224,83 @@ fun WizardScreen(
                                 title = stringResource(R.string.feature_cli_title),
                                 description = stringResource(R.string.feature_cli_desc)
                             )
+                        }
+
+                        val context = LocalContext.current
+                        val isStorageGranted = remember {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                android.os.Environment.isExternalStorageManager()
+                            } else {
+                                androidx.core.content.ContextCompat.checkSelfPermission(
+                                    context,
+                                    android.Manifest.permission.READ_EXTERNAL_STORAGE
+                                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isStorageGranted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isStorageGranted) Icons.Default.CheckCircle else Icons.Default.Folder,
+                                        contentDescription = null,
+                                        tint = if (isStorageGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                                    )
+                                    Text(
+                                        text = "Storage & File Access Permission",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
+
+                                Text(
+                                    text = "LinuxOnAndroid uses storage access to mount your device's files (/sdcard and Downloads) directly into the Linux environment, and to save container backup archives.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                if (isStorageGranted) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                                        Text("Storage Access Permission Granted", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50), fontSize = 13.sp)
+                                    }
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                                try {
+                                                    val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                                                        data = android.net.Uri.parse("package:${context.packageName}")
+                                                    }
+                                                    context.startActivity(intent)
+                                                } catch (_: Exception) {}
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                                    ) {
+                                        Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Grant Storage Permission")
+                                    }
+                                }
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))

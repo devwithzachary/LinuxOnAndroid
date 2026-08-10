@@ -1,0 +1,5 @@
+• 1-Tap RootFS Container Backup & Restore with progress bars.
+• Terminal Color Theme Packs (Dracula, Solarized Dark, Monokai, One Dark, Cyberpunk) & Custom Palette Creator.
+• Terminal Scrollback history support without accidental text selection.
+• Storage permission explanation cards & host /sdcard + Downloads bind mounts.
+• Maximized terminal screen space.

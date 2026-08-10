@@ -1,5 +1,6 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.about
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,8 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -51,20 +54,13 @@ fun AboutScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Terminal,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-                }
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_logo),
+                    contentDescription = stringResource(R.string.app_title),
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                )
 
                 Text(
                     text = stringResource(R.string.app_title),
@@ -233,7 +229,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.0.0")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.1.0")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
@@ -261,8 +257,25 @@ fun AboutScreen() {
                 }
 
                 ChangelogItem(
+                    version = "v1.1.0",
+                    date = "August 10, 2026",
+                    initialExpanded = true,
+                    highlights = listOf(
+                        "1-Tap RootFS Container Backup & Restore: Export and import complete Ubuntu rootfs archives (.tar.gz) with real-time extraction and compression progress bars.",
+                        "Terminal Color Theme Packs: Added Dracula, Solarized Dark, Monokai, One Dark, and Cyberpunk ANSI color palettes.",
+                        "Custom Palette Creator: Edit Foreground, Background, Cursor, Selection Highlight, and 16 ANSI colors with real-time hex input and interactive terminal preview.",
+                        "Terminal Scrollback History: Full drag-scroll support up/down through history without accidental text selection.",
+                        "Storage Permission UX: Explanatory permission cards in Setup Wizard & Settings with 1-tap grant buttons for device file access.",
+                        "Host File Bind Mounts: Expose host /sdcard, /storage/emulated/0, and ~/Downloads inside the Linux container.",
+                        "Screen Space Optimization: Streamlined top header space to maximize terminal canvas view.",
+                        "Unified Release Script: Created 1-tap ./build_release.sh generating Play Store AAB and signed GitHub/F-Droid APK."
+                    )
+                )
+
+                ChangelogItem(
                     version = "v1.0.0",
                     date = "August 6, 2026",
+                    initialExpanded = false,
                     highlights = listOf(
                         "Official v1.0.0 release now live on the Google Play Store.",
                         "Vim & TUI Navigation: Added Application Cursor Keys mode (DECCKM) and quick-access Esc / directional keys.",
@@ -276,6 +289,7 @@ fun AboutScreen() {
                 ChangelogItem(
                     version = "v0.0.2",
                     date = "August 5, 2026",
+                    initialExpanded = false,
                     highlights = listOf(
                         "Extracted and modularized UI component architecture for cleaner maintainability.",
                         "Centralized all user-facing UI text, button labels, and titles into strings.xml resources.",
@@ -287,6 +301,7 @@ fun AboutScreen() {
                 ChangelogItem(
                     version = "v0.0.1",
                     date = "August 4, 2026",
+                    initialExpanded = false,
                     highlights = listOf(
                         "2-step setup wizard: Download -> User account & SSH password configuration.",
                         "Multi-user management: Set Root password, create Sudo users, and change user passwords.",

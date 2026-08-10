@@ -37,6 +37,7 @@ enum class AppScreen(val titleRes: Int) {
 fun MainAppContent(viewModel: MainViewModel) {
     val dashboardState by viewModel.dashboardState.collectAsStateWithLifecycle()
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
+    val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val packages by viewModel.packages.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
@@ -58,21 +59,6 @@ fun MainAppContent(viewModel: MainViewModel) {
         SplashScreen()
     } else {
         Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = if (!isInstalled) stringResource(R.string.app_title) else stringResource(
-                                currentScreen.titleRes
-                            ),
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                )
-            },
             bottomBar = {
                 val isImeVisible = WindowInsets.isImeVisible
                 if (isInstalled && currentScreen != AppScreen.WIZARD && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
@@ -199,14 +185,24 @@ fun MainAppContent(viewModel: MainViewModel) {
                     }
 
                     AppScreen.SETTINGS -> {
+                        val terminalTheme by viewModel.terminalTheme.collectAsState()
                         SettingsScreen(
                             state = dashboardState,
+                            backupState = backupState,
+                            terminalTheme = terminalTheme,
+                            onSelectTheme = { themeId -> viewModel.setTerminalTheme(themeId) },
+                            onUpdateCustomTheme = { fg, bg, cursor, sel, ansi ->
+                                viewModel.updateCustomTheme(fg, bg, cursor, sel, ansi)
+                            },
                             onToggleBindSdCard = { viewModel.toggleBindSdCard() },
                             onWipeRootfsClick = { viewModel.wipeRootfs() },
                             onRefreshStatusClick = { viewModel.refreshStatus() },
                             onChangeRootPassword = { pass -> viewModel.changeRootPassword(pass) },
                             onCreateUser = { user, pass -> viewModel.createUser(user, pass) },
-                            onDeleteUser = { user -> viewModel.deleteUser(user) }
+                            onDeleteUser = { user -> viewModel.deleteUser(user) },
+                            onExportContainer = { cr, uri -> viewModel.exportContainer(cr, uri) },
+                            onImportContainer = { cr, uri -> viewModel.importContainer(cr, uri) },
+                            onDismissBackupStatus = { viewModel.dismissBackupStatus() }
                         )
                     }
 

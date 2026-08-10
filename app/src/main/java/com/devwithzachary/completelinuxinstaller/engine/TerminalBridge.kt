@@ -103,6 +103,7 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
     }
 
     fun sendInput(input: String) {
+        emulator.scrollToBottom()
         scope.launch {
             try {
                 val proc = ptyProcess
@@ -117,6 +118,35 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
             }
         }
     }
+
+    fun scrollUp(lines: Int = 3) {
+        emulator.scrollUp(lines)
+        _refreshTrigger.value = System.currentTimeMillis()
+    }
+
+    fun scrollDown(lines: Int = 3) {
+        emulator.scrollDown(lines)
+        _refreshTrigger.value = System.currentTimeMillis()
+    }
+
+    fun scrollToBottom() {
+        emulator.scrollToBottom()
+        _refreshTrigger.value = System.currentTimeMillis()
+    }
+
+    fun pasteText(text: String) {
+        if (text.isNotEmpty()) {
+            val formatted = text.replace("\r\n", "\r").replace("\n", "\r")
+            sendInput(formatted)
+        }
+    }
+
+    fun getScreenText(): String = emulator.getVisibleText()
+
+    fun getAllTerminalText(): String = emulator.getAllText()
+
+    fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String =
+        emulator.getSelectedText(startRow, startCol, endRow, endCol)
 
     fun sendCommand(command: String) {
         sendInput(command + "\n")
