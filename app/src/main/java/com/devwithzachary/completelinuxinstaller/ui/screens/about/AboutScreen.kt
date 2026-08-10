@@ -229,7 +229,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.0.1")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.1.0")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
@@ -257,11 +257,18 @@ fun AboutScreen() {
                 }
 
                 ChangelogItem(
-                    version = "v1.0.1",
-                    date = "In Development",
+                    version = "v1.1.0",
+                    date = "August 10, 2026",
                     initialExpanded = true,
                     highlights = listOf(
-                        "Collapsible Changelog: Tap any version entry to expand or collapse its release notes, keeping the history view compact and easy to read."
+                        "1-Tap RootFS Container Backup & Restore: Export and import complete Ubuntu rootfs archives (.tar.gz) with real-time extraction and compression progress bars.",
+                        "Terminal Color Theme Packs: Added Dracula, Solarized Dark, Monokai, One Dark, and Cyberpunk ANSI color palettes.",
+                        "Custom Palette Creator: Edit Foreground, Background, Cursor, Selection Highlight, and 16 ANSI colors with real-time hex input and interactive terminal preview.",
+                        "Terminal Scrollback History: Full drag-scroll support up/down through history without accidental text selection.",
+                        "Storage Permission UX: Explanatory permission cards in Setup Wizard & Settings with 1-tap grant buttons for device file access.",
+                        "Host File Bind Mounts: Expose host /sdcard, /storage/emulated/0, and ~/Downloads inside the Linux container.",
+                        "Screen Space Optimization: Streamlined top header space to maximize terminal canvas view.",
+                        "Unified Release Script: Created 1-tap ./build_release.sh generating Play Store AAB and signed GitHub/F-Droid APK."
                     )
                 )
 
