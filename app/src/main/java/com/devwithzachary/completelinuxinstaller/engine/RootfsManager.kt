@@ -621,10 +621,22 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
     suspend fun createOrUpdateUser(username: String, password: String, isSudo: Boolean = true): Boolean = withContext(Dispatchers.IO) {
         try {
             val cleanName = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { return@withContext false }
+            val existingUsers = getContainerUsers()
+            val uid = if (existingUsers.contains(cleanName)) {
+                getUidForUser(cleanName) ?: 1000
+            } else {
+                val usedUids = getUsedUids()
+                var newUid = 1000
+                while (usedUids.contains(newUid)) {
+                    newUid++
+                }
+                newUid
+            }
+
             val sudoCmd = if (isSudo) "&& echo \"$cleanName ALL=(ALL:ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$cleanName && chmod 0440 /etc/sudoers.d/$cleanName" else ""
             val script = "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; rm -f /etc/*.lock; " +
-                    "grep -q ^$cleanName: /etc/passwd || echo \"$cleanName:x:1000:1000:$cleanName:/home/$cleanName:/bin/bash\" >> /etc/passwd; " +
-                    "grep -q ^$cleanName: /etc/group || echo \"$cleanName:x:1000:\" >> /etc/group; " +
+                    "grep -q ^$cleanName: /etc/passwd || echo \"$cleanName:x:$uid:$uid:$cleanName:/home/$cleanName:/bin/bash\" >> /etc/passwd; " +
+                    "grep -q ^$cleanName: /etc/group || echo \"$cleanName:x:$uid:\" >> /etc/group; " +
                     "grep -q ^$cleanName: /etc/shadow || echo \"$cleanName:*:19700:0:99999:7:::\" >> /etc/shadow; " +
                     "mkdir -p /home/$cleanName && echo \"$cleanName:$password\" | chpasswd $sudoCmd"
             val cmd = pRootEngine.buildPRootCommand(command = listOf("/bin/sh", "-c", script))
@@ -640,17 +652,57 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         }
     }
 
+    private fun getUsedUids(): Set<Int> {
+        val passwdFile = File(rootfsDir, "etc/passwd")
+        if (!passwdFile.exists()) return setOf(1000)
+        val uids = mutableSetOf<Int>()
+        try {
+            passwdFile.readLines().forEach { line ->
+                val parts = line.split(":")
+                if (parts.size >= 3) {
+                    val uid = parts[2].toIntOrNull()
+                    if (uid != null) uids.add(uid)
+                }
+            }
+        } catch (_: Exception) {}
+        return uids
+    }
+
+    private fun getUidForUser(username: String): Int? {
+        val passwdFile = File(rootfsDir, "etc/passwd")
+        if (!passwdFile.exists()) return null
+        try {
+            passwdFile.readLines().forEach { line ->
+                val parts = line.split(":")
+                if (parts.size >= 3 && parts[0] == username) {
+                    return parts[2].toIntOrNull()
+                }
+            }
+        } catch (_: Exception) {}
+        return null
+    }
+
     suspend fun deleteUser(username: String): Boolean = withContext(Dispatchers.IO) {
         try {
             val cleanName = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { return@withContext false }
-            val script = "rm -f /etc/*.lock && userdel -r $cleanName 2>/dev/null || true; rm -f /etc/sudoers.d/$cleanName"
+            val script = "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; rm -f /etc/*.lock; " +
+                    "userdel -r $cleanName 2>/dev/null || true; " +
+                    "sed -i '/^$cleanName:/d' /etc/passwd /etc/group /etc/shadow 2>/dev/null || true; " +
+                    "rm -f /etc/sudoers.d/$cleanName; " +
+                    "rm -rf /home/$cleanName"
             val cmd = pRootEngine.buildPRootCommand(command = listOf("/bin/sh", "-c", script))
             val pb = ProcessBuilder(cmd).apply {
                 directory(rootfsDir)
                 environment().putAll(pRootEngine.getEnvironmentVariables())
             }
             val proc = pb.start()
-            proc.waitFor() == 0
+            proc.waitFor()
+
+            val homeDir = File(rootfsDir, "home/$cleanName")
+            if (homeDir.exists()) {
+                homeDir.deleteRecursively()
+            }
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting user $username", e)
             false

@@ -236,8 +236,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun configureWizardAccounts(rootPassword: String, username: String, userPassword: String) {
         viewModelScope.launch {
+            val cleanUsername = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { "ubuntu" }
             rootfsManager.setRootPassword(rootPassword)
-            rootfsManager.createOrUpdateUser(username, userPassword, isSudo = true)
+            if (cleanUsername != "ubuntu") {
+                rootfsManager.deleteUser("ubuntu")
+            }
+            rootfsManager.createOrUpdateUser(cleanUsername, userPassword, isSudo = true)
             refreshStatus()
             terminalBridge.startSession()
         }
