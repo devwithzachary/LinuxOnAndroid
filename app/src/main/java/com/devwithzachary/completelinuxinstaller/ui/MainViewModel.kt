@@ -240,9 +240,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             containerUsers = users
         )
 
-        // Asynchronously calculate folder disk usage on background thread to prevent UI thread ANR
+        // Asynchronously calculate folder disk usage and sanitize sudo permissions on background thread
         if (installed) {
             viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                rootfsManager.fixSudoPermissions()
                 val storage = rootfsManager.getStorageUsedMb()
                 _dashboardState.value = _dashboardState.value.copy(storageUsedMb = storage)
             }
