@@ -28,17 +28,17 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
 
     private var ptyProcess: PtyProcess? = null
 
-    fun startSession() {
+    fun startSession(loginUser: String? = null) {
         if (_isRunning.value) return
 
         scope.launch {
             try {
                 _isRunning.value = true
-                val cmdList = pRootEngine.buildPRootCommand()
+                val cmdList = pRootEngine.buildPRootCommand(loginUser = loginUser)
                 val cmdPath = cmdList[0]
                 val args = cmdList.toTypedArray()
 
-                val envMap = pRootEngine.getEnvironmentVariables().toMutableMap()
+                val envMap = pRootEngine.getEnvironmentVariables(loginUser = loginUser).toMutableMap()
                 envMap["TERM"] = "xterm-256color"
                 envMap["COLORTERM"] = "truecolor"
                 envMap["PROOT_NO_SECCOMP"] = "1"

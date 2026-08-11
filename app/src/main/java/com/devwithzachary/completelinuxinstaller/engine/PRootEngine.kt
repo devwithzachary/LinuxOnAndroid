@@ -102,7 +102,8 @@ class PRootEngine(val context: Context) {
 
     fun buildPRootCommand(
         config: PRootConfig = PRootConfig(rootfsDir = rootfsDir, tmpDir = tmpDir),
-        command: List<String> = listOf("/bin/bash", "-l")
+        command: List<String> = listOf("/bin/bash", "-l"),
+        loginUser: String? = null
     ): List<String> {
         val cmdList = mutableListOf<String>()
         val prootExec = prootBinary
@@ -110,14 +111,23 @@ class PRootEngine(val context: Context) {
 
         val usePRoot = prootExec.exists() && prootExec.length() > 0L
 
+        val targetUser = loginUser?.takeIf { it.isNotBlank() }
         val effectiveCommand = if (command == listOf("/bin/bash", "-l") && !isRootfsInstalled()) {
             listOf("/system/bin/sh")
+        } else if (command == listOf("/bin/bash", "-l") && targetUser != null && targetUser != "root") {
+            listOf("/bin/su", "-", targetUser)
         } else {
             command
         }
 
+        val targetWorkDir = if (config.workingDir == "/root" && targetUser != null && targetUser != "root") {
+            "/home/$targetUser"
+        } else {
+            config.workingDir
+        }
+
         if (usePRoot) {
-            val workDirFile = File(config.rootfsDir, config.workingDir.removePrefix("/"))
+            val workDirFile = File(config.rootfsDir, targetWorkDir.removePrefix("/"))
             if (!workDirFile.exists()) {
                 workDirFile.mkdirs()
             }
@@ -232,7 +242,7 @@ class PRootEngine(val context: Context) {
             }
 
             cmdList.add("-w")
-            cmdList.add(config.workingDir)
+            cmdList.add(targetWorkDir)
 
             cmdList.addAll(effectiveCommand)
         } else {
@@ -245,11 +255,12 @@ class PRootEngine(val context: Context) {
             } else {
                 "/system/bin/sh"
             }
+            val userHomeDir = if (targetUser != null && targetUser != "root") "/home/$targetUser" else config.workingDir
             val chrootCmd = buildString {
                 append("export PROOT_TMP_DIR='${config.tmpDir.absolutePath}'; ")
                 append("export PROOT_NO_SECCOMP='1'; ")
                 append("export PROOT_FORCE_SETID='1'; ")
-                append("export HOME='${config.workingDir}'; ")
+                append("export HOME='$userHomeDir'; ")
                 append("export PATH='$hostFallbackPath'; ")
                 append("export TERM='xterm-256color'; ")
                 append("export LANG='C.UTF-8'; ")
@@ -264,7 +275,7 @@ class PRootEngine(val context: Context) {
         return cmdList
     }
 
-    fun getEnvironmentVariables(): Map<String, String> {
+    fun getEnvironmentVariables(loginUser: String? = null): Map<String, String> {
         val nativeLibDir = context.applicationInfo.nativeLibraryDir
         val loaderFile = File(nativeLibDir, "libproot_loader.so")
         val loader32File = File(nativeLibDir, "libproot_loader32.so")
@@ -278,6 +289,8 @@ class PRootEngine(val context: Context) {
         }
 
         val guestPath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        val targetUser = loginUser?.takeIf { it.isNotBlank() } ?: "root"
+        val userHome = if (targetUser == "root") "/root" else "/home/$targetUser"
 
         val env = mutableMapOf(
             "LD_LIBRARY_PATH" to nativeLibDir,
@@ -287,9 +300,9 @@ class PRootEngine(val context: Context) {
             "PROOT_NO_SECCOMP" to "1",
             "PROOT_FORCE_SETID" to "1",
             "PROOT_LINK2SYMLINK" to "1",
-            "USER" to "root",
-            "LOGNAME" to "root",
-            "HOME" to "/root",
+            "USER" to targetUser,
+            "LOGNAME" to targetUser,
+            "HOME" to userHome,
             "PYTHONPATH" to "/usr/lib/python3/dist-packages",
             "PATH" to guestPath,
             "TERM" to "xterm-256color",

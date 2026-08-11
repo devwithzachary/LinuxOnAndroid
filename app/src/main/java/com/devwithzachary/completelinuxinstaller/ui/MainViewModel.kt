@@ -68,7 +68,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _packages = MutableStateFlow(SoftwarePackage.getPresets())
     val packages: StateFlow<List<SoftwarePackage>> = _packages.asStateFlow()
 
+    private val _defaultTerminalUser = MutableStateFlow(loadDefaultTerminalUser())
+    val defaultTerminalUser: StateFlow<String> = _defaultTerminalUser.asStateFlow()
+
     val isSessionRunning = terminalBridge.isRunning
+
+    private fun loadDefaultTerminalUser(): String {
+        val savedUser = prefs.getString("default_terminal_user", null)
+        if (!savedUser.isNullOrBlank()) {
+            return savedUser
+        }
+        val users = rootfsManager.getContainerUsers()
+        return users.firstOrNull() ?: "root"
+    }
+
+    fun setDefaultTerminalUser(username: String) {
+        prefs.edit().putString("default_terminal_user", username).apply()
+        _defaultTerminalUser.value = username
+    }
 
     init {
         viewModelScope.launch {
@@ -204,6 +221,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         _packages.value = syncedPackages
 
+        val savedUser = prefs.getString("default_terminal_user", null)
+        if (savedUser.isNullOrBlank()) {
+            val autoDefault = users.firstOrNull() ?: "root"
+            _defaultTerminalUser.value = autoDefault
+        } else if (savedUser != "root" && !users.contains(savedUser)) {
+            val autoDefault = users.firstOrNull() ?: "root"
+            prefs.edit().putString("default_terminal_user", autoDefault).apply()
+            _defaultTerminalUser.value = autoDefault
+        }
+
         _dashboardState.value = _dashboardState.value.copy(
             isInstalled = installed,
             isRunning = terminalBridge.isRunning.value,
@@ -242,8 +269,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 rootfsManager.deleteUser("ubuntu")
             }
             rootfsManager.createOrUpdateUser(cleanUsername, userPassword, isSudo = true)
+            setDefaultTerminalUser(cleanUsername)
             refreshStatus()
-            terminalBridge.startSession()
+            terminalBridge.startSession(loginUser = cleanUsername)
         }
     }
 
@@ -264,12 +292,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteUser(username: String) {
         viewModelScope.launch {
             rootfsManager.deleteUser(username)
+            if (_defaultTerminalUser.value == username) {
+                val remainingUsers = rootfsManager.getContainerUsers().filter { it != username }
+                setDefaultTerminalUser(remainingUsers.firstOrNull() ?: "root")
+            }
             refreshStatus()
         }
     }
 
     fun startTerminalSession() {
-        terminalBridge.startSession()
+        terminalBridge.startSession(loginUser = _defaultTerminalUser.value)
         refreshStatus()
     }
 

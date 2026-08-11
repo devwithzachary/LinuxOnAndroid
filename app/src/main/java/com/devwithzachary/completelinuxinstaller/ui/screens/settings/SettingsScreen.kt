@@ -45,8 +45,10 @@ fun SettingsScreen(
     state: DashboardUiState,
     backupState: BackupState = BackupState.Idle,
     terminalTheme: TerminalTheme = TerminalTheme.DRACULA,
+    defaultTerminalUser: String = "root",
     onSelectTheme: (String) -> Unit = {},
     onUpdateCustomTheme: (Color, Color, Color, Color, List<Color>) -> Unit = { _, _, _, _, _ -> },
+    onSetDefaultTerminalUser: (String) -> Unit = {},
     onToggleBindSdCard: () -> Unit,
     onWipeRootfsClick: () -> Unit,
     onRefreshStatusClick: () -> Unit,
@@ -566,6 +568,39 @@ fun SettingsScreen(
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Change")
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Default Terminal Login User", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "Select which user account logs into interactive terminal sessions by default.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        val loginUsers = listOf("root") + state.containerUsers
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            loginUsers.forEach { u ->
+                                val isSelected = u == defaultTerminalUser
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { onSetDefaultTerminalUser(u) },
+                                    label = { Text(if (u == "root") "root (Admin)" else u) },
+                                    leadingIcon = if (isSelected) {
+                                        { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                    } else null,
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                )
+                            }
                         }
                     }
 
