@@ -171,29 +171,13 @@ fun TerminalScreen(
         ExtraKeysRow(
             keys = customHotkeys,
             onKeyClick = { key ->
-                when (key) {
-                    "Paste" -> {
-                        val clipText = clipboardManager.getText()?.text
-                        if (!clipText.isNullOrEmpty()) {
-                            terminalBridge.pasteText(clipText)
-                        }
+                if (key == "Paste") {
+                    val clipText = clipboardManager.getText()?.text
+                    if (!clipText.isNullOrEmpty()) {
+                        terminalBridge.pasteText(clipText)
                     }
-                    "Ctrl+C" -> terminalBridge.sendCtrlC()
-                    "Ctrl+Z" -> terminalBridge.sendCtrlZ()
-                    "Ctrl+D" -> terminalBridge.sendCtrlD()
-                    "Tab" -> terminalBridge.sendTab()
-                    "Esc" -> terminalBridge.sendEsc()
-                    "▲" -> terminalBridge.sendArrowUp()
-                    "▼" -> terminalBridge.sendArrowDown()
-                    "◄" -> terminalBridge.sendArrowLeft()
-                    "►" -> terminalBridge.sendArrowRight()
-                    else -> {
-                        if (key.length <= 2 && !key.contains(" ")) {
-                            terminalBridge.sendInput(key)
-                        } else {
-                            terminalBridge.sendCommand(key)
-                        }
-                    }
+                } else {
+                    terminalBridge.sendKeyShortcut(key)
                 }
             }
         )

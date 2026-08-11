@@ -150,6 +150,54 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
     fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String =
         emulator.getSelectedText(startRow, startCol, endRow, endCol)
 
+    fun sendKeyShortcut(key: String) {
+        val trimmed = key.trim()
+        if (trimmed.isEmpty()) return
+
+        // 1. Special Named Keys & Direct Control Mappings
+        when (trimmed) {
+            "Paste" -> return // Handled in UI layer via clipboard manager
+            "Ctrl+C" -> return sendCtrlC()
+            "Ctrl+Z" -> return sendCtrlZ()
+            "Ctrl+D" -> return sendCtrlD()
+            "Tab" -> return sendTab()
+            "Esc", "ESC" -> return sendEsc()
+            "▲", "Up" -> return sendArrowUp()
+            "▼", "Down" -> return sendArrowDown()
+            "◄", "Left" -> return sendArrowLeft()
+            "►", "Right" -> return sendArrowRight()
+            "Enter", "Return" -> return sendInput("\r")
+            "Backspace" -> return sendInput("\u007F")
+        }
+
+        // 2. Generic Ctrl+<Letter> (e.g., Ctrl+X -> ASCII 24 \u0018 for nano exit)
+        if (trimmed.startsWith("Ctrl+", ignoreCase = true) && trimmed.length == 6) {
+            val char = trimmed[5]
+            val upperChar = char.uppercaseChar()
+            if (upperChar in 'A'..'Z') {
+                val ctrlByte = (upperChar.code - 'A'.code + 1).toChar().toString()
+                sendInput(ctrlByte)
+                return
+            }
+        }
+
+        // 3. Generic Alt+<Char> (e.g., Alt+X -> Escape sequence \u001Bx)
+        if (trimmed.startsWith("Alt+", ignoreCase = true) && trimmed.length == 5) {
+            val char = trimmed[4]
+            sendInput("\u001B" + char)
+            return
+        }
+
+        // 4. Single Symbols, Escaped Keys, or Short Typed Input without Spaces
+        if (trimmed.length <= 2 && !trimmed.contains(" ")) {
+            sendInput(trimmed)
+            return
+        }
+
+        // 5. Multi-character shell commands
+        sendCommand(trimmed)
+    }
+
     fun sendCommand(command: String) {
         sendInput(command + "\n")
     }

@@ -3,7 +3,7 @@ package com.devwithzachary.completelinuxinstaller.ui.components
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -157,7 +157,7 @@ fun EditHotkeysDialog(
                             .padding(8.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        items(hotkeysList) { key ->
+                        itemsIndexed(hotkeysList) { index, key ->
                             Surface(
                                 color = Color(0xFF21262D),
                                 shape = RoundedCornerShape(8.dp),
@@ -190,18 +190,65 @@ fun EditHotkeysDialog(
                                         )
                                     }
 
-                                    IconButton(
-                                        onClick = {
-                                            hotkeysList = hotkeysList.filter { it != key }.toMutableList()
-                                        },
-                                        modifier = Modifier.size(28.dp)
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete",
-                                            tint = Color(0xFFF85149),
-                                            modifier = Modifier.size(18.dp)
-                                        )
+                                        IconButton(
+                                            onClick = {
+                                                if (index > 0) {
+                                                    val list = hotkeysList.toMutableList()
+                                                    val item = list.removeAt(index)
+                                                    list.add(index - 1, item)
+                                                    hotkeysList = list
+                                                }
+                                            },
+                                            enabled = index > 0,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowUpward,
+                                                contentDescription = "Move Up",
+                                                tint = if (index > 0) Color(0xFF8B949E) else Color(0xFF30363D),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = {
+                                                if (index < hotkeysList.size - 1) {
+                                                    val list = hotkeysList.toMutableList()
+                                                    val item = list.removeAt(index)
+                                                    list.add(index + 1, item)
+                                                    hotkeysList = list
+                                                }
+                                            },
+                                            enabled = index < hotkeysList.size - 1,
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.ArrowDownward,
+                                                contentDescription = "Move Down",
+                                                tint = if (index < hotkeysList.size - 1) Color(0xFF8B949E) else Color(0xFF30363D),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = {
+                                                val list = hotkeysList.toMutableList()
+                                                list.removeAt(index)
+                                                hotkeysList = list
+                                            },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete",
+                                                tint = Color(0xFFF85149),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
