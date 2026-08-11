@@ -56,6 +56,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _terminalTheme = MutableStateFlow(loadTerminalTheme())
     val terminalTheme: StateFlow<TerminalTheme> = _terminalTheme.asStateFlow()
 
+    private val _terminalFontSize = MutableStateFlow(loadTerminalFontSize())
+    val terminalFontSize: StateFlow<Int> = _terminalFontSize.asStateFlow()
+
+    private val _terminalFontFamily = MutableStateFlow(loadTerminalFontFamily())
+    val terminalFontFamily: StateFlow<String> = _terminalFontFamily.asStateFlow()
+
     private val _dashboardState = MutableStateFlow(DashboardUiState())
     val dashboardState: StateFlow<DashboardUiState> = _dashboardState.asStateFlow()
 
@@ -72,6 +78,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val defaultTerminalUser: StateFlow<String> = _defaultTerminalUser.asStateFlow()
 
     val isSessionRunning = terminalBridge.isRunning
+
+    private fun loadTerminalFontSize(): Int {
+        return prefs.getInt("terminal_font_size", 13)
+    }
+
+    private fun loadTerminalFontFamily(): String {
+        return prefs.getString("terminal_font_family", "Monospace") ?: "Monospace"
+    }
+
+    fun setTerminalFontSize(size: Int) {
+        val clampedSize = size.coerceIn(10, 24)
+        prefs.edit().putInt("terminal_font_size", clampedSize).apply()
+        _terminalFontSize.value = clampedSize
+    }
+
+    fun setTerminalFontFamily(family: String) {
+        prefs.edit().putString("terminal_font_family", family).apply()
+        _terminalFontFamily.value = family
+    }
 
     private fun loadDefaultTerminalUser(): String {
         val savedUser = prefs.getString("default_terminal_user", null)

@@ -162,11 +162,15 @@ fun MainAppContent(viewModel: MainViewModel) {
 
                     AppScreen.TERMINAL -> {
                         val defaultUser by viewModel.defaultTerminalUser.collectAsState()
+                        val fontSize by viewModel.terminalFontSize.collectAsState()
+                        val fontFamily by viewModel.terminalFontFamily.collectAsState()
                         TerminalScreen(
                             terminalBridge = viewModel.terminalBridge,
                             onStartSession = { viewModel.startTerminalSession() },
                             onStopSession = { viewModel.stopTerminalSession() },
-                            defaultLoginUser = defaultUser
+                            defaultLoginUser = defaultUser,
+                            fontSizeSp = fontSize,
+                            fontFamilyName = fontFamily
                         )
                     }
 
@@ -189,15 +193,21 @@ fun MainAppContent(viewModel: MainViewModel) {
                     AppScreen.SETTINGS -> {
                         val terminalTheme by viewModel.terminalTheme.collectAsState()
                         val defaultUser by viewModel.defaultTerminalUser.collectAsState()
+                        val fontSize by viewModel.terminalFontSize.collectAsState()
+                        val fontFamily by viewModel.terminalFontFamily.collectAsState()
                         SettingsScreen(
                             state = dashboardState,
                             backupState = backupState,
                             terminalTheme = terminalTheme,
                             defaultTerminalUser = defaultUser,
+                            terminalFontSize = fontSize,
+                            terminalFontFamily = fontFamily,
                             onSelectTheme = { themeId -> viewModel.setTerminalTheme(themeId) },
                             onUpdateCustomTheme = { fg, bg, cursor, sel, ansi ->
                                 viewModel.updateCustomTheme(fg, bg, cursor, sel, ansi)
                             },
+                            onSetTerminalFontSize = { size -> viewModel.setTerminalFontSize(size) },
+                            onSetTerminalFontFamily = { family -> viewModel.setTerminalFontFamily(family) },
                             onSetDefaultTerminalUser = { user -> viewModel.setDefaultTerminalUser(user) },
                             onToggleBindSdCard = { viewModel.toggleBindSdCard() },
                             onWipeRootfsClick = { viewModel.wipeRootfs() },

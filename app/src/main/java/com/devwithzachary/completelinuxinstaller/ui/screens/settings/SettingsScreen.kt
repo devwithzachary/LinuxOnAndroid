@@ -46,8 +46,12 @@ fun SettingsScreen(
     backupState: BackupState = BackupState.Idle,
     terminalTheme: TerminalTheme = TerminalTheme.DRACULA,
     defaultTerminalUser: String = "root",
+    terminalFontSize: Int = 13,
+    terminalFontFamily: String = "Monospace",
     onSelectTheme: (String) -> Unit = {},
     onUpdateCustomTheme: (Color, Color, Color, Color, List<Color>) -> Unit = { _, _, _, _, _ -> },
+    onSetTerminalFontSize: (Int) -> Unit = {},
+    onSetTerminalFontFamily: (String) -> Unit = {},
     onSetDefaultTerminalUser: (String) -> Unit = {},
     onToggleBindSdCard: () -> Unit,
     onWipeRootfsClick: () -> Unit,
@@ -255,7 +259,70 @@ fun SettingsScreen(
                     }
                 }
 
+                HorizontalDivider()
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Terminal Font Size", fontWeight = FontWeight.SemiBold)
+                        Text("${terminalFontSize} sp", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("10sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(
+                            value = terminalFontSize.toFloat(),
+                            onValueChange = { onSetTerminalFontSize(it.toInt()) },
+                            valueRange = 10f..24f,
+                            steps = 13,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text("24sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                HorizontalDivider()
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Terminal Font Family", fontWeight = FontWeight.SemiBold)
+                    val fontFamilies = listOf("Monospace", "Code Mono", "JetBrains Mono", "Courier", "Sans Serif", "Serif")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(fontFamilies) { family ->
+                            val isSelected = family == terminalFontFamily
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onSetTerminalFontFamily(family) },
+                                label = { Text(family) },
+                                leadingIcon = if (isSelected) {
+                                    { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                } else null,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+                }
+
                 // Interactive Live Terminal Preview Box
+                val previewFontFamily = when (terminalFontFamily) {
+                    "Courier" -> FontFamily.Monospace
+                    "Sans Serif" -> FontFamily.SansSerif
+                    "Serif" -> FontFamily.Serif
+                    "Code Mono" -> FontFamily.Monospace
+                    "JetBrains Mono" -> FontFamily.Monospace
+                    else -> FontFamily.Monospace
+                }
+                val previewFontSize = terminalFontSize.sp
+                val promptText = if (defaultTerminalUser == "root") "root@ubuntu:~# " else "$defaultTerminalUser@ubuntu:~$ "
+
                 Surface(
                     color = terminalTheme.defaultBg,
                     shape = RoundedCornerShape(12.dp),
@@ -268,16 +335,16 @@ fun SettingsScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "root@ubuntu:~# ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                text = promptText,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = terminalTheme.ansiColors.getOrElse(2) { Color.Green }
                             )
                             Text(
                                 text = "neofetch",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 color = terminalTheme.defaultFg
                             )
                         }
@@ -285,15 +352,15 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "OS: ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = terminalTheme.ansiColors.getOrElse(6) { Color.Cyan }
                             )
                             Text(
                                 text = "Ubuntu 26.04 LTS (ARM64)",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 color = terminalTheme.defaultFg
                             )
                         }
@@ -301,15 +368,15 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Kernel: ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = terminalTheme.ansiColors.getOrElse(3) { Color.Yellow }
                             )
                             Text(
                                 text = "6.1.0-linuxonandroid",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 color = terminalTheme.defaultFg
                             )
                         }
@@ -317,20 +384,20 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Terminal: ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = terminalTheme.ansiColors.getOrElse(5) { Color.Magenta }
                             )
                             Text(
                                 text = "LinuxOnAndroid PTY ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 color = terminalTheme.defaultFg
                             )
                             Box(
                                 modifier = Modifier
-                                    .size(7.dp, 14.dp)
+                                    .size((terminalFontSize * 0.55).dp, terminalFontSize.dp)
                                     .background(terminalTheme.cursorColor)
                             )
                         }

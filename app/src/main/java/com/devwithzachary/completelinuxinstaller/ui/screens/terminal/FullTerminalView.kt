@@ -53,10 +53,12 @@ fun FullTerminalView(
     refreshTrigger: Long,
     focusRequester: FocusRequester,
     onTapTerminal: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fontSizeSp: Int = 13,
+    fontFamilyName: String = "Monospace"
 ) {
     val density = LocalDensity.current
-    val fontSizePx = with(density) { 13.sp.toPx() }
+    val fontSizePx = with(density) { fontSizeSp.sp.toPx() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val clipboardManager = LocalClipboardManager.current
 
@@ -68,9 +70,20 @@ fun FullTerminalView(
     var showSelectPortionDialog by remember { mutableStateOf(false) }
     var accumulatedScrollY by remember { mutableFloatStateOf(0f) }
 
-    val paint = remember {
+    val selectedTypeface = remember(fontFamilyName) {
+        when (fontFamilyName) {
+            "Courier" -> Typeface.create("courier", Typeface.NORMAL)
+            "Sans Serif" -> Typeface.MONOSPACE
+            "Serif" -> Typeface.SERIF
+            "Code Mono" -> Typeface.create("monospace", Typeface.BOLD)
+            "JetBrains Mono" -> Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            else -> Typeface.MONOSPACE
+        }
+    }
+
+    val paint = remember(fontSizePx, selectedTypeface) {
         Paint().apply {
-            typeface = Typeface.MONOSPACE
+            typeface = selectedTypeface
             textSize = fontSizePx
             isAntiAlias = true
         }

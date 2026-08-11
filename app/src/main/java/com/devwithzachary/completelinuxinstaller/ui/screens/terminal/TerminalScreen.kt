@@ -34,7 +34,9 @@ fun TerminalScreen(
     terminalBridge: TerminalBridge,
     onStartSession: () -> Unit,
     onStopSession: () -> Unit,
-    defaultLoginUser: String = "root"
+    defaultLoginUser: String = "root",
+    fontSizeSp: Int = 13,
+    fontFamilyName: String = "Monospace"
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -160,7 +162,9 @@ fun TerminalScreen(
                 focusRequester.requestFocus()
                 keyboardController?.show()
             },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            fontSizeSp = fontSizeSp,
+            fontFamilyName = fontFamilyName
         )
 
         // Touch Navigation & Quick Command Keys Ribbon (Positioned directly above keyboard)
