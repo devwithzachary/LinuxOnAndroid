@@ -555,12 +555,12 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                     "apt-get update -o APT::Sandbox::User=root -o Acquire::http::Pipeline-Depth=0 -o Acquire::PDiffs=false && " +
                     "apt-get install -y --no-install-recommends -o APT::Sandbox::User=root -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" -o Dpkg::Use-Pty=0 coreutils ca-certificates sudo curl wget net-tools procps nano dialog && " +
                     "rm -f /etc/*.lock /etc/*.PID /etc/*~; " +
-                    "echo \"root:$rootPassword\" | chpasswd && " +
+                    "echo \"root:$rootPassword\" | chpasswd && passwd -u root 2>/dev/null || true && " +
                     "(grep -q ^$cleanUsername: /etc/passwd || echo \"$cleanUsername:x:1000:1000:$cleanUsername:/home/$cleanUsername:/bin/bash\" >> /etc/passwd) && " +
                     "(grep -q ^$cleanUsername: /etc/group || echo \"$cleanUsername:x:1000:\" >> /etc/group) && " +
                     "(grep -q ^$cleanUsername: /etc/shadow || echo \"$cleanUsername:*:19700:0:99999:7:::\" >> /etc/shadow) && " +
                     "mkdir -p /home/$cleanUsername && " +
-                    "echo \"$cleanUsername:$userPassword\" | chpasswd && " +
+                    "echo \"$cleanUsername:$userPassword\" | chpasswd && passwd -u $cleanUsername 2>/dev/null || true && " +
                     "echo \"$cleanUsername ALL=(ALL:ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$cleanUsername && " +
                     "chmod 0440 /etc/sudoers.d/$cleanUsername"
 
@@ -604,7 +604,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     suspend fun setRootPassword(password: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val script = "rm -f /etc/*.lock && echo \"root:$password\" | chpasswd"
+            val script = "rm -f /etc/*.lock && echo \"root:$password\" | chpasswd && passwd -u root 2>/dev/null || true"
             val cmd = pRootEngine.buildPRootCommand(command = listOf("/bin/sh", "-c", script))
             val pb = ProcessBuilder(cmd).apply {
                 directory(rootfsDir)
@@ -638,7 +638,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                     "grep -q ^$cleanName: /etc/passwd || echo \"$cleanName:x:$uid:$uid:$cleanName:/home/$cleanName:/bin/bash\" >> /etc/passwd; " +
                     "grep -q ^$cleanName: /etc/group || echo \"$cleanName:x:$uid:\" >> /etc/group; " +
                     "grep -q ^$cleanName: /etc/shadow || echo \"$cleanName:*:19700:0:99999:7:::\" >> /etc/shadow; " +
-                    "mkdir -p /home/$cleanName && echo \"$cleanName:$password\" | chpasswd $sudoCmd"
+                    "mkdir -p /home/$cleanName && echo \"$cleanName:$password\" | chpasswd && passwd -u $cleanName 2>/dev/null || true $sudoCmd"
             val cmd = pRootEngine.buildPRootCommand(command = listOf("/bin/sh", "-c", script))
             val pb = ProcessBuilder(cmd).apply {
                 directory(rootfsDir)
