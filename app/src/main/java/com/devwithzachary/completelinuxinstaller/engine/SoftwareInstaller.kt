@@ -64,18 +64,12 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
                 } catch (_: Exception) {}
             }
 
-            val fixSudoScript = "chown 0:0 /usr/bin/sudo /etc/sudo.conf /etc/sudoers /etc/sudoers.d /etc/sudoers.d/* 2>/dev/null || true; " +
-                    "chmod 4755 /usr/bin/sudo 2>/dev/null || true; " +
-                    "chmod 644 /etc/sudo.conf 2>/dev/null || true; " +
-                    "chmod 440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true; " +
-                    "chmod 755 /etc/sudoers.d 2>/dev/null || true"
-
             val sanitizedCommand = "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
-                    "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; " +
+                    "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /usr /etc /.l2s 2>/dev/null; " +
                     "rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /var/lib/dpkg/lock* /usr/bin/*.dpkg-new /usr/lib/*.dpkg-new 2>/dev/null; " +
                     "mkdir -p /etc/dpkg/dpkg.cfg.d && echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-overwrite >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confold >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confdef >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid; " +
                     "mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; " +
-                    "chmod 666 /var/lib/dpkg/status* 2>/dev/null; " + pkg.installCommand + "; " + fixSudoScript
+                    "chmod 666 /var/lib/dpkg/status* 2>/dev/null; " + pkg.installCommand
 
             val cmd = pRootEngine.buildPRootCommand(
                 command = listOf("/bin/sh", "-c", sanitizedCommand)

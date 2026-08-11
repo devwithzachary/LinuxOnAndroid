@@ -539,7 +539,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val repoUrl = if (isArm) "http://ports.ubuntu.com/ubuntu-ports" else "http://archive.ubuntu.com/ubuntu"
             val codename = "resolute"
 
-            val setupScript = "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; " +
+            val setupScript = "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; chmod 777 /usr /etc 2>/dev/null; " +
                     "rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /etc/*.lock /etc/*.PID /etc/*~ /etc/apt/sources.list.d/* 2>/dev/null; " +
                     "mkdir -p /usr/sbin /var/lib/dbus 2>/dev/null; printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; " +
                     "echo 'deb $repoUrl $codename main restricted universe multiverse' > /etc/apt/sources.list && " +
@@ -562,10 +562,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                     "mkdir -p /home/$cleanUsername && " +
                     "echo \"$cleanUsername:$userPassword\" | chpasswd && passwd -u $cleanUsername 2>/dev/null || true && " +
                     "echo \"$cleanUsername ALL=(ALL:ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$cleanUsername && " +
-                    "chmod 0440 /etc/sudoers.d/$cleanUsername && " +
-                    "chown 0:0 /usr/bin/sudo /etc/sudo.conf /etc/sudoers /etc/sudoers.d /etc/sudoers.d/* 2>/dev/null || true && " +
-                    "chmod 4755 /usr/bin/sudo 2>/dev/null || true && " +
-                    "chmod 644 /etc/sudo.conf 2>/dev/null || true"
+                    "chmod 0440 /etc/sudoers.d/$cleanUsername"
 
             val cmd = pRootEngine.buildPRootCommand(command = listOf("/usr/bin/dash", "-c", setupScript))
             val pb = ProcessBuilder(cmd)
@@ -602,27 +599,6 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             proc.waitFor()
         } catch (e: Exception) {
             Log.e(TAG, "First launch setup error", e)
-        }
-    }
-
-    suspend fun fixSudoPermissions(): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val script = "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
-                    "chown 0:0 /usr/bin/sudo /etc/sudo.conf /etc/sudoers /etc/sudoers.d /etc/sudoers.d/* 2>/dev/null || true; " +
-                    "chmod 4755 /usr/bin/sudo 2>/dev/null || true; " +
-                    "chmod 644 /etc/sudo.conf 2>/dev/null || true; " +
-                    "chmod 440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true; " +
-                    "chmod 755 /etc/sudoers.d 2>/dev/null || true"
-            val cmd = pRootEngine.buildPRootCommand(command = listOf("/bin/sh", "-c", script))
-            val pb = ProcessBuilder(cmd).apply {
-                directory(rootfsDir)
-                environment().putAll(pRootEngine.getEnvironmentVariables())
-            }
-            val proc = pb.start()
-            proc.waitFor() == 0
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fixing sudo permissions", e)
-            false
         }
     }
 
