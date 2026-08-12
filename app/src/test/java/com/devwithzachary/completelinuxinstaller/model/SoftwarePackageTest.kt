@@ -47,12 +47,14 @@ class SoftwarePackageTest {
     }
 
     @Test
-    fun testPreset_openssh_server_doesNotBlockForeground() {
+    fun testPreset_openssh_server_configuresSecurityAndForeground() {
         val openssh = SoftwarePackage.getPresets().find { it.id == "openssh_server" }
         assertNotNull("openssh_server preset must exist", openssh)
         openssh?.let {
             assertFalse("installCommand must not start sshd in foreground", it.installCommand.contains("(/usr/sbin/sshd -p 2222 2>/dev/null || true)"))
             assertTrue("launchCommand must exist for openssh_server", it.launchCommand != null && it.launchCommand.contains("sshd -p 2222"))
+            assertTrue("installCommand must configure UsePAM no", it.installCommand.contains("UsePAM no"))
+            assertTrue("installCommand must configure StrictModes no", it.installCommand.contains("StrictModes no"))
         }
     }
 }

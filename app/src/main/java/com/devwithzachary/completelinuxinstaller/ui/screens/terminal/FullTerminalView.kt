@@ -96,9 +96,9 @@ fun FullTerminalView(
 
     // Baseline text state used to capture character additions, backspaces, and IME events
     var textFieldValue by remember {
-        mutableStateOf(TextFieldValue("  ", TextRange(2)))
+        mutableStateOf(TextFieldValue("", TextRange.Zero))
     }
-    var lastText by remember { mutableStateOf("  ") }
+    var lastText by remember { mutableStateOf("") }
 
     BoxWithConstraints(
         modifier = modifier
@@ -230,36 +230,42 @@ fun FullTerminalView(
                     val oldText = lastText
                     val newText = newValue.text
 
-                    if (newText != oldText) {
-                        if (newText.length < oldText.length && (oldText.startsWith(newText) || newText.length < 2)) {
-                            // Backspace pressed
+                    if (newText.contains("\n") || newText.contains("\r")) {
+                        terminalBridge.sendInput("\r")
+                        textFieldValue = TextFieldValue("", TextRange.Zero)
+                        lastText = ""
+                    } else if (newText != oldText) {
+                        if (newText.length < oldText.length) {
                             val deleteCount = oldText.length - newText.length
                             repeat(deleteCount) {
                                 terminalBridge.sendInput("\u007F")
                             }
-                        } else {
-                            // Text typed or IME composition replacement
-                            val addedText = when {
-                                newText.startsWith(oldText) -> newText.substring(oldText.length)
-                                newText.startsWith("  ") -> newText.substring(2)
-                                else -> {
-                                    var prefixLen = 0
-                                    while (prefixLen < oldText.length && prefixLen < newText.length && oldText[prefixLen] == newText[prefixLen]) {
-                                        prefixLen++
-                                    }
-                                    newText.substring(prefixLen)
-                                }
-                            }
-
+                            textFieldValue = newValue
+                            lastText = newText
+                        } else if (newText.startsWith(oldText)) {
+                            val addedText = newText.substring(oldText.length)
                             if (addedText.isNotEmpty()) {
-                                terminalBridge.pasteText(addedText)
+                                terminalBridge.sendInput(addedText)
                             }
+                            textFieldValue = newValue
+                            lastText = newText
+                        } else {
+                            var prefixLen = 0
+                            while (prefixLen < oldText.length && prefixLen < newText.length && oldText[prefixLen] == newText[prefixLen]) {
+                                prefixLen++
+                            }
+                            val deleteCount = oldText.length - prefixLen
+                            repeat(deleteCount) {
+                                terminalBridge.sendInput("\u007F")
+                            }
+                            val addedText = newText.substring(prefixLen)
+                            if (addedText.isNotEmpty()) {
+                                terminalBridge.sendInput(addedText)
+                            }
+                            textFieldValue = newValue
+                            lastText = newText
                         }
                     }
-
-                    // Reset to baseline "  "
-                    textFieldValue = TextFieldValue("  ", TextRange(2))
-                    lastText = "  "
                 },
                 modifier = Modifier
                     .size(1.dp)
@@ -293,14 +299,17 @@ fun FullTerminalView(
                                 }
                                 event.key == Key.Enter -> {
                                     terminalBridge.sendInput("\r")
-                                    textFieldValue = TextFieldValue("  ", TextRange(2))
-                                    lastText = "  "
+                                    textFieldValue = TextFieldValue("", TextRange.Zero)
+                                    lastText = ""
                                     true
                                 }
                                 event.key == Key.Backspace -> {
                                     terminalBridge.sendInput("\u007F")
-                                    textFieldValue = TextFieldValue("  ", TextRange(2))
-                                    lastText = "  "
+                                    if (lastText.isNotEmpty()) {
+                                        val updatedText = lastText.dropLast(1)
+                                        lastText = updatedText
+                                        textFieldValue = TextFieldValue(updatedText, TextRange(updatedText.length))
+                                    }
                                     true
                                 }
                                 event.key == Key.Tab -> {
@@ -336,24 +345,24 @@ fun FullTerminalView(
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
                     autoCorrectEnabled = false,
-                    keyboardType = KeyboardType.Ascii,
+                    keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Send
                 ),
                 keyboardActions = KeyboardActions(
                     onSend = {
                         terminalBridge.sendInput("\r")
-                        textFieldValue = TextFieldValue("  ", TextRange(2))
-                        lastText = "  "
+                        textFieldValue = TextFieldValue("", TextRange.Zero)
+                        lastText = ""
                     },
                     onDone = {
                         terminalBridge.sendInput("\r")
-                        textFieldValue = TextFieldValue("  ", TextRange(2))
-                        lastText = "  "
+                        textFieldValue = TextFieldValue("", TextRange.Zero)
+                        lastText = ""
                     },
                     onGo = {
                         terminalBridge.sendInput("\r")
-                        textFieldValue = TextFieldValue("  ", TextRange(2))
-                        lastText = "  "
+                        textFieldValue = TextFieldValue("", TextRange.Zero)
+                        lastText = ""
                     }
                 )
             )
