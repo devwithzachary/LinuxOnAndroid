@@ -13,8 +13,8 @@ android {
         applicationId = "com.devwithzachary.completelinuxinstaller"
         minSdk = 24
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.1.0"
+        versionCode = 8
+        versionName = "1.1.1"
     }
 
     dependenciesInfo {

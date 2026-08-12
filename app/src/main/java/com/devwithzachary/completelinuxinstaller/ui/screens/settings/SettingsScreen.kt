@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -44,8 +45,14 @@ fun SettingsScreen(
     state: DashboardUiState,
     backupState: BackupState = BackupState.Idle,
     terminalTheme: TerminalTheme = TerminalTheme.DRACULA,
+    defaultTerminalUser: String = "root",
+    terminalFontSize: Int = 13,
+    terminalFontFamily: String = "Monospace",
     onSelectTheme: (String) -> Unit = {},
     onUpdateCustomTheme: (Color, Color, Color, Color, List<Color>) -> Unit = { _, _, _, _, _ -> },
+    onSetTerminalFontSize: (Int) -> Unit = {},
+    onSetTerminalFontFamily: (String) -> Unit = {},
+    onSetDefaultTerminalUser: (String) -> Unit = {},
     onToggleBindSdCard: () -> Unit,
     onWipeRootfsClick: () -> Unit,
     onRefreshStatusClick: () -> Unit,
@@ -252,7 +259,70 @@ fun SettingsScreen(
                     }
                 }
 
+                HorizontalDivider()
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Terminal Font Size", fontWeight = FontWeight.SemiBold)
+                        Text("${terminalFontSize} sp", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("10sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Slider(
+                            value = terminalFontSize.toFloat(),
+                            onValueChange = { onSetTerminalFontSize(it.toInt()) },
+                            valueRange = 10f..24f,
+                            steps = 13,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text("24sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                HorizontalDivider()
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Terminal Font Family", fontWeight = FontWeight.SemiBold)
+                    val fontFamilies = listOf("Monospace", "Code Mono", "JetBrains Mono", "Courier", "Sans Serif", "Serif")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(fontFamilies) { family ->
+                            val isSelected = family == terminalFontFamily
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onSetTerminalFontFamily(family) },
+                                label = { Text(family) },
+                                leadingIcon = if (isSelected) {
+                                    { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                } else null,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            )
+                        }
+                    }
+                }
+
                 // Interactive Live Terminal Preview Box
+                val previewFontFamily = when (terminalFontFamily) {
+                    "Courier" -> FontFamily.Monospace
+                    "Sans Serif" -> FontFamily.SansSerif
+                    "Serif" -> FontFamily.Serif
+                    "Code Mono" -> FontFamily.Monospace
+                    "JetBrains Mono" -> FontFamily.Monospace
+                    else -> FontFamily.Monospace
+                }
+                val previewFontSize = terminalFontSize.sp
+                val promptText = if (defaultTerminalUser == "root") "root@ubuntu:~# " else "$defaultTerminalUser@ubuntu:~$ "
+
                 Surface(
                     color = terminalTheme.defaultBg,
                     shape = RoundedCornerShape(12.dp),
@@ -265,16 +335,16 @@ fun SettingsScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "root@ubuntu:~# ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                text = promptText,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = terminalTheme.ansiColors.getOrElse(2) { Color.Green }
                             )
                             Text(
                                 text = "neofetch",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 color = terminalTheme.defaultFg
                             )
                         }
@@ -282,15 +352,15 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "OS: ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = terminalTheme.ansiColors.getOrElse(6) { Color.Cyan }
                             )
                             Text(
                                 text = "Ubuntu 26.04 LTS (ARM64)",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 color = terminalTheme.defaultFg
                             )
                         }
@@ -298,15 +368,15 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Kernel: ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = terminalTheme.ansiColors.getOrElse(3) { Color.Yellow }
                             )
                             Text(
                                 text = "6.1.0-linuxonandroid",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 color = terminalTheme.defaultFg
                             )
                         }
@@ -314,20 +384,20 @@ fun SettingsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Terminal: ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 fontWeight = FontWeight.Bold,
                                 color = terminalTheme.ansiColors.getOrElse(5) { Color.Magenta }
                             )
                             Text(
                                 text = "LinuxOnAndroid PTY ",
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 12.sp,
+                                fontFamily = previewFontFamily,
+                                fontSize = previewFontSize,
                                 color = terminalTheme.defaultFg
                             )
                             Box(
                                 modifier = Modifier
-                                    .size(7.dp, 14.dp)
+                                    .size((terminalFontSize * 0.55).dp, terminalFontSize.dp)
                                     .background(terminalTheme.cursorColor)
                             )
                         }
@@ -570,6 +640,39 @@ fun SettingsScreen(
 
                     HorizontalDivider()
 
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Default Terminal Login User", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "Select which user account logs into interactive terminal sessions by default.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        val loginUsers = listOf("root") + state.containerUsers
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            loginUsers.forEach { u ->
+                                val isSelected = u == defaultTerminalUser
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { onSetDefaultTerminalUser(u) },
+                                    label = { Text(if (u == "root") "root (Admin)" else u) },
+                                    leadingIcon = if (isSelected) {
+                                        { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                    } else null,
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider()
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -653,9 +756,38 @@ fun SettingsScreen(
                     fontWeight = FontWeight.Bold
                 )
 
-                val isStorageGranted = remember {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                        android.os.Environment.isExternalStorageManager()
+                var isStorageGranted by remember {
+                    mutableStateOf(
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.READ_MEDIA_IMAGES
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.READ_MEDIA_VIDEO
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        } else {
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        }
+                    )
+                }
+
+                val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+                ) { _ ->
+                    isStorageGranted = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.READ_MEDIA_IMAGES
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                        androidx.core.content.ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.READ_MEDIA_VIDEO
+                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                     } else {
                         androidx.core.content.ContextCompat.checkSelfPermission(
                             context,
@@ -664,9 +796,9 @@ fun SettingsScreen(
                     }
                 }
 
-                // Storage Permission Explanation Card
+                // Storage Information Card
                 Surface(
-                    color = if (isStorageGranted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.errorContainer,
+                    color = if (isStorageGranted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -679,27 +811,27 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = if (isStorageGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                imageVector = if (isStorageGranted) Icons.Default.CheckCircle else Icons.Default.Folder,
                                 contentDescription = null,
-                                tint = if (isStorageGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                tint = if (isStorageGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
                             )
                             Text(
                                 text = "Device File & Storage Permission",
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleSmall,
-                                color = if (isStorageGranted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
 
                         Text(
-                            text = "LinuxOnAndroid requires All Files Access permission to expose your host storage (/sdcard, /storage/emulated/0, and ~/Downloads) inside the Linux container, and to save/restore container backup archives. Without this permission, /sdcard will appear empty.",
+                            text = "LinuxOnAndroid exposes host storage (/sdcard, /storage/emulated/0, and ~/Downloads) inside the Linux container. Backup exports & imports use standard Storage Access Framework (SAF) document pickers.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isStorageGranted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         if (isStorageGranted) {
                             Text(
-                                text = "✓ All Files Storage Access Enabled",
+                                text = "✓ Storage & Media Access Enabled",
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF4CAF50),
                                 fontSize = 12.sp
@@ -707,22 +839,29 @@ fun SettingsScreen(
                         } else {
                             Button(
                                 onClick = {
-                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                                        try {
-                                            val intent = android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                                data = android.net.Uri.parse("package:${context.packageName}")
-                                            }
-                                            context.startActivity(intent)
-                                        } catch (_: Exception) {}
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                        permissionLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.READ_MEDIA_IMAGES,
+                                                android.Manifest.permission.READ_MEDIA_VIDEO,
+                                                android.Manifest.permission.READ_MEDIA_AUDIO
+                                            )
+                                        )
+                                    } else {
+                                        permissionLauncher.launch(
+                                            arrayOf(
+                                                android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                            )
+                                        )
                                     }
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Grant Storage Access")
+                                Text("Grant Storage & Media Access")
                             }
                         }
                     }

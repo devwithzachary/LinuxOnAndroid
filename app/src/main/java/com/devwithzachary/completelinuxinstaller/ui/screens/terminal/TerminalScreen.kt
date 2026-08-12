@@ -33,7 +33,10 @@ import com.devwithzachary.completelinuxinstaller.util.HotkeyManager
 fun TerminalScreen(
     terminalBridge: TerminalBridge,
     onStartSession: () -> Unit,
-    onStopSession: () -> Unit
+    onStopSession: () -> Unit,
+    defaultLoginUser: String = "root",
+    fontSizeSp: Int = 13,
+    fontFamilyName: String = "Monospace"
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -42,12 +45,14 @@ fun TerminalScreen(
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
-    val isImeVisible = WindowInsets.isImeVisible
 
     var customHotkeys by remember { mutableStateOf(HotkeyManager.getHotkeys(context)) }
     var showEditHotkeysDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        if (!isRunning) {
+            onStartSession()
+        }
         focusRequester.requestFocus()
     }
 
@@ -81,8 +86,9 @@ fun TerminalScreen(
                                 shape = RoundedCornerShape(5.dp)
                             )
                     )
+                    val promptSymbol = if (defaultLoginUser == "root") "#" else "$"
                     Text(
-                        text = if (isRunning) "root@ubuntu:~# (Active PTY)" else "Terminal (Stopped)",
+                        text = if (isRunning) "$defaultLoginUser@ubuntu:~$promptSymbol (Active PTY)" else "Terminal (Stopped)",
                         color = Color.White,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
@@ -111,32 +117,36 @@ fun TerminalScreen(
                         Icon(
                             imageVector = Icons.Default.Tune,
                             contentDescription = "Edit Hotkeys",
-                            tint = Color(0xFF81D4FA)
+                            tint = Color(0xFFFFB74D)
                         )
                     }
 
                     IconButton(onClick = {
-                        if (isImeVisible) {
-                            keyboardController?.hide()
-                        } else {
-                            focusRequester.requestFocus()
-                            keyboardController?.show()
-                        }
+                        focusRequester.requestFocus()
+                        keyboardController?.show()
                     }) {
                         Icon(
                             imageVector = Icons.Default.Keyboard,
-                            contentDescription = "Toggle Keyboard",
-                            tint = if (isImeVisible) Color(0xFF4CAF50) else Color(0xFF81D4FA)
+                            contentDescription = "Show Keyboard",
+                            tint = Color.White
                         )
                     }
 
                     if (isRunning) {
                         IconButton(onClick = onStopSession) {
-                            Icon(Icons.Default.Stop, contentDescription = "Stop Session", tint = Color.Red)
+                            Icon(
+                                imageVector = Icons.Default.Stop,
+                                contentDescription = "Stop Terminal",
+                                tint = Color(0xFFE57373)
+                            )
                         }
                     } else {
                         IconButton(onClick = onStartSession) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = "Start Session", tint = Color(0xFF4CAF50))
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Start Terminal",
+                                tint = Color(0xFF81C784)
+                            )
                         }
                     }
                 }
@@ -152,36 +162,22 @@ fun TerminalScreen(
                 focusRequester.requestFocus()
                 keyboardController?.show()
             },
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            fontSizeSp = fontSizeSp,
+            fontFamilyName = fontFamilyName
         )
 
         // Touch Navigation & Quick Command Keys Ribbon (Positioned directly above keyboard)
         ExtraKeysRow(
             keys = customHotkeys,
             onKeyClick = { key ->
-                when (key) {
-                    "Paste" -> {
-                        val clipText = clipboardManager.getText()?.text
-                        if (!clipText.isNullOrEmpty()) {
-                            terminalBridge.pasteText(clipText)
-                        }
+                if (key == "Paste") {
+                    val clipText = clipboardManager.getText()?.text
+                    if (!clipText.isNullOrEmpty()) {
+                        terminalBridge.pasteText(clipText)
                     }
-                    "Ctrl+C" -> terminalBridge.sendCtrlC()
-                    "Ctrl+Z" -> terminalBridge.sendCtrlZ()
-                    "Ctrl+D" -> terminalBridge.sendCtrlD()
-                    "Tab" -> terminalBridge.sendTab()
-                    "Esc" -> terminalBridge.sendEsc()
-                    "▲" -> terminalBridge.sendArrowUp()
-                    "▼" -> terminalBridge.sendArrowDown()
-                    "◄" -> terminalBridge.sendArrowLeft()
-                    "►" -> terminalBridge.sendArrowRight()
-                    else -> {
-                        if (key.length <= 2 && !key.contains(" ")) {
-                            terminalBridge.sendInput(key)
-                        } else {
-                            terminalBridge.sendCommand(key)
-                        }
-                    }
+                } else {
+                    terminalBridge.sendKeyShortcut(key)
                 }
             }
         )

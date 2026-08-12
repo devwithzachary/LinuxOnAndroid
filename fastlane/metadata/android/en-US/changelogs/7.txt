@@ -1,0 +1,1 @@
+• Google Play Policy Compliance: Switched storage mounting to Android Scoped Storage & SAF file pickers, removing MANAGE_EXTERNAL_STORAGE permission.

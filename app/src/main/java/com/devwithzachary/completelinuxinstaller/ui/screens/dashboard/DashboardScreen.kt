@@ -215,7 +215,7 @@ fun DashboardScreen(
 
                         if (state.isSshInstalled) {
                             OutlinedButton(
-                                onClick = { onRunPresetClick("/usr/sbin/sshd -p 2222") },
+                                onClick = { onRunPresetClick("su - root -c '/usr/sbin/sshd -p 2222'") },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(Icons.Default.Security, contentDescription = null)
