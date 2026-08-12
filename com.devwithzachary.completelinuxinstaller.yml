@@ -10,8 +10,8 @@ AllowedAPKSigningKeys:
   - c532d763fd4ec838fa118005d9eb51ec13ce72167d2b0a1a8452ce36fc49199e
 
 Builds:
-  - versionName: 1.1.0
-    versionCode: 6
+  - versionName: 1.1.1
+    versionCode: 8
     commit: main
     subdir: app
     gradle:
@@ -19,5 +19,5 @@ Builds:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.1.0
-CurrentVersionCode: 6
+CurrentVersion: 1.1.1
+CurrentVersionCode: 8

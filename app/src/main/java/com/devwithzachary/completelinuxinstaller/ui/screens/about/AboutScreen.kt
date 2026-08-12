@@ -229,7 +229,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.1.0")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.1.1")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
@@ -258,10 +258,18 @@ fun AboutScreen() {
 
                 ChangelogItem(
                     version = "v1.1.1",
-                    date = "August 10, 2026",
+                    date = "August 12, 2026",
                     initialExpanded = true,
                     highlights = listOf(
-                        "Google Play Policy Compliance: Switched storage mounting to Android Scoped Storage & Storage Access Framework (SAF), removing MANAGE_EXTERNAL_STORAGE permission."
+                        "Default Terminal User Selector: Added setting to configure default terminal user session, defaulting to your custom regular user.",
+                        "Terminal Font Customization: Added custom font size selector and monospace font family picker (Roboto Mono, Fira Code, Source Code Pro, JetBrains Mono).",
+                        "Terminal Hotkey Editor & Reordering: Customize, add, remove, and reorder quick hotkey bar buttons with special key combination handling.",
+                        "Custom User First-Launch Setup: Setup wizard now creates your custom username directly on installation, cleaning up generic defaults.",
+                        "Native Interactive Ubuntu Sudo: Restored standard Ubuntu /usr/bin/sudo with user-space setuid syscall interception (PROOT_FORCE_SETID=1) and PAM permit rules, supporting interactive prompts (sudo apt upgrade, sudo nano, sudo su).",
+                        "Soft Keyboard Autocorrect & IME Fix: Suppressed IME word prediction and autocorrect (Gboard/SwiftKey) to prevent CLI terms like 'usr' from changing to 'use', while resolving double-typed letters.",
+                        "Sudo Ownership & Setuid Safeguards: Fixed package installer pre-flight hooks to prevent recursive chmod 777 over /usr and /etc, preserving 4755 setuid permissions and 0:0 root ownership.",
+                        "SSH Service & Remote Login: Configured OpenSSH Server daemon (Port 2222) with password authentication and SFTP subsystem support.",
+                        "Play Store Scoped Storage Compliance: Full Play Store policy compliance with Android Scoped Storage and Storage Access Framework (SAF)."
                     )
                 )
 
