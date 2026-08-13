@@ -6,6 +6,7 @@
     <string name="website_domain">linuxonandroid.com</string>
     <string name="website_url">https://linuxonandroid.com</string>
     <string name="patreon_url">https://www.patreon.com/cw/DevWithZachary/membership</string>
+    <string name="buymeacoffee_url">http://buymeacoffee.com/linuxonandroid</string>
     <string name="github_issues_url">https://github.com/devwithzachary/LinuxOnAndroid/issues</string>
 
     <!-- Navigation Tabs -->
@@ -37,12 +38,13 @@
     <string name="value_sdcard_yes">Yes (/sdcard)</string>
     <string name="value_sdcard_disabled">Disabled</string>
 
-    <!-- Patreon Banner & Support -->
-    <string name="patreon_banner_title">Support on Patreon</string>
-    <string name="patreon_banner_text">Love Complete Linux Installer? Join my Patreon from $1/month to support ongoing development!</string>
-    <string name="btn_join_patreon">Join my Patreon ($1/mo)</string>
+    <!-- Patreon & Buy Me a Coffee Banner & Support -->
+    <string name="patreon_banner_title">Support the Project</string>
+    <string name="patreon_banner_text">Love Complete Linux Installer? Support ongoing development with monthly membership on Patreon or leave a one-off tip on Buy Me a Coffee!</string>
+    <string name="btn_join_patreon">Join Patreon</string>
+    <string name="btn_buy_me_a_coffee">Buy Me a Coffee</string>
     <string name="patreon_support_title">Support the Project</string>
-    <string name="patreon_support_text">Complete Linux Installer is free and open-source software. If you find this app helpful and want to support ongoing development, new features, and distros, join my Patreon from $1/month!</string>
+    <string name="patreon_support_text">Complete Linux Installer is free and open-source software. If you find this app helpful and want to support ongoing development, new features, and distros, join my Patreon from $1/month or leave a one-off tip on Buy Me a Coffee!</string>
 
     <!-- Active Development & Bug Reporting -->
     <string name="alpha_card_title">Active Development &amp; Issue Reporting</string>

@@ -29,6 +29,7 @@ fun AboutScreen() {
     val uriHandler = LocalUriHandler.current
     val websiteUrl = stringResource(R.string.website_url)
     val patreonUrl = stringResource(R.string.patreon_url)
+    val buymeacoffeeUrl = stringResource(R.string.buymeacoffee_url)
     val githubIssuesUrl = stringResource(R.string.github_issues_url)
 
     Column(
@@ -139,21 +140,43 @@ fun AboutScreen() {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Button(
-                    onClick = {
-                        try {
-                            uriHandler.openUri(patreonUrl)
-                        } catch (_: Exception) {}
-                    },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    shape = RoundedCornerShape(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.btn_join_patreon))
+                    Button(
+                        onClick = {
+                            try {
+                                uriHandler.openUri(patreonUrl)
+                            } catch (_: Exception) {}
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.btn_join_patreon))
+                    }
+
+                    Button(
+                        onClick = {
+                            try {
+                                uriHandler.openUri(buymeacoffeeUrl)
+                            } catch (_: Exception) {}
+                        },
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.tertiary
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.LocalCafe, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.btn_buy_me_a_coffee))
+                    }
                 }
             }
         }
