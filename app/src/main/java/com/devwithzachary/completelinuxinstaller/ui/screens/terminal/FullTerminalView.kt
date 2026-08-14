@@ -72,11 +72,12 @@ fun FullTerminalView(
 
     val selectedTypeface = remember(fontFamilyName) {
         when (fontFamilyName) {
-            "Courier" -> Typeface.create("courier", Typeface.NORMAL)
-            "Sans Serif" -> Typeface.MONOSPACE
-            "Serif" -> Typeface.SERIF
-            "Code Mono" -> Typeface.create("monospace", Typeface.BOLD)
-            "JetBrains Mono" -> Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+            "JetBrains Mono" -> Typeface.create("monospace", Typeface.BOLD)
+            "Sans Serif" -> Typeface.create("sans-serif", Typeface.NORMAL)
+            "Serif" -> Typeface.create("serif", Typeface.NORMAL)
+            "Cursive" -> Typeface.create("cursive", Typeface.NORMAL)
+            "Casual" -> Typeface.create("casual", Typeface.NORMAL)
+            "Wingdings" -> Typeface.create("monospace", Typeface.NORMAL)
             else -> Typeface.MONOSPACE
         }
     }
@@ -425,8 +426,9 @@ fun FullTerminalView(
                         paint.isUnderlineText = cell.underline
 
                         if (cell.ch != ' ') {
+                            val charStr = if (fontFamilyName == "Wingdings") toWingdingsChar(cell.ch) else cell.ch.toString()
                             nativeCanvas.drawText(
-                                cell.ch.toString(),
+                                charStr,
                                 cellX,
                                 rowY + baselineOffset,
                                 paint
@@ -572,3 +574,81 @@ fun FullTerminalView(
         )
     }
 }
+
+private fun toWingdingsChar(ch: Char): String {
+    return when (ch) {
+        'a' -> "✌"
+        'b' -> "👌"
+        'c' -> "👍"
+        'd' -> "👎"
+        'e' -> "👈"
+        'f' -> "👉"
+        'g' -> "👆"
+        'h' -> "👇"
+        'i' -> "🖐"
+        'j' -> "☺"
+        'k' -> "😐"
+        'l' -> "☹"
+        'm' -> "💣"
+        'n' -> "☠"
+        'o' -> "⚐"
+        'p' -> "⚑"
+        'q' -> "✈"
+        'r' -> "☼"
+        's' -> "💧"
+        't' -> "❄"
+        'u' -> "🕇"
+        'v' -> "🕈"
+        'w' -> "✠"
+        'x' -> "✡"
+        'y' -> "☸"
+        'z' -> "☯"
+        'A' -> "✌"
+        'B' -> "👌"
+        'C' -> "👍"
+        'D' -> "👎"
+        'E' -> "👈"
+        'F' -> "👉"
+        'G' -> "👆"
+        'H' -> "👇"
+        'I' -> "🖐"
+        'J' -> "☺"
+        'K' -> "😐"
+        'L' -> "☹"
+        'M' -> "💣"
+        'N' -> "☠"
+        'O' -> "⚐"
+        'P' -> "⚑"
+        'Q' -> "✈"
+        'R' -> "☼"
+        'S' -> "💧"
+        'T' -> "❄"
+        'U' -> "🕇"
+        'V' -> "🕈"
+        'W' -> "✠"
+        'X' -> "✡"
+        'Y' -> "☸"
+        'Z' -> "☯"
+        '0' -> "⓪"
+        '1' -> "①"
+        '2' -> "②"
+        '3' -> "③"
+        '4' -> "④"
+        '5' -> "⑤"
+        '6' -> "⑥"
+        '7' -> "⑦"
+        '8' -> "⑧"
+        '9' -> "⑨"
+        ':' -> "❖"
+        '/' -> "✂"
+        '-' -> "✦"
+        '~' -> "≈"
+        '$' -> "💲"
+        '#' -> "⌗"
+        '@' -> "🌀"
+        '.' -> "●"
+        ' ' -> " "
+        else -> ch.toString()
+    }
+}
+

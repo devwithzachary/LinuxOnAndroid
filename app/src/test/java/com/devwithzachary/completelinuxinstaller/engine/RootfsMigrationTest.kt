@@ -136,4 +136,20 @@ class RootfsMigrationTest {
         assertEquals(3, RootfsMigrationManager.getPackageVersion(rootfsDir, "openssh_server"))
         assertEquals(2, RootfsMigrationManager.getPackageVersion(rootfsDir, "xfce_desktop"))
     }
+
+    @Test
+    fun testDnsResolvConfPersistence_writesAndParsesCorrectly() {
+        val rootfsDir = tempFolder.newFolder("dns_test_rootfs")
+        val etcDir = File(rootfsDir, "etc").apply { mkdirs() }
+        val resolvConf = File(etcDir, "resolv.conf")
+
+        val dnsServers = listOf("1.1.1.1", "1.0.0.1", "8.8.8.8")
+        resolvConf.writeText(dnsServers.joinToString("\n") { "nameserver $it" } + "\n")
+
+        val parsed = resolvConf.readLines()
+            .filter { it.trim().startsWith("nameserver") }
+            .map { it.removePrefix("nameserver").trim() }
+
+        assertEquals(listOf("1.1.1.1", "1.0.0.1", "8.8.8.8"), parsed)
+    }
 }

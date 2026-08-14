@@ -429,14 +429,10 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
     fun configureSystemFiles() {
         val etcDir = File(rootfsDir, "etc").apply { if (!exists()) mkdirs() }
 
+        val currentDns = getDnsServers()
         val resolvConf = File(etcDir, "resolv.conf")
-        resolvConf.writeText(
-            """
-            nameserver 8.8.8.8
-            nameserver 1.1.1.1
-            nameserver 8.8.4.4
-            """.trimIndent()
-        )
+        val dnsContent = currentDns.joinToString("\n") { "nameserver $it" } + "\n"
+        resolvConf.writeText(dnsContent)
 
         val hosts = File(etcDir, "hosts")
         hosts.writeText(
@@ -1011,4 +1007,38 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         emitLog("RootFS successfully upgraded to ${BuildConfig.VERSION_NAME} (Build $targetVersion)!")
         send(UpgradeState.Success(fromVersion, targetVersion, logList.toList()))
     }.flowOn(Dispatchers.IO)
+
+    fun getDnsServers(): List<String> {
+        val resolvConf = File(rootfsDir, "etc/resolv.conf")
+        if (resolvConf.exists()) {
+            try {
+                val servers = resolvConf.readLines()
+                    .filter { it.trim().startsWith("nameserver") }
+                    .map { it.removePrefix("nameserver").trim() }
+                    .filter { it.isNotBlank() }
+                if (servers.isNotEmpty()) return servers
+            } catch (_: Exception) {}
+        }
+        val prefs = context.getSharedPreferences("dns_prefs", Context.MODE_PRIVATE)
+        val saved = prefs.getString("dns_servers_csv", null)
+        if (!saved.isNullOrBlank()) {
+            return saved.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        }
+        return listOf("8.8.8.8", "1.1.1.1", "8.8.4.4")
+    }
+
+    fun setDnsServers(servers: List<String>): Boolean {
+        val cleanList = servers.map { it.trim() }.filter { it.isNotBlank() }
+        if (cleanList.isEmpty()) return false
+        val prefs = context.getSharedPreferences("dns_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("dns_servers_csv", cleanList.joinToString(",")).apply()
+
+        if (isInstalled()) {
+            val etcDir = File(rootfsDir, "etc").apply { if (!exists()) mkdirs() }
+            val resolvConf = File(etcDir, "resolv.conf")
+            val content = cleanList.joinToString("\n") { "nameserver $it" } + "\n"
+            resolvConf.writeText(content)
+        }
+        return true
+    }
 }

@@ -41,6 +41,7 @@ data class DashboardUiState(
     val sshPort: Int = 2222,
     val rootfsVersion: RootfsVersionInfo? = null,
     val isUpgradeAvailable: Boolean = false,
+    val dnsServers: List<String> = listOf("8.8.8.8", "1.1.1.1", "8.8.4.4"),
     val containerUsers: List<String> = emptyList()
 )
 
@@ -68,6 +69,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _sshPort = MutableStateFlow(loadSshPort())
     val sshPort: StateFlow<Int> = _sshPort.asStateFlow()
 
+    private val _dnsServers = MutableStateFlow(rootfsManager.getDnsServers())
+    val dnsServers: StateFlow<List<String>> = _dnsServers.asStateFlow()
+
     private val _upgradeState = MutableStateFlow<UpgradeState>(UpgradeState.Idle)
     val upgradeState: StateFlow<UpgradeState> = _upgradeState.asStateFlow()
 
@@ -80,7 +84,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _terminalFontFamily = MutableStateFlow(loadTerminalFontFamily())
     val terminalFontFamily: StateFlow<String> = _terminalFontFamily.asStateFlow()
 
-    private val _dashboardState = MutableStateFlow(DashboardUiState(sshPort = loadSshPort()))
+    private val _dashboardState = MutableStateFlow(
+        DashboardUiState(
+            sshPort = loadSshPort(),
+            dnsServers = rootfsManager.getDnsServers()
+        )
+    )
     val dashboardState: StateFlow<DashboardUiState> = _dashboardState.asStateFlow()
 
     private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
@@ -96,6 +105,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val defaultTerminalUser: StateFlow<String> = _defaultTerminalUser.asStateFlow()
 
     val isSessionRunning = terminalBridge.isRunning
+
+    fun setDnsServers(servers: List<String>) {
+        rootfsManager.setDnsServers(servers)
+        _dnsServers.value = rootfsManager.getDnsServers()
+        _dashboardState.value = _dashboardState.value.copy(dnsServers = _dnsServers.value)
+    }
 
     fun upgradeRootfs() {
         viewModelScope.launch {
@@ -315,6 +330,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         val rootfsVersion = if (installed) rootfsManager.getRootfsVersion() else null
         val isUpgradeAvail = if (installed) rootfsManager.isUpgradeAvailable() else false
+        val currentDns = rootfsManager.getDnsServers()
+        _dnsServers.value = currentDns
 
         _dashboardState.value = _dashboardState.value.copy(
             isInstalled = installed,
@@ -325,6 +342,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             sshPort = _sshPort.value,
             rootfsVersion = rootfsVersion,
             isUpgradeAvailable = isUpgradeAvail,
+            dnsServers = currentDns,
             containerUsers = users
         )
 

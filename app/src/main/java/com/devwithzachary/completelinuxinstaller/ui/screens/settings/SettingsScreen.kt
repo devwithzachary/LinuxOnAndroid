@@ -2,21 +2,30 @@ package com.devwithzachary.completelinuxinstaller.ui.screens.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
@@ -32,15 +41,120 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
+
+enum class SettingsCategory(val displayName: String, val icon: ImageVector) {
+    ALL("All", Icons.Default.Apps),
+    CONTAINER("Container", Icons.Default.Upgrade),
+    NETWORK("Network & DNS", Icons.Default.Dns),
+    TERMINAL("Terminal", Icons.Default.Palette),
+    SECURITY("Security", Icons.Default.Person),
+    STORAGE("Storage & Reset", Icons.Default.Folder)
+}
+
+@Composable
+fun CollapsibleSettingsCard(
+    title: String,
+    icon: ImageVector,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    badge: @Composable (() -> Unit)? = null,
+    colors: CardColors = CardDefaults.cardColors(),
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = colors
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onToggleExpand() },
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f, fill = false),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                        if (!subtitle.isNullOrBlank() && !isExpanded) {
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    badge?.invoke()
+                    IconButton(
+                        onClick = onToggleExpand,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isExpanded) "Collapse" else "Expand",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column(
+                    modifier = Modifier.padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    content()
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun SettingsScreen(
@@ -55,6 +169,7 @@ fun SettingsScreen(
     onSetTerminalFontSize: (Int) -> Unit = {},
     onSetTerminalFontFamily: (String) -> Unit = {},
     onSetDefaultTerminalUser: (String) -> Unit = {},
+    onSetDnsServers: (List<String>) -> Unit = {},
     onToggleBindSdCard: () -> Unit,
     onWipeRootfsClick: () -> Unit,
     onRefreshStatusClick: () -> Unit,
@@ -69,6 +184,34 @@ fun SettingsScreen(
     val context = LocalContext.current
     val contentResolver = context.contentResolver
 
+    var selectedCategory by remember { mutableStateOf(SettingsCategory.ALL) }
+    var expandedCards by remember {
+        mutableStateOf(
+            mapOf(
+                "upgrade" to false,
+                "backup" to false,
+                "dns" to false,
+                "theme" to false,
+                "users" to false,
+                "storage" to false,
+                "maintenance" to false
+            )
+        )
+    }
+
+    fun isCardExpanded(id: String): Boolean = expandedCards[id] ?: false
+    fun toggleCard(id: String) {
+        expandedCards = expandedCards.toMutableMap().apply {
+            put(id, !(this[id] ?: false))
+        }
+    }
+
+    val allExpanded = expandedCards.values.all { it }
+    fun toggleAllExpanded() {
+        val newState = !allExpanded
+        expandedCards = expandedCards.keys.associateWith { newState }
+    }
+
     var showWipeConfirm by remember { mutableStateOf(false) }
     var showImportConfirm by remember { mutableStateOf(false) }
     var showRootPasswordDialog by remember { mutableStateOf(false) }
@@ -80,6 +223,11 @@ fun SettingsScreen(
     var userToDelete by remember { mutableStateOf<String?>(null) }
     var changePasswordUser by remember { mutableStateOf<String?>(null) }
     var changePasswordUserNewPass by remember { mutableStateOf("") }
+
+    var customDnsInput by remember(state.dnsServers) {
+        mutableStateOf(state.dnsServers.joinToString(", "))
+    }
+    var showDnsSavedNotice by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/gzip")
@@ -105,45 +253,100 @@ fun SettingsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Settings & Configuration",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-
-        // RootFS Container Maintenance & Upgrade Card
-        Card(
+        // Header & Expand/Collapse Toggle
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f, fill = false),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Upgrade,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "RootFS Upgrade",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
+            Text(
+                text = "Settings & Configuration",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
 
+            TextButton(
+                onClick = { toggleAllExpanded() },
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Icon(
+                    imageVector = if (allExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(if (allExpanded) "Collapse All" else "Expand All", fontSize = 12.sp)
+            }
+        }
+
+        // Category Filter Chips
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(SettingsCategory.entries) { cat ->
+                val isSelected = selectedCategory == cat
+                FilterChip(
+                    selected = isSelected,
+                    onClick = {
+                        selectedCategory = cat
+                        if (cat != SettingsCategory.ALL) {
+                            when (cat) {
+                                SettingsCategory.CONTAINER -> {
+                                    expandedCards = expandedCards.toMutableMap().apply {
+                                        put("upgrade", true)
+                                        put("backup", true)
+                                    }
+                                }
+                                SettingsCategory.NETWORK -> {
+                                    expandedCards = expandedCards.toMutableMap().apply {
+                                        put("dns", true)
+                                    }
+                                }
+                                SettingsCategory.TERMINAL -> {
+                                    expandedCards = expandedCards.toMutableMap().apply {
+                                        put("theme", true)
+                                    }
+                                }
+                                SettingsCategory.SECURITY -> {
+                                    expandedCards = expandedCards.toMutableMap().apply {
+                                        put("users", true)
+                                    }
+                                }
+                                SettingsCategory.STORAGE -> {
+                                    expandedCards = expandedCards.toMutableMap().apply {
+                                        put("storage", true)
+                                        put("maintenance", true)
+                                    }
+                                }
+                                else -> {}
+                            }
+                        }
+                    },
+                    leadingIcon = {
+                        Icon(cat.icon, contentDescription = null, modifier = Modifier.size(16.dp))
+                    },
+                    label = { Text(cat.displayName, fontSize = 12.sp) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+            }
+        }
+
+        // 1. RootFS Container Maintenance & Upgrade Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.CONTAINER) {
+            CollapsibleSettingsCard(
+                title = "RootFS Upgrade",
+                subtitle = if (state.isInstalled) {
+                    val v = state.rootfsVersion
+                    if (v != null) "${v.versionName} (Build ${v.versionCode})" else "v1.0.0 (Legacy)"
+                } else "Not Installed",
+                icon = Icons.Default.Upgrade,
+                isExpanded = isCardExpanded("upgrade"),
+                onToggleExpand = { toggleCard("upgrade") },
+                badge = {
                     if (state.isInstalled) {
                         Surface(
                             color = if (state.isUpgradeAvailable) MaterialTheme.colorScheme.primaryContainer else Color(0xFF1E3A1E),
@@ -160,7 +363,7 @@ fun SettingsScreen(
                         }
                     }
                 }
-
+            ) {
                 Text(
                     text = "Track which app version built your Linux File System and 'upgrade' it to the latest version here to benefit from incremental system improvements.",
                     style = MaterialTheme.typography.bodySmall,
@@ -172,7 +375,7 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
                             .padding(10.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -222,21 +425,15 @@ fun SettingsScreen(
             }
         }
 
-        // 1-Tap RootFS Container Backup & Restore Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        // 2. 1-Tap RootFS Container Backup & Restore Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.CONTAINER) {
+            CollapsibleSettingsCard(
+                title = "Container Backup & Restore",
+                subtitle = "Export or import container archive (.tar.gz)",
+                icon = Icons.Default.Upload,
+                isExpanded = isCardExpanded("backup"),
+                onToggleExpand = { toggleCard("backup") }
             ) {
-                Text(
-                    text = "Container Backup & Restore",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
                 Text(
                     text = "Create a 1-tap backup archive (.tar.gz) of your complete Linux rootfs environment or restore an existing container archive from device storage.",
                     style = MaterialTheme.typography.bodySmall,
@@ -275,7 +472,146 @@ fun SettingsScreen(
             }
         }
 
-        // Terminal Color Theme Pack Card
+        // 3. Network & DNS Configuration Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.NETWORK) {
+            CollapsibleSettingsCard(
+                title = "Network & DNS Configuration",
+                subtitle = "DNS: " + state.dnsServers.joinToString(", "),
+                icon = Icons.Default.Dns,
+                isExpanded = isCardExpanded("dns"),
+                onToggleExpand = { toggleCard("dns") },
+                badge = {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "${state.dnsServers.size} DNS Active",
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            ) {
+                Text(
+                    text = "Configure nameservers used by your Linux rootfs container for APT package downloads, web access, and CLI networking tools. Applied directly to /etc/resolv.conf.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Current Active DNS Display
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                        .padding(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Active Nameservers (/etc/resolv.conf):",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = state.dnsServers.joinToString("  •  "),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Quick DNS Provider Presets:",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Preset DNS Providers
+                val dnsPresets = listOf(
+                    "Google (8.8.8.8, 8.8.4.4)" to listOf("8.8.8.8", "8.8.4.4"),
+                    "Cloudflare (1.1.1.1, 1.0.0.1)" to listOf("1.1.1.1", "1.0.0.1"),
+                    "Quad9 Secure (9.9.9.9)" to listOf("9.9.9.9", "149.112.112.112"),
+                    "AdGuard AdBlock (94.140.14.14)" to listOf("94.140.14.14", "94.140.15.15"),
+                    "OpenDNS (208.67.222.222)" to listOf("208.67.222.222", "208.67.220.220")
+                )
+
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(dnsPresets) { (name, ips) ->
+                        val isSelected = state.dnsServers == ips
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                customDnsInput = ips.joinToString(", ")
+                                onSetDnsServers(ips)
+                                showDnsSavedNotice = true
+                            },
+                            label = { Text(name, fontSize = 12.sp) },
+                            leadingIcon = if (isSelected) {
+                                { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            } else null
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Custom DNS Nameservers:",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                OutlinedTextField(
+                    value = customDnsInput,
+                    onValueChange = {
+                        customDnsInput = it
+                        showDnsSavedNotice = false
+                    },
+                    label = { Text("DNS IP Addresses (comma or space separated)") },
+                    placeholder = { Text("e.g. 1.1.1.1, 8.8.8.8, 9.9.9.9") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    )
+                )
+
+                Button(
+                    onClick = {
+                        val parsed = customDnsInput.split(',', ' ', '\n')
+                            .map { it.trim() }
+                            .filter { it.isNotBlank() }
+                        if (parsed.isNotEmpty()) {
+                            onSetDnsServers(parsed)
+                            showDnsSavedNotice = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Dns, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Apply DNS Configuration")
+                }
+
+                if (showDnsSavedNotice) {
+                    Text(
+                        text = "✓ DNS servers successfully updated in /etc/resolv.conf",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF4CAF50),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // 4. Terminal Color Theme Pack Card
         var showCustomThemeDialog by remember { mutableStateOf(false) }
         var editingColorTarget by remember { mutableStateOf<String?>(null) }
         var colorHexInput by remember { mutableStateOf("") }
@@ -286,36 +622,19 @@ fun SettingsScreen(
         var customSelection by remember(terminalTheme) { mutableStateOf(terminalTheme.selectionColor) }
         var customAnsiColors by remember(terminalTheme) { mutableStateOf(terminalTheme.ansiColors.toMutableList()) }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.TERMINAL) {
+            CollapsibleSettingsCard(
+                title = "Terminal Appearance & Theme",
+                subtitle = "Theme: ${terminalTheme.name} (${terminalFontSize}sp, $terminalFontFamily)",
+                icon = Icons.Default.Palette,
+                isExpanded = isCardExpanded("theme"),
+                onToggleExpand = { toggleCard("theme") }
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Palette,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(
-                            text = "Terminal Color Theme",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Choose from standard color themes or create your own custom ANSI palette.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                Text(
+                    text = "Choose from standard color themes or create your own custom ANSI palette.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 // Horizontal Preset Chips
                 LazyRow(
@@ -375,7 +694,8 @@ fun SettingsScreen(
 
                 HorizontalDivider()
 
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Font Size Slider Section
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -384,31 +704,35 @@ fun SettingsScreen(
                         Text("Terminal Font Size", fontWeight = FontWeight.SemiBold)
                         Text("${terminalFontSize} sp", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
+                    Slider(
+                        value = terminalFontSize.toFloat(),
+                        onValueChange = { onSetTerminalFontSize(it.toInt()) },
+                        valueRange = 10f..24f,
+                        steps = 13,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text("10sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Slider(
-                            value = terminalFontSize.toFloat(),
-                            onValueChange = { onSetTerminalFontSize(it.toInt()) },
-                            valueRange = 10f..24f,
-                            steps = 13,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Text("14sp (Default)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("24sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
                 HorizontalDivider()
 
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Font Family Selector Section
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Terminal Font Family", fontWeight = FontWeight.SemiBold)
-                    val fontFamilies = listOf("Monospace", "Code Mono", "JetBrains Mono", "Courier", "Sans Serif", "Serif")
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val fontFamilies = listOf("Monospace", "JetBrains Mono", "Sans Serif", "Serif", "Cursive", "Casual", "Wingdings")
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         items(fontFamilies) { family ->
-                            val isSelected = family == terminalFontFamily
+                            val isSelected = terminalFontFamily == family
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { onSetTerminalFontFamily(family) },
@@ -425,132 +749,98 @@ fun SettingsScreen(
                     }
                 }
 
-                // Interactive Live Terminal Preview Box
+                HorizontalDivider()
+
+                // Theme Quick Preview Box
                 val previewFontFamily = when (terminalFontFamily) {
-                    "Courier" -> FontFamily.Monospace
                     "Sans Serif" -> FontFamily.SansSerif
                     "Serif" -> FontFamily.Serif
-                    "Code Mono" -> FontFamily.Monospace
-                    "JetBrains Mono" -> FontFamily.Monospace
+                    "Cursive" -> FontFamily.Cursive
+                    "Casual" -> FontFamily(androidx.compose.ui.text.font.Typeface(android.graphics.Typeface.create("casual", android.graphics.Typeface.NORMAL)))
+                    "Wingdings" -> FontFamily.Monospace
                     else -> FontFamily.Monospace
                 }
-                val previewFontSize = terminalFontSize.sp
-                val promptText = if (defaultTerminalUser == "root") "root@ubuntu:~# " else "$defaultTerminalUser@ubuntu:~$ "
+                val previewFontWeight = if (terminalFontFamily == "JetBrains Mono") FontWeight.Bold else FontWeight.Normal
+
+                val wingdingsMap = remember {
+                    mapOf(
+                        'a' to "✌", 'b' to "👌", 'c' to "👍", 'd' to "👎", 'e' to "👈", 'f' to "👉",
+                        'g' to "👆", 'h' to "👇", 'i' to "🖐", 'j' to "☺", 'k' to "😐", 'l' to "☹",
+                        'm' to "💣", 'n' to "☠", 'o' to "⚐", 'p' to "⚑", 'q' to "✈", 'r' to "☼",
+                        's' to "💧", 't' to "❄", 'u' to "🕇", 'v' to "🕈", 'w' to "✠", 'x' to "✡",
+                        'y' to "☸", 'z' to "☯", 'A' to "✌", 'B' to "👌", 'C' to "👍", 'D' to "👎",
+                        'E' to "👈", 'F' to "👉", 'G' to "👆", 'H' to "👇", 'I' to "🖐", 'J' to "☺",
+                        'K' to "😐", 'L' to "☹", 'M' to "💣", 'N' to "☠", 'O' to "⚐", 'P' to "⚑",
+                        'Q' to "✈", 'R' to "☼", 'S' to "💧", 'T' to "❄", 'U' to "🕇", 'V' to "🕈",
+                        'W' to "✠", 'X' to "✡", 'Y' to "☸", 'Z' to "☯",
+                        '0' to "⓪", '1' to "①", '2' to "②", '3' to "③", '4' to "④",
+                        '5' to "⑤", '6' to "⑥", '7' to "⑦", '8' to "⑧", '9' to "⑨",
+                        ':' to "❖", '/' to "✂", '-' to "✦", '~' to "≈", '$' to "💲", '#' to "⌗",
+                        '@' to "🌀", '.' to "●", ' ' to " "
+                    )
+                }
+                fun toPreviewText(text: String): String {
+                    return if (terminalFontFamily == "Wingdings") {
+                        text.map { wingdingsMap[it] ?: it.toString() }.joinToString("")
+                    } else text
+                }
 
                 Surface(
-                    color = terminalTheme.defaultBg,
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, terminalTheme.selectionColor),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    color = terminalTheme.defaultBg
                 ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = promptText,
-                                fontFamily = previewFontFamily,
-                                fontSize = previewFontSize,
-                                fontWeight = FontWeight.Bold,
-                                color = terminalTheme.ansiColors.getOrElse(2) { Color.Green }
-                            )
-                            Text(
-                                text = "neofetch",
-                                fontFamily = previewFontFamily,
-                                fontSize = previewFontSize,
-                                color = terminalTheme.defaultFg
-                            )
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFFFF5F56)))
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFFFFBD2E)))
+                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFF27C93F)))
                         }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "OS: ",
-                                fontFamily = previewFontFamily,
-                                fontSize = previewFontSize,
-                                fontWeight = FontWeight.Bold,
-                                color = terminalTheme.ansiColors.getOrElse(6) { Color.Cyan }
-                            )
-                            Text(
-                                text = "Ubuntu 26.04 LTS (ARM64)",
-                                fontFamily = previewFontFamily,
-                                fontSize = previewFontSize,
-                                color = terminalTheme.defaultFg
-                            )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Kernel: ",
-                                fontFamily = previewFontFamily,
-                                fontSize = previewFontSize,
-                                fontWeight = FontWeight.Bold,
-                                color = terminalTheme.ansiColors.getOrElse(3) { Color.Yellow }
-                            )
-                            Text(
-                                text = "6.1.0-linuxonandroid",
-                                fontFamily = previewFontFamily,
-                                fontSize = previewFontSize,
-                                color = terminalTheme.defaultFg
-                            )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Terminal: ",
-                                fontFamily = previewFontFamily,
-                                fontSize = previewFontSize,
-                                fontWeight = FontWeight.Bold,
-                                color = terminalTheme.ansiColors.getOrElse(5) { Color.Magenta }
-                            )
-                            Text(
-                                text = "LinuxOnAndroid PTY ",
-                                fontFamily = previewFontFamily,
-                                fontSize = previewFontSize,
-                                color = terminalTheme.defaultFg
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size((terminalFontSize * 0.55).dp, terminalFontSize.dp)
-                                    .background(terminalTheme.cursorColor)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Palette 16 Color Dots Row
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            terminalTheme.ansiColors.take(16).forEach { color ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .clip(CircleShape)
-                                        .background(color)
-                                        .border(0.5.dp, Color.White.copy(alpha = 0.3f), CircleShape)
-                                )
-                            }
-                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = toPreviewText("ubuntu@localhost:~$ uname -a"),
+                            color = terminalTheme.defaultFg,
+                            fontFamily = previewFontFamily,
+                            fontWeight = previewFontWeight,
+                            fontSize = terminalFontSize.sp
+                        )
+                        Text(
+                            text = toPreviewText("Linux localhost 6.1.0-android-proot #1 SMP PREEMPT"),
+                            color = terminalTheme.ansiColors[2],
+                            fontFamily = previewFontFamily,
+                            fontWeight = previewFontWeight,
+                            fontSize = terminalFontSize.sp
+                        )
+                        Text(
+                            text = toPreviewText("ubuntu@localhost:~$ cat /etc/issue"),
+                            color = terminalTheme.defaultFg,
+                            fontFamily = previewFontFamily,
+                            fontWeight = previewFontWeight,
+                            fontSize = terminalFontSize.sp
+                        )
+                        Text(
+                            text = toPreviewText("Ubuntu 26.04 LTS \\n \\l"),
+                            color = terminalTheme.ansiColors[4],
+                            fontFamily = previewFontFamily,
+                            fontWeight = previewFontWeight,
+                            fontSize = terminalFontSize.sp
+                        )
                     }
                 }
 
-                if (terminalTheme.id == "custom") {
-                    Button(
-                        onClick = { showCustomThemeDialog = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Customize Palette & Colors")
-                    }
+                // Custom Theme Creator / Editor Expand Button
+                OutlinedButton(
+                    onClick = { showCustomThemeDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Palette, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Customize Palette & Colors")
                 }
             }
         }
 
-        // Custom Theme Editor Dialog
+        // Custom Theme Editor Modal Dialog
         if (showCustomThemeDialog) {
             AlertDialog(
                 onDismissRequest = { showCustomThemeDialog = false },
@@ -568,32 +858,29 @@ fun SettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState()),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = "Tap any color swatch to edit its Hex color value.",
+                            text = "Customize foreground, background, cursor, and ANSI 16 color palette.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Text("Base Interface Colors", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
 
-                        ColorSwatchPickerRow("Foreground (Text)", customFg) {
+                        ColorSwatchPickerRow(title = "Default Foreground (Text)", color = customFg) {
                             editingColorTarget = "fg"
                             colorHexInput = TerminalTheme.colorToHex(customFg)
                         }
-
-                        ColorSwatchPickerRow("Background (Canvas)", customBg) {
+                        ColorSwatchPickerRow(title = "Default Background", color = customBg) {
                             editingColorTarget = "bg"
                             colorHexInput = TerminalTheme.colorToHex(customBg)
                         }
-
-                        ColorSwatchPickerRow("Cursor Color", customCursor) {
+                        ColorSwatchPickerRow(title = "Cursor Color", color = customCursor) {
                             editingColorTarget = "cursor"
                             colorHexInput = TerminalTheme.colorToHex(customCursor)
                         }
-
-                        ColorSwatchPickerRow("Selection Highlight", customSelection) {
+                        ColorSwatchPickerRow(title = "Selection Highlight", color = customSelection) {
                             editingColorTarget = "selection"
                             colorHexInput = TerminalTheme.colorToHex(customSelection)
                         }
@@ -602,17 +889,17 @@ fun SettingsScreen(
 
                         Text("ANSI 16 Color Palette", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
 
-                        val colorNames = listOf(
+                        val ansiLabels = listOf(
                             "0: Black", "1: Red", "2: Green", "3: Yellow",
                             "4: Blue", "5: Magenta", "6: Cyan", "7: White",
                             "8: Bright Black", "9: Bright Red", "10: Bright Green", "11: Bright Yellow",
                             "12: Bright Blue", "13: Bright Magenta", "14: Bright Cyan", "15: Bright White"
                         )
 
-                        colorNames.forEachIndexed { index, name ->
-                            val color = customAnsiColors.getOrElse(index) { Color.White }
-                            ColorSwatchPickerRow(name, color) {
-                                editingColorTarget = "ansi_$index"
+                        ansiLabels.forEachIndexed { idx, label ->
+                            val color = customAnsiColors.getOrElse(idx) { Color.Gray }
+                            ColorSwatchPickerRow(title = label, color = color) {
+                                editingColorTarget = "ansi_$idx"
                                 colorHexInput = TerminalTheme.colorToHex(color)
                             }
                         }
@@ -621,8 +908,9 @@ fun SettingsScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            showCustomThemeDialog = false
                             onUpdateCustomTheme(customFg, customBg, customCursor, customSelection, customAnsiColors)
+                            onSelectTheme("custom")
+                            showCustomThemeDialog = false
                         }
                     ) {
                         Text("Save Theme")
@@ -636,8 +924,8 @@ fun SettingsScreen(
             )
         }
 
-        // Inner Hex Picker Dialog
-        editingColorTarget?.let { target ->
+        // Color Hex Edit Dialog
+        if (editingColorTarget != null) {
             AlertDialog(
                 onDismissRequest = { editingColorTarget = null },
                 title = { Text("Edit Hex Color") },
@@ -651,32 +939,30 @@ fun SettingsScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
+                        val previewColor = TerminalTheme.hexToColor(colorHexInput, Color.Transparent)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text("Preview:", fontWeight = FontWeight.SemiBold)
-                            val parsed = TerminalTheme.hexToColor(colorHexInput, Color.Gray)
                             Box(
                                 modifier = Modifier
-                                    .size(32.dp)
+                                    .size(36.dp)
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(parsed)
-                                    .border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                                    .background(previewColor)
+                                    .border(1.dp, Color.White, RoundedCornerShape(6.dp))
                             )
                         }
 
                         Text("Quick Swatches", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
-                        val quickSwatches = listOf(
-                            Color(0xFF282A36), Color(0xFF002B36), Color(0xFF272822), Color(0xFF0D0221),
-                            Color(0xFFFF5555), Color(0xFF50FA7B), Color(0xFFF1FA8C), Color(0xFFBD93F9),
-                            Color(0xFFFF79C6), Color(0xFF8BE9FD), Color(0xFF00FF9F), Color(0xFFFF0055)
+                        val swatches = listOf(
+                            Color(0xFF000000), Color(0xFF1E1E1E), Color(0xFF282A36), Color(0xFF002B36),
+                            Color(0xFFFFFFFF), Color(0xFFF8F8F2), Color(0xFF839496), Color(0xFF50FA7B),
+                            Color(0xFFFF5555), Color(0xFFBD93F9), Color(0xFF8BE9FD), Color(0xFFFFB86C),
+                            Color(0xFFF1FA8C), Color(0xFF6272A4), Color(0xFF2AA198), Color(0xFF268BD2)
                         )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            quickSwatches.take(6).forEach { swatch ->
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(swatches) { swatch ->
                                 Box(
                                     modifier = Modifier
                                         .size(24.dp)
@@ -691,18 +977,18 @@ fun SettingsScreen(
                 confirmButton = {
                     Button(
                         onClick = {
-                            val newColor = TerminalTheme.hexToColor(colorHexInput, Color.White)
-                            when {
-                                target == "fg" -> customFg = newColor
-                                target == "bg" -> customBg = newColor
-                                target == "cursor" -> customCursor = newColor
-                                target == "selection" -> customSelection = newColor
-                                target.startsWith("ansi_") -> {
-                                    val idx = target.removePrefix("ansi_").toIntOrNull() ?: 0
-                                    if (idx in 0..15) {
-                                        val newList = customAnsiColors.toMutableList()
-                                        newList[idx] = newColor
-                                        customAnsiColors = newList
+                            val parsed = TerminalTheme.hexToColor(colorHexInput, Color.White)
+                            when (val target = editingColorTarget) {
+                                "fg" -> customFg = parsed
+                                "bg" -> customBg = parsed
+                                "cursor" -> customCursor = parsed
+                                "selection" -> customSelection = parsed
+                                else -> {
+                                    if (target != null && target.startsWith("ansi_")) {
+                                        val idx = target.removePrefix("ansi_").toIntOrNull() ?: 0
+                                        if (idx in customAnsiColors.indices) {
+                                            customAnsiColors[idx] = parsed
+                                        }
                                     }
                                 }
                             }
@@ -720,131 +1006,123 @@ fun SettingsScreen(
             )
         }
 
-        // Users & Account Management Card
-        if (state.isInstalled) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+        // 5. Users & Account Management Card
+        if ((selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.SECURITY) && state.isInstalled) {
+            CollapsibleSettingsCard(
+                title = "User & Account Management",
+                subtitle = "${state.containerUsers.size + 1} Users (${defaultTerminalUser} default)",
+                icon = Icons.Default.Person,
+                isExpanded = isCardExpanded("users"),
+                onToggleExpand = { toggleCard("users") }
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Root User Password", fontWeight = FontWeight.SemiBold)
+                        Text("Set or reset the system administrator (root) password.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    OutlinedButton(onClick = { showRootPasswordDialog = true }) {
+                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Change")
+                    }
+                }
+
+                HorizontalDivider()
+
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Default Terminal Login User", fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = "User & Account Management",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        text = "Select which user account logs into interactive terminal sessions by default.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
+                    val loginUsers = listOf("root") + state.containerUsers
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Root User Password", fontWeight = FontWeight.SemiBold)
-                            Text("Set or reset the system administrator (root) password.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        OutlinedButton(onClick = { showRootPasswordDialog = true }) {
-                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Change")
-                        }
-                    }
-
-                    HorizontalDivider()
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("Default Terminal Login User", fontWeight = FontWeight.SemiBold)
-                        Text(
-                            text = "Select which user account logs into interactive terminal sessions by default.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        val loginUsers = listOf("root") + state.containerUsers
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            loginUsers.forEach { u ->
-                                val isSelected = u == defaultTerminalUser
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { onSetDefaultTerminalUser(u) },
-                                    label = { Text(if (u == "root") "root (Admin)" else u) },
-                                    leadingIcon = if (isSelected) {
-                                        { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                                    } else null,
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
+                        loginUsers.forEach { u ->
+                            val isSelected = u == defaultTerminalUser
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onSetDefaultTerminalUser(u) },
+                                label = { Text(if (u == "root") "root (Admin)" else u) },
+                                leadingIcon = if (isSelected) {
+                                    { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                } else null,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
-                            }
+                            )
                         }
                     }
+                }
 
-                    HorizontalDivider()
+                HorizontalDivider()
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Regular Users (${state.containerUsers.size})", fontWeight = FontWeight.SemiBold)
+                    Button(
+                        onClick = { showAddUserDialog = true },
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Regular Users (${state.containerUsers.size})", fontWeight = FontWeight.SemiBold)
-                        Button(
-                            onClick = { showAddUserDialog = true },
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add User")
-                        }
+                        Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add User")
                     }
+                }
 
-                    if (state.containerUsers.isEmpty()) {
-                        Text(
-                            text = "No non-root users found. Add a user to connect via SSH safely.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            state.containerUsers.forEach { user ->
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(10.dp),
-                                    modifier = Modifier.fillMaxWidth()
+                if (state.containerUsers.isEmpty()) {
+                    Text(
+                        text = "No non-root users found. Add a user to connect via SSH safely.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        state.containerUsers.forEach { user ->
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                            Column {
-                                                Text(user, fontWeight = FontWeight.Bold)
-                                                Text("Sudo User (/bin/bash)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                            }
+                                        Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        Column {
+                                            Text(user, fontWeight = FontWeight.Bold)
+                                            Text("Sudo User (/bin/bash)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
+                                    }
 
-                                        Row {
-                                            IconButton(onClick = {
-                                                changePasswordUser = user
-                                                changePasswordUserNewPass = ""
-                                            }) {
-                                                Icon(Icons.Default.Lock, contentDescription = "Change Password", tint = MaterialTheme.colorScheme.primary)
-                                            }
-                                            IconButton(onClick = { onDeleteUser(user) }) {
-                                                Icon(Icons.Default.Delete, contentDescription = "Delete User", tint = MaterialTheme.colorScheme.error)
-                                            }
+                                    Row {
+                                        IconButton(onClick = {
+                                            changePasswordUser = user
+                                            changePasswordUserNewPass = ""
+                                        }) {
+                                            Icon(Icons.Default.Lock, contentDescription = "Change Password", tint = MaterialTheme.colorScheme.primary)
+                                        }
+                                        IconButton(onClick = { onDeleteUser(user) }) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete User", tint = MaterialTheme.colorScheme.error)
                                         }
                                     }
                                 }
@@ -855,21 +1133,15 @@ fun SettingsScreen(
             }
         }
 
-        // Storage & Bind Mount Options
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        // 6. Storage & Bind Mount Options
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.STORAGE) {
+            CollapsibleSettingsCard(
+                title = "Storage & Mount Points",
+                subtitle = if (state.bindSdCard) "SD Card Bound" else "Host Storage Isolated",
+                icon = Icons.Default.Folder,
+                isExpanded = isCardExpanded("storage"),
+                onToggleExpand = { toggleCard("storage") }
             ) {
-                Text(
-                    text = "Storage & Mount Points",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
                 var isStorageGranted by remember {
                     mutableStateOf(
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -1002,21 +1274,15 @@ fun SettingsScreen(
             }
         }
 
-        // Maintenance & Reset Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        // 7. Maintenance & Reset Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.STORAGE) {
+            CollapsibleSettingsCard(
+                title = "Container Maintenance & Danger Zone",
+                subtitle = "Refresh status or wipe container",
+                icon = Icons.Default.Warning,
+                isExpanded = isCardExpanded("maintenance"),
+                onToggleExpand = { toggleCard("maintenance") }
             ) {
-                Text(
-                    text = "Container Maintenance",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
                 OutlinedButton(
                     onClick = onRefreshStatusClick,
                     modifier = Modifier.fillMaxWidth()
@@ -1073,75 +1339,34 @@ fun SettingsScreen(
             },
             title = {
                 Text(
-                    text = when (backupState) {
+                    when (backupState) {
                         is BackupState.Processing -> "Container Backup Operation"
-                        is BackupState.Success -> "Backup Operation Complete"
-                        is BackupState.Error -> "Backup Error"
-                        else -> ""
-                    },
-                    fontWeight = FontWeight.Bold
+                        is BackupState.Success -> "Backup Succeeded"
+                        is BackupState.Error -> "Backup Operation Failed"
+                        else -> "Backup"
+                    }
                 )
             },
             text = {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     when (backupState) {
                         is BackupState.Processing -> {
+                            Text(backupState.message)
                             if (backupState.progressPercent >= 0) {
                                 LinearProgressIndicator(
-                                    progress = { (backupState.progressPercent / 100f).coerceIn(0f, 1f) },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(8.dp),
-                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                    progress = { backupState.progressPercent / 100f },
+                                    modifier = Modifier.fillMaxWidth()
                                 )
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = backupState.message,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontSize = 13.sp,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "${backupState.progressPercent}%",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontSize = 13.sp
-                                    )
-                                }
+                                Text("${backupState.progressPercent}%", style = MaterialTheme.typography.bodySmall)
                             } else {
-                                CircularProgressIndicator()
-                                Text(
-                                    text = backupState.message,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontSize = 14.sp
-                                )
+                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                             }
                         }
                         is BackupState.Success -> {
-                            Text(
-                                text = backupState.message,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Text(backupState.message, color = Color(0xFF4CAF50))
                         }
                         is BackupState.Error -> {
-                            Text(
-                                text = backupState.message,
-                                color = MaterialTheme.colorScheme.error,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            Text(backupState.message, color = MaterialTheme.colorScheme.error)
                         }
                         else -> {}
                     }
@@ -1149,7 +1374,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 if (backupState !is BackupState.Processing) {
-                    TextButton(onClick = onDismissBackupStatus) {
+                    TextButton(onClick = { onDismissBackupStatus() }) {
                         Text("OK")
                     }
                 }
@@ -1157,11 +1382,12 @@ fun SettingsScreen(
         )
     }
 
+    // Confirmation for RootFS Wipe Dialog
     if (showWipeConfirm) {
         AlertDialog(
             onDismissRequest = { showWipeConfirm = false },
             title = { Text("Wipe Ubuntu Container?") },
-            text = { Text("Are you sure you want to completely delete the Ubuntu rootfs image and all installed Linux software? This action cannot be undone.") },
+            text = { Text("This will permanently delete your rootfs environment and all installed applications. This action cannot be undone.") },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -1180,33 +1406,35 @@ fun SettingsScreen(
         )
     }
 
+    // Root Password Change Dialog
     if (showRootPasswordDialog) {
         AlertDialog(
             onDismissRequest = { showRootPasswordDialog = false },
-            title = { Text("Change Root Password") },
+            title = { Text("Set Root User Password") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter a new system administrator password for root:")
+                    Text("Enter a new password for the system administrator ('root') account:")
                     OutlinedTextField(
                         value = newRootPassword,
                         onValueChange = { newRootPassword = it },
-                        label = { Text("New Root Password") },
+                        label = { Text("New Password") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         if (newRootPassword.isNotBlank()) {
                             onChangeRootPassword(newRootPassword)
                             newRootPassword = ""
                             showRootPasswordDialog = false
                         }
-                    }
+                    },
+                    enabled = newRootPassword.isNotBlank()
                 ) {
-                    Text("Save Password")
+                    Text("Update Password")
                 }
             },
             dismissButton = {
@@ -1217,13 +1445,14 @@ fun SettingsScreen(
         )
     }
 
+    // Add User Dialog
     if (showAddUserDialog) {
         AlertDialog(
             onDismissRequest = { showAddUserDialog = false },
-            title = { Text("Create New User") },
+            title = { Text("Add New Container User") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Add a non-root system user account with sudo privileges:")
+                    Text("Create a new standard sudo user for terminal and SSH sessions:")
                     OutlinedTextField(
                         value = newUsername,
                         onValueChange = { newUsername = it },
@@ -1234,22 +1463,23 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = newUserPassword,
                         onValueChange = { newUserPassword = it },
-                        label = { Text("User Password") },
+                        label = { Text("Password") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         if (newUsername.isNotBlank() && newUserPassword.isNotBlank()) {
-                            onCreateUser(newUsername, newUserPassword)
+                            onCreateUser(newUsername.trim(), newUserPassword)
                             newUsername = ""
                             newUserPassword = ""
                             showAddUserDialog = false
                         }
-                    }
+                    },
+                    enabled = newUsername.isNotBlank() && newUserPassword.isNotBlank()
                 ) {
                     Text("Create User")
                 }
@@ -1262,14 +1492,14 @@ fun SettingsScreen(
         )
     }
 
-    if (changePasswordUser != null) {
-        val targetUser = changePasswordUser!!
+    // Change Regular User Password Dialog
+    changePasswordUser?.let { targetUser ->
         AlertDialog(
             onDismissRequest = { changePasswordUser = null },
             title = { Text("Change Password for '$targetUser'") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter a new password for user $targetUser:")
+                    Text("Enter a new password for user '$targetUser':")
                     OutlinedTextField(
                         value = changePasswordUserNewPass,
                         onValueChange = { changePasswordUserNewPass = it },
@@ -1280,20 +1510,45 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         if (changePasswordUserNewPass.isNotBlank()) {
                             onCreateUser(targetUser, changePasswordUserNewPass)
-                            changePasswordUserNewPass = ""
                             changePasswordUser = null
+                            changePasswordUserNewPass = ""
                         }
-                    }
+                    },
+                    enabled = changePasswordUserNewPass.isNotBlank()
                 ) {
-                    Text("Save Password")
+                    Text("Update Password")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { changePasswordUser = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Delete User Confirmation Dialog
+    userToDelete?.let { user ->
+        AlertDialog(
+            onDismissRequest = { userToDelete = null },
+            title = { Text("Delete User '$user'?") },
+            text = { Text("Are you sure you want to delete user '$user' and remove their home directory?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteUser(user)
+                        userToDelete = null
+                    }
+                ) {
+                    Text("Delete User", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { userToDelete = null }) {
                     Text("Cancel")
                 }
             }

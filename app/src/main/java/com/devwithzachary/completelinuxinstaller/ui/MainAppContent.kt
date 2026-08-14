@@ -212,6 +212,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                             onSetTerminalFontSize = { size -> viewModel.setTerminalFontSize(size) },
                             onSetTerminalFontFamily = { family -> viewModel.setTerminalFontFamily(family) },
                             onSetDefaultTerminalUser = { user -> viewModel.setDefaultTerminalUser(user) },
+                            onSetDnsServers = { servers -> viewModel.setDnsServers(servers) },
                             onToggleBindSdCard = { viewModel.toggleBindSdCard() },
                             onWipeRootfsClick = { viewModel.wipeRootfs() },
                             onRefreshStatusClick = { viewModel.refreshStatus() },
