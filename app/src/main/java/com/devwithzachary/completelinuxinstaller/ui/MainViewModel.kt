@@ -151,7 +151,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadTerminalFontFamily(): String {
-        return prefs.getString("terminal_font_family", "Monospace") ?: "Monospace"
+        val saved = prefs.getString("terminal_font_family", "Monospace") ?: "Monospace"
+        return saved
     }
 
     fun setTerminalFontSize(size: Int) {
@@ -278,10 +279,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val rootfsDir = pRootEngine.rootfsDir
 
         val hasVnc = installed && File(rootfsDir, "usr/bin/startxfce4").exists() && (
-            File(rootfsDir, "usr/bin/vncserver").exists() ||
-            File(rootfsDir, "usr/bin/tigervncserver").exists() ||
-            File(rootfsDir, "usr/bin/tightvncserver").exists()
-        )
+                File(rootfsDir, "usr/bin/vncserver").exists() ||
+                        File(rootfsDir, "usr/bin/tigervncserver").exists() ||
+                        File(rootfsDir, "usr/bin/tightvncserver").exists()
+                )
 
         val hasNginx = installed && File(rootfsDir, "usr/sbin/nginx").exists()
         val hasSsh = installed && File(rootfsDir, "usr/sbin/sshd").exists()
@@ -291,19 +292,61 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
         val syncedPackages = _packages.value.map { pkg ->
             if (!installed) {
-                pkg.copy(status = InstallStatus.NOT_INSTALLED, hasUpgradeAvailable = false, progressMessage = "", installLogs = "")
+                pkg.copy(
+                    status = InstallStatus.NOT_INSTALLED,
+                    hasUpgradeAvailable = false,
+                    progressMessage = "",
+                    installLogs = ""
+                )
             } else {
                 val actualStatus = when (pkg.id) {
-                    "xfce_desktop" -> if (File(rootfsDir, "usr/bin/startxfce4").exists() && (File(rootfsDir, "usr/bin/vncserver").exists() || File(rootfsDir, "usr/bin/tigervncserver").exists() || File(rootfsDir, "usr/bin/tightvncserver").exists())) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "python_dev" -> if (File(rootfsDir, "usr/bin/python3").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "node_dev" -> if (File(rootfsDir, "usr/bin/node").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "android_dev" -> if (File(rootfsDir, "usr/bin/adb").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "nginx_web" -> if (File(rootfsDir, "usr/sbin/nginx").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "openssh_server" -> if (File(rootfsDir, "usr/sbin/sshd").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+                    "xfce_desktop" -> if (File(rootfsDir, "usr/bin/startxfce4").exists() && (File(
+                            rootfsDir,
+                            "usr/bin/vncserver"
+                        ).exists() || File(rootfsDir, "usr/bin/tigervncserver").exists() || File(
+                            rootfsDir,
+                            "usr/bin/tightvncserver"
+                        ).exists())
+                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+
+                    "python_dev" -> if (File(
+                            rootfsDir,
+                            "usr/bin/python3"
+                        ).exists()
+                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+
+                    "node_dev" -> if (File(
+                            rootfsDir,
+                            "usr/bin/node"
+                        ).exists()
+                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+
+                    "android_dev" -> if (File(
+                            rootfsDir,
+                            "usr/bin/adb"
+                        ).exists()
+                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+
+                    "nginx_web" -> if (File(
+                            rootfsDir,
+                            "usr/sbin/nginx"
+                        ).exists()
+                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+
+                    "openssh_server" -> if (File(
+                            rootfsDir,
+                            "usr/sbin/sshd"
+                        ).exists()
+                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+
                     else -> {
                         if (pkg.id.startsWith("custom_")) {
                             val binaryName = pkg.id.removePrefix("custom_")
-                            if (File(rootfsDir, "usr/bin/$binaryName").exists() || File(rootfsDir, "usr/sbin/$binaryName").exists()) {
+                            if (File(rootfsDir, "usr/bin/$binaryName").exists() || File(
+                                    rootfsDir,
+                                    "usr/sbin/$binaryName"
+                                ).exists()
+                            ) {
                                 InstallStatus.INSTALLED
                             } else InstallStatus.NOT_INSTALLED
                         } else pkg.status
@@ -478,6 +521,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 installLogs = newLogs
                             )
                         }
+
                         is InstallStepState.Success -> {
                             val newLogs = list[idx].installLogs + "Installation completed successfully!\n"
                             list[idx] = list[idx].copy(
@@ -487,6 +531,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             )
                             refreshStatus()
                         }
+
                         is InstallStepState.Error -> {
                             val newLogs = list[idx].installLogs + "ERROR: " + step.errorMessage + "\n"
                             list[idx] = list[idx].copy(
@@ -506,7 +551,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val current = _dashboardState.value.bindSdCard
         _dashboardState.value = _dashboardState.value.copy(bindSdCard = !current)
     }
-
 
 
     fun wipeRootfs() {

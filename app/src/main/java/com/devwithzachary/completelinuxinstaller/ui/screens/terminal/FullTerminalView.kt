@@ -77,7 +77,7 @@ fun FullTerminalView(
             "Serif" -> Typeface.create("serif", Typeface.NORMAL)
             "Cursive" -> Typeface.create("cursive", Typeface.NORMAL)
             "Casual" -> Typeface.create("casual", Typeface.NORMAL)
-            "Wingdings" -> Typeface.create("monospace", Typeface.NORMAL)
+            "CyberGlyphs" -> Typeface.create("monospace", Typeface.NORMAL)
             else -> Typeface.MONOSPACE
         }
     }
@@ -283,6 +283,7 @@ fun FullTerminalView(
                                     }
                                     true
                                 }
+
                                 isCtrlOrMeta && event.isShiftPressed && event.key == Key.C -> {
                                     val text = terminalBridge.getScreenText()
                                     if (text.isNotEmpty()) {
@@ -290,20 +291,24 @@ fun FullTerminalView(
                                     }
                                     true
                                 }
+
                                 event.key == Key.PageUp -> {
                                     terminalBridge.scrollUp(rows / 2)
                                     true
                                 }
+
                                 event.key == Key.PageDown -> {
                                     terminalBridge.scrollDown(rows / 2)
                                     true
                                 }
+
                                 event.key == Key.Enter -> {
                                     terminalBridge.sendInput("\r")
                                     textFieldValue = TextFieldValue("", TextRange.Zero)
                                     lastText = ""
                                     true
                                 }
+
                                 event.key == Key.Backspace -> {
                                     terminalBridge.sendInput("\u007F")
                                     if (lastText.isNotEmpty()) {
@@ -313,30 +318,37 @@ fun FullTerminalView(
                                     }
                                     true
                                 }
+
                                 event.key == Key.Tab -> {
                                     terminalBridge.sendTab()
                                     true
                                 }
+
                                 event.key == Key.Escape -> {
                                     terminalBridge.sendEsc()
                                     true
                                 }
+
                                 event.key == Key.DirectionUp -> {
                                     terminalBridge.sendArrowUp()
                                     true
                                 }
+
                                 event.key == Key.DirectionDown -> {
                                     terminalBridge.sendArrowDown()
                                     true
                                 }
+
                                 event.key == Key.DirectionLeft -> {
                                     terminalBridge.sendArrowLeft()
                                     true
                                 }
+
                                 event.key == Key.DirectionRight -> {
                                     terminalBridge.sendArrowRight()
                                     true
                                 }
+
                                 else -> false
                             }
                         } else {
@@ -426,7 +438,8 @@ fun FullTerminalView(
                         paint.isUnderlineText = cell.underline
 
                         if (cell.ch != ' ') {
-                            val charStr = if (fontFamilyName == "Wingdings") toWingdingsChar(cell.ch) else cell.ch.toString()
+                            val charStr =
+                                if (fontFamilyName == "CyberGlyphs") toCyberGlyphsChar(cell.ch) else cell.ch.toString()
                             nativeCanvas.drawText(
                                 charStr,
                                 cellX,
@@ -458,7 +471,8 @@ fun FullTerminalView(
                                 val start = selectionStart
                                 val end = selectionEnd
                                 if (start != null && end != null) {
-                                    val text = terminalBridge.getSelectedText(start.first, start.second, end.first, end.second)
+                                    val text =
+                                        terminalBridge.getSelectedText(start.first, start.second, end.first, end.second)
                                     if (text.isNotEmpty()) {
                                         clipboardManager.setText(AnnotatedString(text))
                                     }
@@ -469,7 +483,11 @@ fun FullTerminalView(
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007ACC)),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)
                         ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy Selection", modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.ContentCopy,
+                                contentDescription = "Copy Selection",
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Copy Selection", fontSize = 12.sp)
                         }
@@ -575,7 +593,7 @@ fun FullTerminalView(
     }
 }
 
-private fun toWingdingsChar(ch: Char): String {
+private fun toCyberGlyphsChar(ch: Char): String {
     return when (ch) {
         'a' -> "✌"
         'b' -> "👌"

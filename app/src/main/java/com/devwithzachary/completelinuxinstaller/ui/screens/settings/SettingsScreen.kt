@@ -298,27 +298,32 @@ fun SettingsScreen(
                                         put("backup", true)
                                     }
                                 }
+
                                 SettingsCategory.NETWORK -> {
                                     expandedCards = expandedCards.toMutableMap().apply {
                                         put("dns", true)
                                     }
                                 }
+
                                 SettingsCategory.TERMINAL -> {
                                     expandedCards = expandedCards.toMutableMap().apply {
                                         put("theme", true)
                                     }
                                 }
+
                                 SettingsCategory.SECURITY -> {
                                     expandedCards = expandedCards.toMutableMap().apply {
                                         put("users", true)
                                     }
                                 }
+
                                 SettingsCategory.STORAGE -> {
                                     expandedCards = expandedCards.toMutableMap().apply {
                                         put("storage", true)
                                         put("maintenance", true)
                                     }
                                 }
+
                                 else -> {}
                             }
                         }
@@ -349,12 +354,16 @@ fun SettingsScreen(
                 badge = {
                     if (state.isInstalled) {
                         Surface(
-                            color = if (state.isUpgradeAvailable) MaterialTheme.colorScheme.primaryContainer else Color(0xFF1E3A1E),
+                            color = if (state.isUpgradeAvailable) MaterialTheme.colorScheme.primaryContainer else Color(
+                                0xFF1E3A1E
+                            ),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 text = if (state.isUpgradeAvailable) "Upgrade Available" else "Up to Date",
-                                color = if (state.isUpgradeAvailable) MaterialTheme.colorScheme.onPrimaryContainer else Color(0xFF4CAF50),
+                                color = if (state.isUpgradeAvailable) MaterialTheme.colorScheme.onPrimaryContainer else Color(
+                                    0xFF4CAF50
+                                ),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
@@ -554,7 +563,13 @@ fun SettingsScreen(
                             },
                             label = { Text(name, fontSize = 12.sp) },
                             leadingIcon = if (isSelected) {
-                                { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             } else null
                         )
                     }
@@ -680,7 +695,11 @@ fun SettingsScreen(
                                         onClick = { showCustomThemeDialog = true },
                                         modifier = Modifier.size(16.dp)
                                     ) {
-                                        Icon(Icons.Default.Edit, contentDescription = "Edit Custom Theme", modifier = Modifier.size(12.dp))
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = "Edit Custom Theme",
+                                            modifier = Modifier.size(12.dp)
+                                        )
                                     }
                                 }
                             } else null,
@@ -702,7 +721,12 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Terminal Font Size", fontWeight = FontWeight.SemiBold)
-                        Text("${terminalFontSize} sp", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "${terminalFontSize} sp",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                     Slider(
                         value = terminalFontSize.toFloat(),
@@ -715,9 +739,21 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("10sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("14sp (Default)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("24sp", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "10sp",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "14sp (Default)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            "24sp",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
@@ -726,7 +762,8 @@ fun SettingsScreen(
                 // Font Family Selector Section
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Terminal Font Family", fontWeight = FontWeight.SemiBold)
-                    val fontFamilies = listOf("Monospace", "JetBrains Mono", "Sans Serif", "Serif", "Cursive", "Casual", "Wingdings")
+                    val fontFamilies =
+                        listOf("Monospace", "JetBrains Mono", "Sans Serif", "Serif", "Cursive", "Casual", "CyberGlyphs")
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -738,7 +775,13 @@ fun SettingsScreen(
                                 onClick = { onSetTerminalFontFamily(family) },
                                 label = { Text(family) },
                                 leadingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                    {
+                                        Icon(
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 } else null,
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -756,13 +799,22 @@ fun SettingsScreen(
                     "Sans Serif" -> FontFamily.SansSerif
                     "Serif" -> FontFamily.Serif
                     "Cursive" -> FontFamily.Cursive
-                    "Casual" -> FontFamily(androidx.compose.ui.text.font.Typeface(android.graphics.Typeface.create("casual", android.graphics.Typeface.NORMAL)))
-                    "Wingdings" -> FontFamily.Monospace
+                    "Casual" -> FontFamily(
+                        androidx.compose.ui.text.font.Typeface(
+                            android.graphics.Typeface.create(
+                                "casual",
+                                android.graphics.Typeface.NORMAL
+                            )
+                        )
+                    )
+
+                    "CyberGlyphs" -> FontFamily.Monospace
                     else -> FontFamily.Monospace
                 }
-                val previewFontWeight = if (terminalFontFamily == "JetBrains Mono") FontWeight.Bold else FontWeight.Normal
+                val previewFontWeight =
+                    if (terminalFontFamily == "JetBrains Mono") FontWeight.Bold else FontWeight.Normal
 
-                val wingdingsMap = remember {
+                val cyberGlyphsMap = remember {
                     mapOf(
                         'a' to "✌", 'b' to "👌", 'c' to "👍", 'd' to "👎", 'e' to "👈", 'f' to "👉",
                         'g' to "👆", 'h' to "👇", 'i' to "🖐", 'j' to "☺", 'k' to "😐", 'l' to "☹",
@@ -779,9 +831,10 @@ fun SettingsScreen(
                         '@' to "🌀", '.' to "●", ' ' to " "
                     )
                 }
+
                 fun toPreviewText(text: String): String {
-                    return if (terminalFontFamily == "Wingdings") {
-                        text.map { wingdingsMap[it] ?: it.toString() }.joinToString("")
+                    return if (terminalFontFamily == "CyberGlyphs") {
+                        text.map { cyberGlyphsMap[it] ?: it.toString() }.joinToString("")
                     } else text
                 }
 
@@ -866,7 +919,11 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
-                        Text("Base Interface Colors", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Base Interface Colors",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall
+                        )
 
                         ColorSwatchPickerRow(title = "Default Foreground (Text)", color = customFg) {
                             editingColorTarget = "fg"
@@ -887,7 +944,11 @@ fun SettingsScreen(
 
                         HorizontalDivider()
 
-                        Text("ANSI 16 Color Palette", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "ANSI 16 Color Palette",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleSmall
+                        )
 
                         val ansiLabels = listOf(
                             "0: Black", "1: Red", "2: Green", "3: Yellow",
@@ -1022,7 +1083,11 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Root User Password", fontWeight = FontWeight.SemiBold)
-                        Text("Set or reset the system administrator (root) password.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "Set or reset the system administrator (root) password.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     OutlinedButton(onClick = { showRootPasswordDialog = true }) {
                         Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1053,7 +1118,13 @@ fun SettingsScreen(
                                 onClick = { onSetDefaultTerminalUser(u) },
                                 label = { Text(if (u == "root") "root (Admin)" else u) },
                                 leadingIcon = if (isSelected) {
-                                    { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                    {
+                                        Icon(
+                                            Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
                                 } else null,
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
@@ -1107,10 +1178,18 @@ fun SettingsScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
                                         Column {
                                             Text(user, fontWeight = FontWeight.Bold)
-                                            Text("Sudo User (/bin/bash)", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Text(
+                                                "Sudo User (/bin/bash)",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
                                     }
 
@@ -1119,10 +1198,18 @@ fun SettingsScreen(
                                             changePasswordUser = user
                                             changePasswordUserNewPass = ""
                                         }) {
-                                            Icon(Icons.Default.Lock, contentDescription = "Change Password", tint = MaterialTheme.colorScheme.primary)
+                                            Icon(
+                                                Icons.Default.Lock,
+                                                contentDescription = "Change Password",
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
                                         }
                                         IconButton(onClick = { onDeleteUser(user) }) {
-                                            Icon(Icons.Default.Delete, contentDescription = "Delete User", tint = MaterialTheme.colorScheme.error)
+                                            Icon(
+                                                Icons.Default.Delete,
+                                                contentDescription = "Delete User",
+                                                tint = MaterialTheme.colorScheme.error
+                                            )
                                         }
                                     }
                                 }
@@ -1149,10 +1236,10 @@ fun SettingsScreen(
                                 context,
                                 android.Manifest.permission.READ_MEDIA_IMAGES
                             ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                context,
-                                android.Manifest.permission.READ_MEDIA_VIDEO
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                    androidx.core.content.ContextCompat.checkSelfPermission(
+                                        context,
+                                        android.Manifest.permission.READ_MEDIA_VIDEO
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
                         } else {
                             androidx.core.content.ContextCompat.checkSelfPermission(
                                 context,
@@ -1165,21 +1252,22 @@ fun SettingsScreen(
                 val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
                     contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
                 ) { _ ->
-                    isStorageGranted = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                        androidx.core.content.ContextCompat.checkSelfPermission(
-                            context,
-                            android.Manifest.permission.READ_MEDIA_IMAGES
-                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-                        androidx.core.content.ContextCompat.checkSelfPermission(
-                            context,
-                            android.Manifest.permission.READ_MEDIA_VIDEO
-                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                    } else {
-                        androidx.core.content.ContextCompat.checkSelfPermission(
-                            context,
-                            android.Manifest.permission.READ_EXTERNAL_STORAGE
-                        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                    }
+                    isStorageGranted =
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.READ_MEDIA_IMAGES
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                                    androidx.core.content.ContextCompat.checkSelfPermission(
+                                        context,
+                                        android.Manifest.permission.READ_MEDIA_VIDEO
+                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        } else {
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.READ_EXTERNAL_STORAGE
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        }
                 }
 
                 // Storage Information Card
@@ -1315,7 +1403,14 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         showImportConfirm = false
-                        importLauncher.launch(arrayOf("application/gzip", "application/x-gzip", "application/x-tar", "*/*"))
+                        importLauncher.launch(
+                            arrayOf(
+                                "application/gzip",
+                                "application/x-gzip",
+                                "application/x-tar",
+                                "*/*"
+                            )
+                        )
                     }
                 ) {
                     Text("Proceed & Select Backup")
@@ -1362,12 +1457,15 @@ fun SettingsScreen(
                                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                             }
                         }
+
                         is BackupState.Success -> {
                             Text(backupState.message, color = Color(0xFF4CAF50))
                         }
+
                         is BackupState.Error -> {
                             Text(backupState.message, color = MaterialTheme.colorScheme.error)
                         }
+
                         else -> {}
                     }
                 }
