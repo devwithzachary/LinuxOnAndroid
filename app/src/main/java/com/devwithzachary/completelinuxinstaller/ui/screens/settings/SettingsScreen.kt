@@ -814,27 +814,9 @@ fun SettingsScreen(
                 val previewFontWeight =
                     if (terminalFontFamily == "JetBrains Mono") FontWeight.Bold else FontWeight.Normal
 
-                val cyberGlyphsMap = remember {
-                    mapOf(
-                        'a' to "✌", 'b' to "👌", 'c' to "👍", 'd' to "👎", 'e' to "👈", 'f' to "👉",
-                        'g' to "👆", 'h' to "👇", 'i' to "🖐", 'j' to "☺", 'k' to "😐", 'l' to "☹",
-                        'm' to "💣", 'n' to "☠", 'o' to "⚐", 'p' to "⚑", 'q' to "✈", 'r' to "☼",
-                        's' to "💧", 't' to "❄", 'u' to "🕇", 'v' to "🕈", 'w' to "✠", 'x' to "✡",
-                        'y' to "☸", 'z' to "☯", 'A' to "✌", 'B' to "👌", 'C' to "👍", 'D' to "👎",
-                        'E' to "👈", 'F' to "👉", 'G' to "👆", 'H' to "👇", 'I' to "🖐", 'J' to "☺",
-                        'K' to "😐", 'L' to "☹", 'M' to "💣", 'N' to "☠", 'O' to "⚐", 'P' to "⚑",
-                        'Q' to "✈", 'R' to "☼", 'S' to "💧", 'T' to "❄", 'U' to "🕇", 'V' to "🕈",
-                        'W' to "✠", 'X' to "✡", 'Y' to "☸", 'Z' to "☯",
-                        '0' to "⓪", '1' to "①", '2' to "②", '3' to "③", '4' to "④",
-                        '5' to "⑤", '6' to "⑥", '7' to "⑦", '8' to "⑧", '9' to "⑨",
-                        ':' to "❖", '/' to "✂", '-' to "✦", '~' to "≈", '$' to "💲", '#' to "⌗",
-                        '@' to "🌀", '.' to "●", ' ' to " "
-                    )
-                }
-
                 fun toPreviewText(text: String): String {
                     return if (terminalFontFamily == "CyberGlyphs") {
-                        text.map { cyberGlyphsMap[it] ?: it.toString() }.joinToString("")
+                        com.devwithzachary.completelinuxinstaller.theme.CyberGlyphs.transformText(text)
                     } else text
                 }
 

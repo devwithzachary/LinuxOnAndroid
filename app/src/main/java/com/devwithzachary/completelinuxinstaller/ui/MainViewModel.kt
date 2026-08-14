@@ -183,8 +183,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             pRootEngine.ensurePRootExecutable()
-            refreshStatus()
-            kotlinx.coroutines.delay(800)
+            refreshStatusInternal()
+            kotlinx.coroutines.delay(500)
             _dashboardState.value = _dashboardState.value.copy(isInitializing = false)
         }
     }
@@ -274,7 +274,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _terminalTheme.value = customTheme
     }
 
-    fun refreshStatus() {
+    suspend fun refreshStatusInternal() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         val installed = rootfsManager.isInstalled()
         val rootfsDir = pRootEngine.rootfsDir
 
@@ -299,62 +299,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     installLogs = ""
                 )
             } else {
-                val actualStatus = when (pkg.id) {
-                    "xfce_desktop" -> if (File(rootfsDir, "usr/bin/startxfce4").exists() && (File(
-                            rootfsDir,
-                            "usr/bin/vncserver"
-                        ).exists() || File(rootfsDir, "usr/bin/tigervncserver").exists() || File(
-                            rootfsDir,
-                            "usr/bin/tightvncserver"
-                        ).exists())
-                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-
-                    "python_dev" -> if (File(
-                            rootfsDir,
-                            "usr/bin/python3"
-                        ).exists()
-                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-
-                    "node_dev" -> if (File(
-                            rootfsDir,
-                            "usr/bin/node"
-                        ).exists()
-                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-
-                    "android_dev" -> if (File(
-                            rootfsDir,
-                            "usr/bin/adb"
-                        ).exists()
-                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-
-                    "nginx_web" -> if (File(
-                            rootfsDir,
-                            "usr/sbin/nginx"
-                        ).exists()
-                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-
-                    "openssh_server" -> if (File(
-                            rootfsDir,
-                            "usr/sbin/sshd"
-                        ).exists()
-                    ) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-
-                    else -> {
-                        if (pkg.id.startsWith("custom_")) {
-                            val binaryName = pkg.id.removePrefix("custom_")
-                            if (File(rootfsDir, "usr/bin/$binaryName").exists() || File(
-                                    rootfsDir,
-                                    "usr/sbin/$binaryName"
-                                ).exists()
-                            ) {
-                                InstallStatus.INSTALLED
-                            } else InstallStatus.NOT_INSTALLED
-                        } else pkg.status
-                    }
+                val isPkgInstalled = if (pkg.id.startsWith("custom_")) {
+                    val binaryName = pkg.id.removePrefix("custom_")
+                    File(rootfsDir, "usr/bin/$binaryName").exists() || File(rootfsDir, "usr/sbin/$binaryName").exists()
+                } else {
+                    pkg.expectedBinaries.isNotEmpty() && pkg.expectedBinaries.any { File(rootfsDir, it).exists() }
                 }
-                val isInstalledStatus = actualStatus == InstallStatus.INSTALLED
-                val installedVer = if (isInstalledStatus) (packageVersions[pkg.id] ?: 1) else pkg.version
-                val hasUpgrade = isInstalledStatus && (installedVer < pkg.version)
+                val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+                val installedVer = if (isPkgInstalled) (packageVersions[pkg.id] ?: 1) else pkg.version
+                val hasUpgrade = isPkgInstalled && (installedVer < pkg.version)
 
                 pkg.copy(status = actualStatus, hasUpgradeAvailable = hasUpgrade)
             }
@@ -376,6 +329,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val currentDns = rootfsManager.getDnsServers()
         _dnsServers.value = currentDns
 
+        val storage = if (installed) rootfsManager.getStorageUsedMb() else 0L
+
         _dashboardState.value = _dashboardState.value.copy(
             isInstalled = installed,
             isRunning = terminalBridge.isRunning.value,
@@ -386,15 +341,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             rootfsVersion = rootfsVersion,
             isUpgradeAvailable = isUpgradeAvail,
             dnsServers = currentDns,
-            containerUsers = users
+            containerUsers = users,
+            storageUsedMb = storage
         )
+    }
 
-        // Asynchronously calculate folder disk usage on background thread to prevent UI thread ANR
-        if (installed) {
-            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                val storage = rootfsManager.getStorageUsedMb()
-                _dashboardState.value = _dashboardState.value.copy(storageUsedMb = storage)
-            }
+    fun refreshStatus() {
+        viewModelScope.launch {
+            refreshStatusInternal()
         }
     }
 

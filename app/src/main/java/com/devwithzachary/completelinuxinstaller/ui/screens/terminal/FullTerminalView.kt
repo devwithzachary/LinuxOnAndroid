@@ -439,7 +439,7 @@ fun FullTerminalView(
 
                         if (cell.ch != ' ') {
                             val charStr =
-                                if (fontFamilyName == "CyberGlyphs") toCyberGlyphsChar(cell.ch) else cell.ch.toString()
+                                if (fontFamilyName == "CyberGlyphs") com.devwithzachary.completelinuxinstaller.theme.CyberGlyphs.transformChar(cell.ch) else cell.ch.toString()
                             nativeCanvas.drawText(
                                 charStr,
                                 cellX,
@@ -590,83 +590,6 @@ fun FullTerminalView(
             },
             containerColor = Color(0xFF2D2D2D)
         )
-    }
-}
-
-private fun toCyberGlyphsChar(ch: Char): String {
-    return when (ch) {
-        'a' -> "✌"
-        'b' -> "👌"
-        'c' -> "👍"
-        'd' -> "👎"
-        'e' -> "👈"
-        'f' -> "👉"
-        'g' -> "👆"
-        'h' -> "👇"
-        'i' -> "🖐"
-        'j' -> "☺"
-        'k' -> "😐"
-        'l' -> "☹"
-        'm' -> "💣"
-        'n' -> "☠"
-        'o' -> "⚐"
-        'p' -> "⚑"
-        'q' -> "✈"
-        'r' -> "☼"
-        's' -> "💧"
-        't' -> "❄"
-        'u' -> "🕇"
-        'v' -> "🕈"
-        'w' -> "✠"
-        'x' -> "✡"
-        'y' -> "☸"
-        'z' -> "☯"
-        'A' -> "✌"
-        'B' -> "👌"
-        'C' -> "👍"
-        'D' -> "👎"
-        'E' -> "👈"
-        'F' -> "👉"
-        'G' -> "👆"
-        'H' -> "👇"
-        'I' -> "🖐"
-        'J' -> "☺"
-        'K' -> "😐"
-        'L' -> "☹"
-        'M' -> "💣"
-        'N' -> "☠"
-        'O' -> "⚐"
-        'P' -> "⚑"
-        'Q' -> "✈"
-        'R' -> "☼"
-        'S' -> "💧"
-        'T' -> "❄"
-        'U' -> "🕇"
-        'V' -> "🕈"
-        'W' -> "✠"
-        'X' -> "✡"
-        'Y' -> "☸"
-        'Z' -> "☯"
-        '0' -> "⓪"
-        '1' -> "①"
-        '2' -> "②"
-        '3' -> "③"
-        '4' -> "④"
-        '5' -> "⑤"
-        '6' -> "⑥"
-        '7' -> "⑦"
-        '8' -> "⑧"
-        '9' -> "⑨"
-        ':' -> "❖"
-        '/' -> "✂"
-        '-' -> "✦"
-        '~' -> "≈"
-        '$' -> "💲"
-        '#' -> "⌗"
-        '@' -> "🌀"
-        '.' -> "●"
-        ' ' -> " "
-        else -> ch.toString()
     }
 }
 

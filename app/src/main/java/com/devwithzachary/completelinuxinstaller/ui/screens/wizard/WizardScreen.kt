@@ -175,34 +175,29 @@ fun WizardScreen(
 
                         val introPart1 = stringResource(R.string.wizard_intro_part1)
                         val introPart2 = stringResource(R.string.wizard_intro_part2)
+                        val primaryColor = MaterialTheme.colorScheme.primary
 
                         val annotatedLinkString = buildAnnotatedString {
                             append(introPart1)
-                            pushStringAnnotation(tag = "URL", annotation = websiteUrl)
-                            withStyle(
-                                style = SpanStyle(
-                                    color = MaterialTheme.colorScheme.primary,
-                                    textDecoration = TextDecoration.Underline,
-                                    fontWeight = FontWeight.Bold
+                            val link = androidx.compose.ui.text.LinkAnnotation.Url(
+                                url = websiteUrl,
+                                styles = androidx.compose.ui.text.TextLinkStyles(
+                                    style = SpanStyle(
+                                        color = primaryColor,
+                                        textDecoration = TextDecoration.Underline,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 )
-                            ) {
-                                append(websiteDomain)
-                            }
+                            )
+                            pushLink(link)
+                            append(websiteDomain)
                             pop()
                             append(introPart2)
                         }
 
-                        ClickableText(
+                        Text(
                             text = annotatedLinkString,
-                            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
-                            onClick = { offset ->
-                                annotatedLinkString.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                                    .firstOrNull()?.let { annotation ->
-                                        try {
-                                            uriHandler.openUri(annotation.item)
-                                        } catch (_: Exception) {}
-                                    }
-                            }
+                            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                         )
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

@@ -86,7 +86,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val inputStream = connection.inputStream
             val outputStream = FileOutputStream(archiveFile)
 
-            val buffer = ByteArray(8192)
+            val buffer = ByteArray(65536)
             var totalRead = 0L
             var read: Int
 
@@ -783,14 +783,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             return@withContext false
         }
         try {
-            onProgress("Counting files for compression...", 5)
-            val totalFiles = try {
-                rootfsDir.walkTopDown().count().coerceAtLeast(1)
-            } catch (_: Exception) {
-                10000
-            }
-
-            onProgress("Compressing container image...", 10)
+            onProgress("Compressing container image...", 5)
             val tempBackupFile = File(context.cacheDir, "container_export_temp.tar.gz")
             if (tempBackupFile.exists()) tempBackupFile.delete()
 
@@ -809,8 +802,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 if (now - lastUpdate > 100) {
                     lastUpdate = now
                     val fileName = line.removePrefix("./").takeLast(35)
-                    val percent = 10 + ((compressedFiles * 40) / totalFiles).coerceIn(0, 40)
-                    onProgress("Compressing: $fileName ($compressedFiles / $totalFiles files)", percent)
+                    val percent = 5 + ((compressedFiles * 45) / 15000).coerceIn(0, 45)
+                    onProgress("Compressing: $fileName ($compressedFiles files)", percent)
                 }
                 line = reader.readLine()
             }

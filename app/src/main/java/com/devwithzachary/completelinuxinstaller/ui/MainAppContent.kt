@@ -44,12 +44,12 @@ fun MainAppContent(viewModel: MainViewModel) {
     val isInstalled = dashboardState.isInstalled
     var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
 
-    // Sync screen navigation state when initialization completes
+    // Sync screen navigation state when initialization completes or installation status is confirmed
     LaunchedEffect(isInitializing, isInstalled) {
         if (!isInitializing) {
             if (!isInstalled) {
                 currentScreen = AppScreen.WIZARD
-            } else if (currentScreen == AppScreen.SPLASH) {
+            } else if (currentScreen == AppScreen.SPLASH || currentScreen == AppScreen.WIZARD) {
                 currentScreen = AppScreen.DASHBOARD
             }
         }
