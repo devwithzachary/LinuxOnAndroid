@@ -2,6 +2,37 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.2.0] - 2026-08-14
+
+### 🔄 RootFS Incremental Upgrades & Container Versioning
+- **Container Version Tracking**: Automatically write and monitor container build versions in `/etc/linuxonandroid_version`.
+- **1-Tap "RootFS Upgrade" Manager**: Apply incremental system improvements, PAM permit updates, APT sandboxing rules, and configuration fixes to existing containers without wiping data or resetting user environments.
+- **Smart Upgrade Availability**: Identifies when an app build contains rootfs improvements vs when the container is already up to date.
+
+### 📦 1-Click Package Upgrade & Manifest-Based Tracking
+- **Authoritative Manifest Tracking**: 1-click packages now record install states and versions to `/etc/linuxonandroid_packages`, eliminating false-positive binary detections.
+- **1-Click Software Upgrades**: Added 1-tap upgrade actions for installed software stacks directly in the Software & Packages Hub.
+- **Balanced Hub Action Layout**: Streamlined card actions with equal 3-way distribution for Upgrade, Start/Stop, and View Logs.
+
+### 🌐 Custom DNS Server Configuration
+- **Network & DNS Settings**: Configure and persist custom `/etc/resolv.conf` nameservers directly from Settings.
+- **Quick DNS Presets**: 1-tap presets for Google (8.8.8.8), Cloudflare (1.1.1.1), Quad9 (9.9.9.9), AdGuard (94.140.14.14), and OpenDNS (208.67.222.222), plus custom IP inputs.
+
+### 🎛️ Settings UI Overhaul & Scannability
+- **Collapsible Cards**: Settings cards are collapsed by default with unified card colors matching Dashboard and About screens.
+- **Category Filter Tabs**: Quick-filter by `All`, `Container`, `Network & DNS`, `Terminal`, `Security`, and `Storage & Reset`.
+- **Expand All / Collapse All**: 1-tap header toggle for rapid settings management.
+
+### 🔤 Terminal Typography & CyberGlyphs
+- **Horizontal Font Family Selector**: Converted font picker into a smooth horizontal scroll chip row, preventing button squishing.
+- **Streamlined Monospace Fonts**: Default Monospace and JetBrains Mono (Bold).
+- **Playful Fonts & CyberGlyphs**: Added Cursive, Casual, and high-performance, zero-allocation CyberGlyphs symbol typography.
+
+### ⚡ Performance, Speed & Architecture Improvements
+- **Asynchronous IO Refreshes**: Shifted all container filesystem inspection and status polling to background IO dispatchers, eliminating UI frame drops.
+- **64KB High-Throughput Stream Buffers**: Quadrupled I/O throughput on flash storage for rootfs downloads, extractions, and backups.
+- **Modernized Compose APIs**: Migrated deprecated `ClickableText` and `LocalClipboardManager` APIs.
+
 ## [1.1.1] - 2026-08-12
 
 ### 👤 Terminal User & Session Control

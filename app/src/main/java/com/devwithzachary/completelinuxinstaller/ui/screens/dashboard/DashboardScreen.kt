@@ -215,12 +215,12 @@ fun DashboardScreen(
 
                         if (state.isSshInstalled) {
                             OutlinedButton(
-                                onClick = { onRunPresetClick("su - root -c '/usr/sbin/sshd -p 2222'") },
+                                onClick = { onRunPresetClick("su - root -c '/usr/sbin/sshd -p ${state.sshPort}'") },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(Icons.Default.Security, contentDescription = null)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.btn_start_ssh))
+                                Text(stringResource(R.string.btn_start_ssh, state.sshPort))
                             }
                         }
                     }

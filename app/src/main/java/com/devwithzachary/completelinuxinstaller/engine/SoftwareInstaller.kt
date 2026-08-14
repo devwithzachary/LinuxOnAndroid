@@ -114,6 +114,7 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
             reader.close()
 
             if (exitCode == 0) {
+                RootfsMigrationManager.writePackageVersion(pRootEngine.rootfsDir, pkg.id, pkg.version)
                 emit(InstallStepState.Progress(pkg.id, "Installation completed successfully!"))
                 emit(InstallStepState.Success(pkg.id, pkg.postInstallNotes))
             } else {

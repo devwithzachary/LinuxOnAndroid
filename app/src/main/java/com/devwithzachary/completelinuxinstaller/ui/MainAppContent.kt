@@ -44,12 +44,12 @@ fun MainAppContent(viewModel: MainViewModel) {
     val isInstalled = dashboardState.isInstalled
     var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
 
-    // Sync screen navigation state when initialization completes
+    // Sync screen navigation state when initialization completes or installation status is confirmed
     LaunchedEffect(isInitializing, isInstalled) {
         if (!isInitializing) {
             if (!isInstalled) {
                 currentScreen = AppScreen.WIZARD
-            } else if (currentScreen == AppScreen.SPLASH) {
+            } else if (currentScreen == AppScreen.SPLASH || currentScreen == AppScreen.WIZARD) {
                 currentScreen = AppScreen.DASHBOARD
             }
         }
@@ -175,8 +175,11 @@ fun MainAppContent(viewModel: MainViewModel) {
                     }
 
                     AppScreen.SOFTWARE_HUB -> {
+                        val sshPort by viewModel.sshPort.collectAsStateWithLifecycle()
                         SoftwareHubScreen(
                             packages = packages,
+                            sshPort = sshPort,
+                            onSetSshPort = { port -> viewModel.setSshPort(port) },
                             onInstallPackageClick = { pkgId ->
                                 viewModel.installSoftwarePackage(pkgId)
                             },
@@ -209,9 +212,11 @@ fun MainAppContent(viewModel: MainViewModel) {
                             onSetTerminalFontSize = { size -> viewModel.setTerminalFontSize(size) },
                             onSetTerminalFontFamily = { family -> viewModel.setTerminalFontFamily(family) },
                             onSetDefaultTerminalUser = { user -> viewModel.setDefaultTerminalUser(user) },
+                            onSetDnsServers = { servers -> viewModel.setDnsServers(servers) },
                             onToggleBindSdCard = { viewModel.toggleBindSdCard() },
                             onWipeRootfsClick = { viewModel.wipeRootfs() },
                             onRefreshStatusClick = { viewModel.refreshStatus() },
+                            onUpgradeRootfsClick = { viewModel.upgradeRootfs() },
                             onChangeRootPassword = { pass -> viewModel.changeRootPassword(pass) },
                             onCreateUser = { user, pass -> viewModel.createUser(user, pass) },
                             onDeleteUser = { user -> viewModel.deleteUser(user) },
@@ -227,5 +232,11 @@ fun MainAppContent(viewModel: MainViewModel) {
                 }
             }
         }
+
+        val upgradeState by viewModel.upgradeState.collectAsStateWithLifecycle()
+        com.devwithzachary.completelinuxinstaller.ui.components.RootfsUpgradeDialog(
+            upgradeState = upgradeState,
+            onDismiss = { viewModel.dismissUpgradeState() }
+        )
     }
 }

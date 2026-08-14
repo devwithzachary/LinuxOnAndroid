@@ -2,6 +2,7 @@ package com.devwithzachary.completelinuxinstaller.engine
 
 import android.content.Context
 import android.util.Log
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.model.LinuxDistribution
 import java.io.BufferedInputStream
 import java.io.File
@@ -85,7 +86,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val inputStream = connection.inputStream
             val outputStream = FileOutputStream(archiveFile)
 
-            val buffer = ByteArray(8192)
+            val buffer = ByteArray(65536)
             var totalRead = 0L
             var read: Int
 
@@ -133,6 +134,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             }
 
             archiveFile.delete()
+            writeRootfsVersion(BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME)
             emitLog("Ubuntu setup completed successfully!")
             send(DownloadState.Success(rootfsDir, logList.toList()))
 
@@ -141,6 +143,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             send(DownloadState.Extracting("Network download fallback: Initializing local Ubuntu environment..."))
             initializeFallbackRootfs()
             configureSystemFiles()
+            writeRootfsVersion(BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME)
             send(DownloadState.Success(rootfsDir))
         }
     }.flowOn(Dispatchers.IO)
@@ -426,14 +429,10 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
     fun configureSystemFiles() {
         val etcDir = File(rootfsDir, "etc").apply { if (!exists()) mkdirs() }
 
+        val currentDns = getDnsServers()
         val resolvConf = File(etcDir, "resolv.conf")
-        resolvConf.writeText(
-            """
-            nameserver 8.8.8.8
-            nameserver 1.1.1.1
-            nameserver 8.8.4.4
-            """.trimIndent()
-        )
+        val dnsContent = currentDns.joinToString("\n") { "nameserver $it" } + "\n"
+        resolvConf.writeText(dnsContent)
 
         val hosts = File(etcDir, "hosts")
         hosts.writeText(
@@ -784,14 +783,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             return@withContext false
         }
         try {
-            onProgress("Counting files for compression...", 5)
-            val totalFiles = try {
-                rootfsDir.walkTopDown().count().coerceAtLeast(1)
-            } catch (_: Exception) {
-                10000
-            }
-
-            onProgress("Compressing container image...", 10)
+            onProgress("Compressing container image...", 5)
             val tempBackupFile = File(context.cacheDir, "container_export_temp.tar.gz")
             if (tempBackupFile.exists()) tempBackupFile.delete()
 
@@ -810,8 +802,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 if (now - lastUpdate > 100) {
                     lastUpdate = now
                     val fileName = line.removePrefix("./").takeLast(35)
-                    val percent = 10 + ((compressedFiles * 40) / totalFiles).coerceIn(0, 40)
-                    onProgress("Compressing: $fileName ($compressedFiles / $totalFiles files)", percent)
+                    val percent = 5 + ((compressedFiles * 45) / 15000).coerceIn(0, 45)
+                    onProgress("Compressing: $fileName ($compressedFiles files)", percent)
                 }
                 line = reader.readLine()
             }
@@ -907,6 +899,9 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             configureSystemFiles()
 
             tempImportFile.delete()
+            if (getRootfsVersion() == null) {
+                writeRootfsVersion(BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME)
+            }
             onProgress("Container restored successfully!", 100)
             true
         } catch (e: Exception) {
@@ -914,5 +909,129 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             onProgress("Import failed: ${e.localizedMessage}", -1)
             false
         }
+    }
+
+    fun getRootfsVersion(): RootfsVersionInfo? {
+        return RootfsMigrationManager.readVersion(rootfsDir)
+    }
+
+    fun writeRootfsVersion(
+        versionCode: Int = BuildConfig.VERSION_CODE,
+        versionName: String = BuildConfig.VERSION_NAME
+    ) {
+        val existing = getRootfsVersion()
+        val installedAt = existing?.installedAt ?: System.currentTimeMillis()
+        val info = RootfsVersionInfo(
+            versionCode = versionCode,
+            versionName = versionName,
+            installedAt = installedAt,
+            lastUpgradedAt = System.currentTimeMillis()
+        )
+        RootfsMigrationManager.writeVersion(rootfsDir, info)
+    }
+
+    fun isUpgradeAvailable(): Boolean {
+        if (!isInstalled()) return false
+        val currentVersion = getRootfsVersion() ?: return false
+        return RootfsMigrationManager.hasRootfsImprovements(currentVersion.versionCode, BuildConfig.VERSION_CODE)
+    }
+
+    fun upgradeRootfs(): Flow<UpgradeState> = channelFlow {
+        val logList = mutableListOf<String>()
+        fun emitLog(msg: String) {
+            logList.add(msg)
+            Log.d(TAG, "[UpgradeRootfs] $msg")
+        }
+
+        if (!isInstalled()) {
+            send(UpgradeState.Error("RootFS is not installed. Nothing to upgrade.", logList.toList()))
+            return@channelFlow
+        }
+
+        val currentVersion = getRootfsVersion() ?: RootfsVersionInfo(
+            versionCode = RootfsMigrationManager.LEGACY_VERSION_CODE,
+            versionName = RootfsMigrationManager.LEGACY_VERSION_NAME
+        )
+        val fromVersion = currentVersion.versionCode
+        val targetVersion = BuildConfig.VERSION_CODE
+
+        emitLog("Starting RootFS upgrade inspection...")
+        emitLog("Installed RootFS Version: ${currentVersion.versionName} (Build $fromVersion)")
+        emitLog("Target Application Version: ${BuildConfig.VERSION_NAME} (Build $targetVersion)")
+
+        val pendingMigrations = RootfsMigrationManager.getPendingMigrations(fromVersion, targetVersion)
+        if (pendingMigrations.isEmpty()) {
+            emitLog("No pending migration patches found. Re-verifying core system configuration files...")
+            configureSystemFiles()
+            writeRootfsVersion(targetVersion, BuildConfig.VERSION_NAME)
+            emitLog("RootFS is fully up to date with version ${BuildConfig.VERSION_NAME}!")
+            send(UpgradeState.Success(fromVersion, targetVersion, logList.toList()))
+            return@channelFlow
+        }
+
+        emitLog("Found ${pendingMigrations.size} pending migration patch(es) to apply.")
+        send(UpgradeState.Upgrading("Starting upgrade...", logList.toList(), 5))
+
+        for ((index, migration) in pendingMigrations.withIndex()) {
+            val stepPercent = 10 + ((index * 80) / pendingMigrations.size)
+            emitLog("\n[Step ${index + 1}/${pendingMigrations.size}] ${migration.name} (v${migration.targetVersionCode}):")
+            emitLog("  ${migration.description}")
+            send(UpgradeState.Upgrading("Applying: ${migration.name}", logList.toList(), stepPercent))
+
+            val success = try {
+                migration.execute(pRootEngine, rootfsDir) { logLine ->
+                    emitLog("  -> $logLine")
+                }
+            } catch (e: Exception) {
+                emitLog("ERROR in migration ${migration.name}: ${e.localizedMessage}")
+                false
+            }
+
+            if (!success) {
+                emitLog("Migration failed at step '${migration.name}'.")
+                send(UpgradeState.Error("Failed to apply migration '${migration.name}'", logList.toList()))
+                return@channelFlow
+            }
+        }
+
+        emitLog("\nAll migrations applied successfully! Re-verifying system files, DNS, and sudo permissions...")
+        configureSystemFiles()
+        writeRootfsVersion(targetVersion, BuildConfig.VERSION_NAME)
+        emitLog("RootFS successfully upgraded to ${BuildConfig.VERSION_NAME} (Build $targetVersion)!")
+        send(UpgradeState.Success(fromVersion, targetVersion, logList.toList()))
+    }.flowOn(Dispatchers.IO)
+
+    fun getDnsServers(): List<String> {
+        val resolvConf = File(rootfsDir, "etc/resolv.conf")
+        if (resolvConf.exists()) {
+            try {
+                val servers = resolvConf.readLines()
+                    .filter { it.trim().startsWith("nameserver") }
+                    .map { it.removePrefix("nameserver").trim() }
+                    .filter { it.isNotBlank() }
+                if (servers.isNotEmpty()) return servers
+            } catch (_: Exception) {}
+        }
+        val prefs = context.getSharedPreferences("dns_prefs", Context.MODE_PRIVATE)
+        val saved = prefs.getString("dns_servers_csv", null)
+        if (!saved.isNullOrBlank()) {
+            return saved.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        }
+        return listOf("8.8.8.8", "1.1.1.1", "8.8.4.4")
+    }
+
+    fun setDnsServers(servers: List<String>): Boolean {
+        val cleanList = servers.map { it.trim() }.filter { it.isNotBlank() }
+        if (cleanList.isEmpty()) return false
+        val prefs = context.getSharedPreferences("dns_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("dns_servers_csv", cleanList.joinToString(",")).apply()
+
+        if (isInstalled()) {
+            val etcDir = File(rootfsDir, "etc").apply { if (!exists()) mkdirs() }
+            val resolvConf = File(etcDir, "resolv.conf")
+            val content = cleanList.joinToString("\n") { "nameserver $it" } + "\n"
+            resolvConf.writeText(content)
+        }
+        return true
     }
 }

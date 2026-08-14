@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +25,7 @@ fun PatreonBanner(
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val patreonUrl = stringResource(R.string.patreon_url)
+    val buymeacoffeeUrl = stringResource(R.string.buymeacoffee_url)
     val prefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
     var isBannerDismissed by remember { mutableStateOf(prefs.getBoolean("patreon_banner_dismissed", false)) }
 
@@ -83,17 +85,35 @@ fun PatreonBanner(
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
 
-                OutlinedButton(
-                    onClick = {
-                        try {
-                            uriHandler.openUri(patreonUrl)
-                        } catch (_: Exception) {}
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(stringResource(R.string.btn_join_patreon))
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                uriHandler.openUri(patreonUrl)
+                            } catch (_: Exception) {}
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.btn_join_patreon))
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            try {
+                                uriHandler.openUri(buymeacoffeeUrl)
+                            } catch (_: Exception) {}
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.LocalCafe, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.btn_buy_me_a_coffee))
+                    }
                 }
             }
         }

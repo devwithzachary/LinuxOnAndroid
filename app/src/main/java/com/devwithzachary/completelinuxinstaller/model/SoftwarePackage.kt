@@ -26,6 +26,8 @@ data class SoftwarePackage(
     val postInstallNotes: String? = null,
     val expectedBinaries: List<String> = emptyList(),
     val status: InstallStatus = InstallStatus.NOT_INSTALLED,
+    val version: Int = 1,
+    val hasUpgradeAvailable: Boolean = false,
     val progressMessage: String = "",
     val installLogs: String = ""
 ) {
@@ -35,7 +37,18 @@ data class SoftwarePackage(
         private const val NONINT_EXPORT =
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; mkdir -p /usr/sbin /etc /var/lib/dbus 2>/dev/null; (grep -q ^messagebus: /etc/group || echo \"messagebus:x:101:\" >> /etc/group); (grep -q ^messagebus: /etc/passwd || echo \"messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\" >> /etc/passwd); (grep -q ^messagebus: /etc/shadow || echo \"messagebus:*:19700:0:99999:7:::\" >> /etc/shadow); (grep -q ^www-data: /etc/group || echo \"www-data:x:33:\" >> /etc/group); (grep -q ^www-data: /etc/passwd || echo \"www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\" >> /etc/passwd); (grep -q ^sshd: /etc/group || echo \"sshd:x:102:\" >> /etc/group); (grep -q ^sshd: /etc/passwd || echo \"sshd:x:102:102:Privilege-separated SSH:/run/sshd:/usr/sbin/nologin\" >> /etc/passwd); printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; if [ ! -f /bin/systemctl ] && [ ! -f /usr/bin/systemctl ]; then printf '#!/bin/sh\\nexit 0\\n' > /usr/bin/systemctl && chmod 755 /usr/bin/systemctl; fi; dbus-uuidgen --ensure 2>/dev/null || true; chmod 755 /usr /usr/local /usr/local/bin /usr/local/sbin /usr/bin /usr/sbin /bin /sbin /etc 2>/dev/null; chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /var/lib/dpkg/lock* /usr/bin/*.dpkg-new /usr/lib/*.dpkg-new 2>/dev/null; mkdir -p /etc/dpkg/dpkg.cfg.d && echo force-all > /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-unsafe-io >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-overwrite >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confold >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confdef >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-depends >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid; mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; export TMPDIR=/tmp && export TMP=/tmp && export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a; chown -R 0:0 /etc/sudoers /etc/sudoers.d /etc/sudo.conf /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true; chmod 0440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true"
 
-        fun getPresets(): List<SoftwarePackage> {
+        fun buildSshLaunchCommand(port: Int = 2222): String {
+            val validPort = if (port in 1..65535) port else 2222
+            return "mkdir -p /run/sshd /var/run/sshd /var/empty && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true && (killall -9 sshd 2>/dev/null || true) && /usr/sbin/sshd -p $validPort"
+        }
+
+        fun buildSshPostInstallNotes(port: Int = 2222): String {
+            val validPort = if (port in 1..65535) port else 2222
+            return "SSH server listening on port $validPort. Connect via 'ssh <username>@<phone-ip> -p $validPort' using your Linux password."
+        }
+
+        fun getPresets(sshPort: Int = 2222): List<SoftwarePackage> {
+            val validPort = if (sshPort in 1..65535) sshPort else 2222
             return listOf(
                 SoftwarePackage(
                     id = "xfce_desktop",
@@ -46,7 +59,8 @@ data class SoftwarePackage(
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS xfce4 xfce4-terminal dbus-x11 tigervnc-standalone-server tigervnc-xorg-extension tightvncserver novnc websockify curl ca-certificates && mkdir -p /root/.vnc && echo '#!/bin/sh\\nunset SESSION_MANAGER\\nunset DBUS_SESSION_BUS_ADDRESS\\nexec startxfce4' > /root/.vnc/xstartup && chmod +x /root/.vnc/xstartup",
                     launchCommand = "vncserver :1 -geometry 1280x720 -depth 24",
                     postInstallNotes = "VNC Server starts on port 5901 (:1). Connect via any VNC viewer client or noVNC web browser interface.",
-                    expectedBinaries = listOf("usr/bin/startxfce4", "usr/bin/vncserver")
+                    expectedBinaries = listOf("usr/bin/startxfce4", "usr/bin/vncserver"),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "python_dev",
@@ -62,7 +76,8 @@ data class SoftwarePackage(
                         "usr/bin/git",
                         "usr/bin/gcc",
                         "usr/bin/nvim"
-                    )
+                    ),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "node_dev",
@@ -78,7 +93,8 @@ data class SoftwarePackage(
                         "usr/bin/git",
                         "usr/bin/gcc",
                         "usr/bin/nvim"
-                    )
+                    ),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "android_dev",
@@ -88,7 +104,8 @@ data class SoftwarePackage(
                     iconName = "Android",
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS openjdk-17-jdk-headless android-sdk-platform-tools gradle git curl wget unzip ca-certificates",
                     postInstallNotes = "Includes OpenJDK 17, adb, fastboot, and Gradle for building Android projects.",
-                    expectedBinaries = listOf("usr/bin/java", "usr/bin/adb", "usr/bin/gradle", "usr/bin/git")
+                    expectedBinaries = listOf("usr/bin/java", "usr/bin/adb", "usr/bin/gradle", "usr/bin/git"),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "nginx_web",
@@ -99,7 +116,8 @@ data class SoftwarePackage(
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS nginx sqlite3 curl ca-certificates",
                     launchCommand = "service nginx start",
                     postInstallNotes = "Server starts on port 80 or 8080. Test with 'curl http://localhost'.",
-                    expectedBinaries = listOf("usr/sbin/nginx", "usr/bin/sqlite3")
+                    expectedBinaries = listOf("usr/sbin/nginx", "usr/bin/sqlite3"),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "openssh_server",
@@ -108,9 +126,10 @@ data class SoftwarePackage(
                     description = "SSH daemon allowing remote command line access from PC or LAN devices.",
                     iconName = "Security",
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS openssh-server ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty /etc/ssh/sshd_config.d && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && echo \"Port 2222\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"UsePAM no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"SetEnv PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"Subsystem sftp internal-sftp\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && (sed -i 's/^#\\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^session.*pam_loginuid.so/#&/' /etc/pam.d/sshd 2>/dev/null || true) && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true",
-                    launchCommand = "mkdir -p /run/sshd /var/run/sshd /var/empty && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true && (killall -9 sshd 2>/dev/null || true) && /usr/sbin/sshd -p 2222",
-                    postInstallNotes = "SSH server listening on port 2222. Connect via 'ssh <username>@<phone-ip> -p 2222' using your Linux password.",
-                    expectedBinaries = listOf("usr/sbin/sshd", "usr/bin/ssh-keygen")
+                    launchCommand = buildSshLaunchCommand(validPort),
+                    postInstallNotes = buildSshPostInstallNotes(validPort),
+                    expectedBinaries = listOf("usr/sbin/sshd", "usr/bin/ssh-keygen"),
+                    version = 3
                 )
             )
         }

@@ -24,6 +24,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import com.devwithzachary.completelinuxinstaller.engine.RootfsMigrationManager
+import com.devwithzachary.completelinuxinstaller.engine.RootfsVersionInfo
+import com.devwithzachary.completelinuxinstaller.engine.UpgradeState
+
 data class DashboardUiState(
     val isInitializing: Boolean = true,
     val isInstalled: Boolean = false,
@@ -34,6 +38,10 @@ data class DashboardUiState(
     val isVncInstalled: Boolean = false,
     val isNginxInstalled: Boolean = false,
     val isSshInstalled: Boolean = false,
+    val sshPort: Int = 2222,
+    val rootfsVersion: RootfsVersionInfo? = null,
+    val isUpgradeAvailable: Boolean = false,
+    val dnsServers: List<String> = listOf("8.8.8.8", "1.1.1.1", "8.8.4.4"),
     val containerUsers: List<String> = emptyList()
 )
 
@@ -53,6 +61,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = application.getSharedPreferences("terminal_theme_prefs", Context.MODE_PRIVATE)
 
+    private fun loadSshPort(): Int {
+        val port = prefs.getInt("ssh_port", 2222)
+        return if (port in 1..65535) port else 2222
+    }
+
+    private val _sshPort = MutableStateFlow(loadSshPort())
+    val sshPort: StateFlow<Int> = _sshPort.asStateFlow()
+
+    private val _dnsServers = MutableStateFlow(rootfsManager.getDnsServers())
+    val dnsServers: StateFlow<List<String>> = _dnsServers.asStateFlow()
+
+    private val _upgradeState = MutableStateFlow<UpgradeState>(UpgradeState.Idle)
+    val upgradeState: StateFlow<UpgradeState> = _upgradeState.asStateFlow()
+
     private val _terminalTheme = MutableStateFlow(loadTerminalTheme())
     val terminalTheme: StateFlow<TerminalTheme> = _terminalTheme.asStateFlow()
 
@@ -62,7 +84,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _terminalFontFamily = MutableStateFlow(loadTerminalFontFamily())
     val terminalFontFamily: StateFlow<String> = _terminalFontFamily.asStateFlow()
 
-    private val _dashboardState = MutableStateFlow(DashboardUiState())
+    private val _dashboardState = MutableStateFlow(
+        DashboardUiState(
+            sshPort = loadSshPort(),
+            dnsServers = rootfsManager.getDnsServers()
+        )
+    )
     val dashboardState: StateFlow<DashboardUiState> = _dashboardState.asStateFlow()
 
     private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
@@ -71,7 +98,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _backupState = MutableStateFlow<BackupState>(BackupState.Idle)
     val backupState: StateFlow<BackupState> = _backupState.asStateFlow()
 
-    private val _packages = MutableStateFlow(SoftwarePackage.getPresets())
+    private val _packages = MutableStateFlow(SoftwarePackage.getPresets(loadSshPort()))
     val packages: StateFlow<List<SoftwarePackage>> = _packages.asStateFlow()
 
     private val _defaultTerminalUser = MutableStateFlow(loadDefaultTerminalUser())
@@ -79,12 +106,53 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val isSessionRunning = terminalBridge.isRunning
 
+    fun setDnsServers(servers: List<String>) {
+        rootfsManager.setDnsServers(servers)
+        _dnsServers.value = rootfsManager.getDnsServers()
+        _dashboardState.value = _dashboardState.value.copy(dnsServers = _dnsServers.value)
+    }
+
+    fun upgradeRootfs() {
+        viewModelScope.launch {
+            rootfsManager.upgradeRootfs().collect { state ->
+                _upgradeState.value = state
+                if (state is UpgradeState.Success) {
+                    refreshStatus()
+                }
+            }
+        }
+    }
+
+    fun dismissUpgradeState() {
+        _upgradeState.value = UpgradeState.Idle
+    }
+
+    fun setSshPort(port: Int) {
+        val validPort = if (port in 1..65535) port else 2222
+        prefs.edit().putInt("ssh_port", validPort).apply()
+        _sshPort.value = validPort
+
+        val currentPackages = _packages.value.map { pkg ->
+            if (pkg.id == "openssh_server") {
+                pkg.copy(
+                    launchCommand = SoftwarePackage.buildSshLaunchCommand(validPort),
+                    postInstallNotes = SoftwarePackage.buildSshPostInstallNotes(validPort)
+                )
+            } else {
+                pkg
+            }
+        }
+        _packages.value = currentPackages
+        _dashboardState.value = _dashboardState.value.copy(sshPort = validPort)
+    }
+
     private fun loadTerminalFontSize(): Int {
         return prefs.getInt("terminal_font_size", 13)
     }
 
     private fun loadTerminalFontFamily(): String {
-        return prefs.getString("terminal_font_family", "Monospace") ?: "Monospace"
+        val saved = prefs.getString("terminal_font_family", "Monospace") ?: "Monospace"
+        return saved
     }
 
     fun setTerminalFontSize(size: Int) {
@@ -115,8 +183,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             pRootEngine.ensurePRootExecutable()
-            refreshStatus()
-            kotlinx.coroutines.delay(800)
+            refreshStatusInternal()
+            kotlinx.coroutines.delay(500)
             _dashboardState.value = _dashboardState.value.copy(isInitializing = false)
         }
     }
@@ -206,42 +274,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _terminalTheme.value = customTheme
     }
 
-    fun refreshStatus() {
+    suspend fun refreshStatusInternal() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         val installed = rootfsManager.isInstalled()
         val rootfsDir = pRootEngine.rootfsDir
 
-        val hasVnc = installed && File(rootfsDir, "usr/bin/startxfce4").exists() && (
-            File(rootfsDir, "usr/bin/vncserver").exists() ||
-            File(rootfsDir, "usr/bin/tigervncserver").exists() ||
-            File(rootfsDir, "usr/bin/tightvncserver").exists()
-        )
+        // Sync individual package states against rootfs file system package tracking file
+        val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
 
-        val hasNginx = installed && File(rootfsDir, "usr/sbin/nginx").exists()
-        val hasSsh = installed && File(rootfsDir, "usr/sbin/sshd").exists()
+        val hasVnc = installed && packageVersions.containsKey("xfce_desktop")
+        val hasNginx = installed && packageVersions.containsKey("nginx_web")
+        val hasSsh = installed && packageVersions.containsKey("openssh_server")
         val users = if (installed) rootfsManager.getContainerUsers() else emptyList()
 
-        // Sync individual package states against rootfs file system
         val syncedPackages = _packages.value.map { pkg ->
             if (!installed) {
-                pkg.copy(status = InstallStatus.NOT_INSTALLED, progressMessage = "", installLogs = "")
+                pkg.copy(
+                    status = InstallStatus.NOT_INSTALLED,
+                    hasUpgradeAvailable = false,
+                    progressMessage = "",
+                    installLogs = ""
+                )
             } else {
-                val actualStatus = when (pkg.id) {
-                    "xfce_desktop" -> if (File(rootfsDir, "usr/bin/startxfce4").exists() && (File(rootfsDir, "usr/bin/vncserver").exists() || File(rootfsDir, "usr/bin/tigervncserver").exists() || File(rootfsDir, "usr/bin/tightvncserver").exists())) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "python_dev" -> if (File(rootfsDir, "usr/bin/python3").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "node_dev" -> if (File(rootfsDir, "usr/bin/node").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "android_dev" -> if (File(rootfsDir, "usr/bin/adb").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "nginx_web" -> if (File(rootfsDir, "usr/sbin/nginx").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    "openssh_server" -> if (File(rootfsDir, "usr/sbin/sshd").exists()) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
-                    else -> {
-                        if (pkg.id.startsWith("custom_")) {
-                            val binaryName = pkg.id.removePrefix("custom_")
-                            if (File(rootfsDir, "usr/bin/$binaryName").exists() || File(rootfsDir, "usr/sbin/$binaryName").exists()) {
-                                InstallStatus.INSTALLED
-                            } else InstallStatus.NOT_INSTALLED
-                        } else pkg.status
-                    }
-                }
-                pkg.copy(status = actualStatus)
+                val isPkgInstalled = packageVersions.containsKey(pkg.id) || (pkg.id.startsWith("custom_") && run {
+                    val binaryName = pkg.id.removePrefix("custom_")
+                    File(rootfsDir, "usr/bin/$binaryName").exists() || File(rootfsDir, "usr/sbin/$binaryName").exists()
+                })
+                val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+                val installedVer = if (isPkgInstalled) (packageVersions[pkg.id] ?: 1) else pkg.version
+                val hasUpgrade = isPkgInstalled && (installedVer < pkg.version)
+
+                pkg.copy(status = actualStatus, hasUpgradeAvailable = hasUpgrade)
             }
         }
         _packages.value = syncedPackages
@@ -256,21 +318,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _defaultTerminalUser.value = autoDefault
         }
 
+        val rootfsVersion = if (installed) rootfsManager.getRootfsVersion() else null
+        val isUpgradeAvail = if (installed) rootfsManager.isUpgradeAvailable() else false
+        val currentDns = rootfsManager.getDnsServers()
+        _dnsServers.value = currentDns
+
+        val storage = if (installed) rootfsManager.getStorageUsedMb() else 0L
+
         _dashboardState.value = _dashboardState.value.copy(
             isInstalled = installed,
             isRunning = terminalBridge.isRunning.value,
             isVncInstalled = hasVnc,
             isNginxInstalled = hasNginx,
             isSshInstalled = hasSsh,
-            containerUsers = users
+            sshPort = _sshPort.value,
+            rootfsVersion = rootfsVersion,
+            isUpgradeAvailable = isUpgradeAvail,
+            dnsServers = currentDns,
+            containerUsers = users,
+            storageUsedMb = storage
         )
+    }
 
-        // Asynchronously calculate folder disk usage on background thread to prevent UI thread ANR
-        if (installed) {
-            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                val storage = rootfsManager.getStorageUsedMb()
-                _dashboardState.value = _dashboardState.value.copy(storageUsedMb = storage)
-            }
+    fun refreshStatus() {
+        viewModelScope.launch {
+            refreshStatusInternal()
         }
     }
 
@@ -397,6 +469,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                 installLogs = newLogs
                             )
                         }
+
                         is InstallStepState.Success -> {
                             val newLogs = list[idx].installLogs + "Installation completed successfully!\n"
                             list[idx] = list[idx].copy(
@@ -406,6 +479,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             )
                             refreshStatus()
                         }
+
                         is InstallStepState.Error -> {
                             val newLogs = list[idx].installLogs + "ERROR: " + step.errorMessage + "\n"
                             list[idx] = list[idx].copy(
@@ -427,13 +501,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
 
-
     fun wipeRootfs() {
         viewModelScope.launch {
             terminalBridge.stopSession()
             rootfsManager.wipeRootfs()
             _downloadState.value = DownloadState.Idle
-            _packages.value = SoftwarePackage.getPresets()
+            _packages.value = SoftwarePackage.getPresets(_sshPort.value)
             refreshStatus()
         }
     }
