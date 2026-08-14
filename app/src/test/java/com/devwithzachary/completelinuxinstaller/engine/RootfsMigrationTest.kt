@@ -138,6 +138,24 @@ class RootfsMigrationTest {
     }
 
     @Test
+    fun testPackageInstalledTracking_isolatedFromUnrelatedBinaryFiles() {
+        val rootfsDir = tempFolder.newFolder("pkg_tracking_isolation_rootfs")
+        val binDir = File(rootfsDir, "usr/bin").apply { mkdirs() }
+
+        // Simulate an unrelated script creating python3
+        File(binDir, "python3").createNewFile()
+
+        // Without python_dev registered in linuxonandroid_packages, it should not be considered installed
+        val packages = RootfsMigrationManager.readPackageVersions(rootfsDir)
+        assertFalse("python_dev should NOT be recognized as installed just because /usr/bin/python3 exists", packages.containsKey("python_dev"))
+
+        // Once formally registered by 1-click installer:
+        RootfsMigrationManager.writePackageVersion(rootfsDir, "python_dev", 2)
+        val updatedPackages = RootfsMigrationManager.readPackageVersions(rootfsDir)
+        assertTrue("python_dev must now be recognized as installed", updatedPackages.containsKey("python_dev"))
+    }
+
+    @Test
     fun testDnsResolvConfPersistence_writesAndParsesCorrectly() {
         val rootfsDir = tempFolder.newFolder("dns_test_rootfs")
         val etcDir = File(rootfsDir, "etc").apply { mkdirs() }

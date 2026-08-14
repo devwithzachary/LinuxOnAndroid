@@ -278,18 +278,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val installed = rootfsManager.isInstalled()
         val rootfsDir = pRootEngine.rootfsDir
 
-        val hasVnc = installed && File(rootfsDir, "usr/bin/startxfce4").exists() && (
-                File(rootfsDir, "usr/bin/vncserver").exists() ||
-                        File(rootfsDir, "usr/bin/tigervncserver").exists() ||
-                        File(rootfsDir, "usr/bin/tightvncserver").exists()
-                )
+        // Sync individual package states against rootfs file system package tracking file
+        val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
 
-        val hasNginx = installed && File(rootfsDir, "usr/sbin/nginx").exists()
-        val hasSsh = installed && File(rootfsDir, "usr/sbin/sshd").exists()
+        val hasVnc = installed && packageVersions.containsKey("xfce_desktop")
+        val hasNginx = installed && packageVersions.containsKey("nginx_web")
+        val hasSsh = installed && packageVersions.containsKey("openssh_server")
         val users = if (installed) rootfsManager.getContainerUsers() else emptyList()
 
-        // Sync individual package states against rootfs file system
-        val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
         val syncedPackages = _packages.value.map { pkg ->
             if (!installed) {
                 pkg.copy(
@@ -299,12 +295,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     installLogs = ""
                 )
             } else {
-                val isPkgInstalled = if (pkg.id.startsWith("custom_")) {
+                val isPkgInstalled = packageVersions.containsKey(pkg.id) || (pkg.id.startsWith("custom_") && run {
                     val binaryName = pkg.id.removePrefix("custom_")
                     File(rootfsDir, "usr/bin/$binaryName").exists() || File(rootfsDir, "usr/sbin/$binaryName").exists()
-                } else {
-                    pkg.expectedBinaries.isNotEmpty() && pkg.expectedBinaries.any { File(rootfsDir, it).exists() }
-                }
+                })
                 val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
                 val installedVer = if (isPkgInstalled) (packageVersions[pkg.id] ?: 1) else pkg.version
                 val hasUpgrade = isPkgInstalled && (installedVer < pkg.version)
