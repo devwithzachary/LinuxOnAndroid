@@ -26,6 +26,8 @@ data class SoftwarePackage(
     val postInstallNotes: String? = null,
     val expectedBinaries: List<String> = emptyList(),
     val status: InstallStatus = InstallStatus.NOT_INSTALLED,
+    val version: Int = 1,
+    val hasUpgradeAvailable: Boolean = false,
     val progressMessage: String = "",
     val installLogs: String = ""
 ) {
@@ -57,7 +59,8 @@ data class SoftwarePackage(
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS xfce4 xfce4-terminal dbus-x11 tigervnc-standalone-server tigervnc-xorg-extension tightvncserver novnc websockify curl ca-certificates && mkdir -p /root/.vnc && echo '#!/bin/sh\\nunset SESSION_MANAGER\\nunset DBUS_SESSION_BUS_ADDRESS\\nexec startxfce4' > /root/.vnc/xstartup && chmod +x /root/.vnc/xstartup",
                     launchCommand = "vncserver :1 -geometry 1280x720 -depth 24",
                     postInstallNotes = "VNC Server starts on port 5901 (:1). Connect via any VNC viewer client or noVNC web browser interface.",
-                    expectedBinaries = listOf("usr/bin/startxfce4", "usr/bin/vncserver")
+                    expectedBinaries = listOf("usr/bin/startxfce4", "usr/bin/vncserver"),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "python_dev",
@@ -73,7 +76,8 @@ data class SoftwarePackage(
                         "usr/bin/git",
                         "usr/bin/gcc",
                         "usr/bin/nvim"
-                    )
+                    ),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "node_dev",
@@ -89,7 +93,8 @@ data class SoftwarePackage(
                         "usr/bin/git",
                         "usr/bin/gcc",
                         "usr/bin/nvim"
-                    )
+                    ),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "android_dev",
@@ -99,7 +104,8 @@ data class SoftwarePackage(
                     iconName = "Android",
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS openjdk-17-jdk-headless android-sdk-platform-tools gradle git curl wget unzip ca-certificates",
                     postInstallNotes = "Includes OpenJDK 17, adb, fastboot, and Gradle for building Android projects.",
-                    expectedBinaries = listOf("usr/bin/java", "usr/bin/adb", "usr/bin/gradle", "usr/bin/git")
+                    expectedBinaries = listOf("usr/bin/java", "usr/bin/adb", "usr/bin/gradle", "usr/bin/git"),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "nginx_web",
@@ -110,7 +116,8 @@ data class SoftwarePackage(
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS nginx sqlite3 curl ca-certificates",
                     launchCommand = "service nginx start",
                     postInstallNotes = "Server starts on port 80 or 8080. Test with 'curl http://localhost'.",
-                    expectedBinaries = listOf("usr/sbin/nginx", "usr/bin/sqlite3")
+                    expectedBinaries = listOf("usr/sbin/nginx", "usr/bin/sqlite3"),
+                    version = 2
                 ),
                 SoftwarePackage(
                     id = "openssh_server",
@@ -121,7 +128,8 @@ data class SoftwarePackage(
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS openssh-server ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty /etc/ssh/sshd_config.d && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && echo \"Port 2222\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"UsePAM no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"SetEnv PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"Subsystem sftp internal-sftp\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && (sed -i 's/^#\\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^session.*pam_loginuid.so/#&/' /etc/pam.d/sshd 2>/dev/null || true) && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true",
                     launchCommand = buildSshLaunchCommand(validPort),
                     postInstallNotes = buildSshPostInstallNotes(validPort),
-                    expectedBinaries = listOf("usr/sbin/sshd", "usr/bin/ssh-keygen")
+                    expectedBinaries = listOf("usr/sbin/sshd", "usr/bin/ssh-keygen"),
+                    version = 3
                 )
             )
         }

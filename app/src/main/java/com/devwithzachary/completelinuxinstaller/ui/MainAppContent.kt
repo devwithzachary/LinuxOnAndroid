@@ -215,6 +215,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                             onToggleBindSdCard = { viewModel.toggleBindSdCard() },
                             onWipeRootfsClick = { viewModel.wipeRootfs() },
                             onRefreshStatusClick = { viewModel.refreshStatus() },
+                            onUpgradeRootfsClick = { viewModel.upgradeRootfs() },
                             onChangeRootPassword = { pass -> viewModel.changeRootPassword(pass) },
                             onCreateUser = { user, pass -> viewModel.createUser(user, pass) },
                             onDeleteUser = { user -> viewModel.deleteUser(user) },
@@ -230,5 +231,11 @@ fun MainAppContent(viewModel: MainViewModel) {
                 }
             }
         }
+
+        val upgradeState by viewModel.upgradeState.collectAsStateWithLifecycle()
+        com.devwithzachary.completelinuxinstaller.ui.components.RootfsUpgradeDialog(
+            upgradeState = upgradeState,
+            onDismiss = { viewModel.dismissUpgradeState() }
+        )
     }
 }

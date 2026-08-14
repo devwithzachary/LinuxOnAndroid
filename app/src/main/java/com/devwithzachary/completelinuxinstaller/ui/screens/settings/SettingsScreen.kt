@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Upgrade
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
@@ -61,6 +63,7 @@ fun SettingsScreen(
     onDeleteUser: (String) -> Unit = {},
     onExportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
     onImportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
+    onUpgradeRootfsClick: () -> Unit = {},
     onDismissBackupStatus: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -74,7 +77,7 @@ fun SettingsScreen(
     var newRootPassword by remember { mutableStateOf("") }
     var newUsername by remember { mutableStateOf("") }
     var newUserPassword by remember { mutableStateOf("") }
-
+    var userToDelete by remember { mutableStateOf<String?>(null) }
     var changePasswordUser by remember { mutableStateOf<String?>(null) }
     var changePasswordUserNewPass by remember { mutableStateOf("") }
 
@@ -107,6 +110,117 @@ fun SettingsScreen(
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
+
+        // RootFS Container Maintenance & Upgrade Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Upgrade,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "RootFS Upgrade",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
+
+                    if (state.isInstalled) {
+                        Surface(
+                            color = if (state.isUpgradeAvailable) MaterialTheme.colorScheme.primaryContainer else Color(0xFF1E3A1E),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = if (state.isUpgradeAvailable) "Upgrade Available" else "Up to Date",
+                                color = if (state.isUpgradeAvailable) MaterialTheme.colorScheme.onPrimaryContainer else Color(0xFF4CAF50),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = "Track which app version built your Linux File System and 'upgrade' it to the latest version here to benefit from incremental system improvements.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (state.isInstalled) {
+                    val currentVer = state.rootfsVersion
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "Container Build:",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = if (currentVer != null) "${currentVer.versionName} (Build ${currentVer.versionCode})" else "v1.0.0 (Legacy Build 1)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "Latest App Build:",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    Button(
+                        onClick = onUpgradeRootfsClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = if (state.isUpgradeAvailable) {
+                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        } else {
+                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        }
+                    ) {
+                        Icon(Icons.Default.Upgrade, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(if (state.isUpgradeAvailable) "Upgrade RootFS to v${BuildConfig.VERSION_NAME}" else "Re-verify & Repair RootFS")
+                    }
+                }
+            }
+        }
 
         // 1-Tap RootFS Container Backup & Restore Card
         Card(

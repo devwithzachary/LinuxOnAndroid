@@ -24,7 +24,8 @@ fun SoftwareCard(
     pkg: SoftwarePackage,
     onInstallClick: () -> Unit,
     onViewLogsClick: () -> Unit,
-    onLaunchClick: (String) -> Unit = {}
+    onLaunchClick: (String) -> Unit = {},
+    onUpgradeClick: () -> Unit = {}
 ) {
     val icon = when (pkg.iconName) {
         "DesktopWindows" -> Icons.Default.DesktopWindows
@@ -81,6 +82,7 @@ fun SoftwareCard(
                 // Status Badge
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.padding(start = 4.dp)
                 ) {
                     when (pkg.status) {
@@ -89,6 +91,21 @@ fun SoftwareCard(
                                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(stringResource(R.string.status_installed), color = Color(0xFF4CAF50), fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1)
+                            }
+                            if (pkg.hasUpgradeAvailable) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = "Upgrade Available",
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        maxLines = 1
+                                    )
+                                }
                             }
                         }
                         InstallStatus.INSTALLING -> {
@@ -139,44 +156,90 @@ fun SoftwareCard(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (pkg.status == InstallStatus.INSTALLING) {
+                    Spacer(modifier = Modifier.weight(2f))
                     Button(
                         onClick = onViewLogsClick,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                     ) {
                         Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(stringResource(R.string.btn_view_terminal_output))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = stringResource(R.string.btn_view_terminal_output),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontSize = 12.sp
+                        )
                     }
                 } else if (pkg.status == InstallStatus.NOT_INSTALLED || pkg.status == InstallStatus.FAILED) {
+                    Spacer(modifier = Modifier.weight(2f))
                     Button(
                         onClick = onInstallClick,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(stringResource(R.string.btn_one_click_install))
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = stringResource(R.string.btn_one_click_install),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            fontSize = 12.sp
+                        )
                     }
                 } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (pkg.launchCommand != null) {
-                            Button(
-                                onClick = { onLaunchClick(pkg.launchCommand) },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.btn_start_service))
+                    val buttonCount = (if (pkg.hasUpgradeAvailable) 1 else 0) +
+                            (if (pkg.launchCommand != null) 1 else 0) + 1
+                    val leadingSpacerWeight = (3 - buttonCount).toFloat()
+
+                    if (leadingSpacerWeight > 0f) {
+                        Spacer(modifier = Modifier.weight(leadingSpacerWeight))
+                    }
+
+                    if (pkg.hasUpgradeAvailable) {
+                        Button(
+                            onClick = onUpgradeClick,
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Default.Upgrade, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Upgrade", maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp)
+                        }
+                    }
+
+                    if (pkg.launchCommand != null) {
+                        Button(
+                            onClick = { onLaunchClick(pkg.launchCommand) },
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                            colors = if (pkg.hasUpgradeAvailable) {
+                                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                            } else {
+                                ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             }
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.btn_start_service), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp)
                         }
-                        OutlinedButton(onClick = onViewLogsClick) {
-                            Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.btn_view_logs))
-                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = onViewLogsClick,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.btn_view_logs), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp)
                     }
                 }
             }

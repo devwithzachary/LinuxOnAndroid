@@ -24,6 +24,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import com.devwithzachary.completelinuxinstaller.engine.RootfsMigrationManager
+import com.devwithzachary.completelinuxinstaller.engine.RootfsVersionInfo
+import com.devwithzachary.completelinuxinstaller.engine.UpgradeState
+
 data class DashboardUiState(
     val isInitializing: Boolean = true,
     val isInstalled: Boolean = false,
@@ -35,6 +39,8 @@ data class DashboardUiState(
     val isNginxInstalled: Boolean = false,
     val isSshInstalled: Boolean = false,
     val sshPort: Int = 2222,
+    val rootfsVersion: RootfsVersionInfo? = null,
+    val isUpgradeAvailable: Boolean = false,
     val containerUsers: List<String> = emptyList()
 )
 
@@ -62,6 +68,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _sshPort = MutableStateFlow(loadSshPort())
     val sshPort: StateFlow<Int> = _sshPort.asStateFlow()
 
+    private val _upgradeState = MutableStateFlow<UpgradeState>(UpgradeState.Idle)
+    val upgradeState: StateFlow<UpgradeState> = _upgradeState.asStateFlow()
+
     private val _terminalTheme = MutableStateFlow(loadTerminalTheme())
     val terminalTheme: StateFlow<TerminalTheme> = _terminalTheme.asStateFlow()
 
@@ -87,6 +96,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val defaultTerminalUser: StateFlow<String> = _defaultTerminalUser.asStateFlow()
 
     val isSessionRunning = terminalBridge.isRunning
+
+    fun upgradeRootfs() {
+        viewModelScope.launch {
+            rootfsManager.upgradeRootfs().collect { state ->
+                _upgradeState.value = state
+                if (state is UpgradeState.Success) {
+                    refreshStatus()
+                }
+            }
+        }
+    }
+
+    fun dismissUpgradeState() {
+        _upgradeState.value = UpgradeState.Idle
+    }
 
     fun setSshPort(port: Int) {
         val validPort = if (port in 1..65535) port else 2222
@@ -249,9 +273,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val users = if (installed) rootfsManager.getContainerUsers() else emptyList()
 
         // Sync individual package states against rootfs file system
+        val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
         val syncedPackages = _packages.value.map { pkg ->
             if (!installed) {
-                pkg.copy(status = InstallStatus.NOT_INSTALLED, progressMessage = "", installLogs = "")
+                pkg.copy(status = InstallStatus.NOT_INSTALLED, hasUpgradeAvailable = false, progressMessage = "", installLogs = "")
             } else {
                 val actualStatus = when (pkg.id) {
                     "xfce_desktop" -> if (File(rootfsDir, "usr/bin/startxfce4").exists() && (File(rootfsDir, "usr/bin/vncserver").exists() || File(rootfsDir, "usr/bin/tigervncserver").exists() || File(rootfsDir, "usr/bin/tightvncserver").exists())) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
@@ -269,7 +294,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         } else pkg.status
                     }
                 }
-                pkg.copy(status = actualStatus)
+                val isInstalledStatus = actualStatus == InstallStatus.INSTALLED
+                val installedVer = if (isInstalledStatus) (packageVersions[pkg.id] ?: 1) else pkg.version
+                val hasUpgrade = isInstalledStatus && (installedVer < pkg.version)
+
+                pkg.copy(status = actualStatus, hasUpgradeAvailable = hasUpgrade)
             }
         }
         _packages.value = syncedPackages
@@ -284,6 +313,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _defaultTerminalUser.value = autoDefault
         }
 
+        val rootfsVersion = if (installed) rootfsManager.getRootfsVersion() else null
+        val isUpgradeAvail = if (installed) rootfsManager.isUpgradeAvailable() else false
+
         _dashboardState.value = _dashboardState.value.copy(
             isInstalled = installed,
             isRunning = terminalBridge.isRunning.value,
@@ -291,6 +323,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isNginxInstalled = hasNginx,
             isSshInstalled = hasSsh,
             sshPort = _sshPort.value,
+            rootfsVersion = rootfsVersion,
+            isUpgradeAvailable = isUpgradeAvail,
             containerUsers = users
         )
 

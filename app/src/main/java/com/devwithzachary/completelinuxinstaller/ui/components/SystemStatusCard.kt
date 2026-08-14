@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -11,6 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
 
@@ -78,6 +80,41 @@ fun SystemStatusCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (state.bindSdCard) Color(0xFF4CAF50) else Color.Gray
                 )
+            }
+
+            if (state.isInstalled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Text("Container Version:", style = MaterialTheme.typography.bodyMedium)
+                    Row(
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val ver = state.rootfsVersion
+                        Text(
+                            text = if (ver != null) "v${ver.versionName} (b${ver.versionCode})" else "v1.0.0 (Legacy)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (state.isUpgradeAvailable) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = "Update Available",
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }

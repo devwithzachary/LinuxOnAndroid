@@ -68,7 +68,7 @@
     <string name="btn_one_click_install">1-Click Install</string>
     <string name="btn_view_logs">View Logs</string>
     <string name="btn_view_terminal_output">View Terminal Output</string>
-    <string name="btn_start_service">Start Service</string>
+    <string name="btn_start_service">Start</string>
     <string name="status_installed">Installed</string>
     <string name="status_installing">Installing</string>
     <string name="status_failed">Failed</string>

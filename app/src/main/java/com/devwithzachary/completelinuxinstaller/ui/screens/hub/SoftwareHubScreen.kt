@@ -97,6 +97,10 @@ fun SoftwareHubScreen(
                         onInstallPackageClick(pkg.id)
                         activeLogPackageId = pkg.id
                     },
+                    onUpgradeClick = {
+                        onInstallPackageClick(pkg.id)
+                        activeLogPackageId = pkg.id
+                    },
                     onViewLogsClick = {
                         activeLogPackageId = pkg.id
                     },
