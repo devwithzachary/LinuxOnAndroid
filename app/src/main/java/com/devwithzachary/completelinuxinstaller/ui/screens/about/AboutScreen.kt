@@ -252,7 +252,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.1.1")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.2.0")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
@@ -280,9 +280,24 @@ fun AboutScreen() {
                 }
 
                 ChangelogItem(
+                    version = "v1.2.0",
+                    date = "August 14, 2026",
+                    initialExpanded = true,
+                    highlights = listOf(
+                        "RootFS Incremental Upgrades: Track container build versions and apply incremental improvements, network configurations, and PAM fixes to existing containers with 1-tap without data loss.",
+                        "Manifest-Based 1-Click Package Tracking: Authoritative package installation and version tracking via /etc/linuxonandroid_packages, eliminating false-positive binary detections.",
+                        "1-Click Software Upgrades: Added 1-tap package upgrade actions in the Software & Packages Hub with balanced 3-way action layout (Upgrade, Start, View Logs).",
+                        "Custom DNS Server Configuration: Manage /etc/resolv.conf directly from Settings with quick presets (Google, Cloudflare, Quad9, AdGuard, OpenDNS) and custom IP input.",
+                        "Collapsible Settings & Category Tabs: Overhauled Settings with collapsible cards, Category filter tabs (Container, Network, Terminal, Security, Storage), and Expand/Collapse All toggle.",
+                        "Terminal Font Selector & CyberGlyphs: Added horizontal scroll chip picker for font families, streamlined developer monospace options, and introduced playful CyberGlyphs symbol typography.",
+                        "Performance & Speed Optimizations: Shifted container filesystem inspection to background IO dispatchers, upgraded download/archive streaming to 64KB buffers, and modernized Jetpack Compose APIs."
+                    )
+                )
+
+                ChangelogItem(
                     version = "v1.1.1",
                     date = "August 12, 2026",
-                    initialExpanded = true,
+                    initialExpanded = false,
                     highlights = listOf(
                         "Default Terminal User Selector: Added setting to configure default terminal user session, defaulting to your custom regular user.",
                         "Terminal Font Customization: Added custom font size selector and monospace font family picker (Roboto Mono, Fira Code, Source Code Pro, JetBrains Mono).",
