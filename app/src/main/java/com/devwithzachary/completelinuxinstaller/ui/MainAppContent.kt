@@ -175,8 +175,11 @@ fun MainAppContent(viewModel: MainViewModel) {
                     }
 
                     AppScreen.SOFTWARE_HUB -> {
+                        val sshPort by viewModel.sshPort.collectAsStateWithLifecycle()
                         SoftwareHubScreen(
                             packages = packages,
+                            sshPort = sshPort,
+                            onSetSshPort = { port -> viewModel.setSshPort(port) },
                             onInstallPackageClick = { pkgId ->
                                 viewModel.installSoftwarePackage(pkgId)
                             },

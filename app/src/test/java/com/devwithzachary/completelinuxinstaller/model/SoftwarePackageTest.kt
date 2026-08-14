@@ -57,4 +57,40 @@ class SoftwarePackageTest {
             assertTrue("installCommand must configure StrictModes no", it.installCommand.contains("StrictModes no"))
         }
     }
+
+    @Test
+    fun testBuildSshLaunchCommand_defaultAndCustomPorts() {
+        val defaultCmd = SoftwarePackage.buildSshLaunchCommand()
+        assertTrue("Default SSH launch command must contain port 2222", defaultCmd.contains("/usr/sbin/sshd -p 2222"))
+
+        val customCmd = SoftwarePackage.buildSshLaunchCommand(8022)
+        assertTrue("Custom SSH launch command must contain port 8022", customCmd.contains("/usr/sbin/sshd -p 8022"))
+        assertFalse("Custom SSH launch command must not contain port 2222", customCmd.contains("/usr/sbin/sshd -p 2222"))
+
+        val invalidPortCmd = SoftwarePackage.buildSshLaunchCommand(999999)
+        assertTrue("Invalid port should fall back to 2222", invalidPortCmd.contains("/usr/sbin/sshd -p 2222"))
+
+        val zeroPortCmd = SoftwarePackage.buildSshLaunchCommand(0)
+        assertTrue("Zero port should fall back to 2222", zeroPortCmd.contains("/usr/sbin/sshd -p 2222"))
+    }
+
+    @Test
+    fun testBuildSshPostInstallNotes_customPorts() {
+        val defaultNotes = SoftwarePackage.buildSshPostInstallNotes()
+        assertTrue("Default notes must mention port 2222", defaultNotes.contains("-p 2222"))
+
+        val customNotes = SoftwarePackage.buildSshPostInstallNotes(2022)
+        assertTrue("Custom notes must mention port 2022", customNotes.contains("-p 2022"))
+    }
+
+    @Test
+    fun testGetPresets_customSshPort() {
+        val presets = SoftwarePackage.getPresets(sshPort = 8022)
+        val sshPkg = presets.find { it.id == "openssh_server" }
+        assertNotNull("openssh_server must exist", sshPkg)
+        sshPkg?.let {
+            assertTrue("launchCommand must reflect custom port 8022", it.launchCommand != null && it.launchCommand.contains("/usr/sbin/sshd -p 8022"))
+            assertTrue("postInstallNotes must reflect custom port 8022", it.postInstallNotes != null && it.postInstallNotes.contains("-p 8022"))
+        }
+    }
 }

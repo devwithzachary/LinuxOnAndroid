@@ -16,11 +16,14 @@ import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
 import com.devwithzachary.completelinuxinstaller.ui.components.AptInstallCard
 import com.devwithzachary.completelinuxinstaller.ui.components.LogViewerDialog
 import com.devwithzachary.completelinuxinstaller.ui.components.SoftwareCard
+import com.devwithzachary.completelinuxinstaller.ui.components.SshPortDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SoftwareHubScreen(
     packages: List<SoftwarePackage>,
+    sshPort: Int = 2222,
+    onSetSshPort: (Int) -> Unit = {},
     onInstallPackageClick: (String) -> Unit,
     onInstallCustomPackageClick: (String) -> Unit = {},
     onLaunchPackageClick: (String) -> Unit = {}
@@ -28,6 +31,7 @@ fun SoftwareHubScreen(
     var selectedCategory by remember { mutableStateOf<SoftwareCategory?>(null) }
     var activeLogPackageId by remember { mutableStateOf<String?>(null) }
     var customPackageInput by remember { mutableStateOf("") }
+    var showSshPortDialog by remember { mutableStateOf(false) }
 
     val filteredPackages = if (selectedCategory == null) {
         packages
@@ -97,11 +101,29 @@ fun SoftwareHubScreen(
                         activeLogPackageId = pkg.id
                     },
                     onLaunchClick = { cmd ->
-                        onLaunchPackageClick(cmd)
+                        if (pkg.id == "openssh_server") {
+                            showSshPortDialog = true
+                        } else {
+                            onLaunchPackageClick(cmd)
+                        }
                     }
                 )
             }
         }
+    }
+
+    // SSH Server Port Selection Dialog
+    if (showSshPortDialog) {
+        SshPortDialog(
+            initialPort = sshPort,
+            onDismiss = { showSshPortDialog = false },
+            onConfirm = { port ->
+                onSetSshPort(port)
+                val launchCmd = SoftwarePackage.buildSshLaunchCommand(port)
+                onLaunchPackageClick(launchCmd)
+                showSshPortDialog = false
+            }
+        )
     }
 
     // Terminal Output Popup Dialog
@@ -112,3 +134,4 @@ fun SoftwareHubScreen(
         )
     }
 }
+

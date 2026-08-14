@@ -34,6 +34,7 @@ data class DashboardUiState(
     val isVncInstalled: Boolean = false,
     val isNginxInstalled: Boolean = false,
     val isSshInstalled: Boolean = false,
+    val sshPort: Int = 2222,
     val containerUsers: List<String> = emptyList()
 )
 
@@ -53,6 +54,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = application.getSharedPreferences("terminal_theme_prefs", Context.MODE_PRIVATE)
 
+    private fun loadSshPort(): Int {
+        val port = prefs.getInt("ssh_port", 2222)
+        return if (port in 1..65535) port else 2222
+    }
+
+    private val _sshPort = MutableStateFlow(loadSshPort())
+    val sshPort: StateFlow<Int> = _sshPort.asStateFlow()
+
     private val _terminalTheme = MutableStateFlow(loadTerminalTheme())
     val terminalTheme: StateFlow<TerminalTheme> = _terminalTheme.asStateFlow()
 
@@ -62,7 +71,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _terminalFontFamily = MutableStateFlow(loadTerminalFontFamily())
     val terminalFontFamily: StateFlow<String> = _terminalFontFamily.asStateFlow()
 
-    private val _dashboardState = MutableStateFlow(DashboardUiState())
+    private val _dashboardState = MutableStateFlow(DashboardUiState(sshPort = loadSshPort()))
     val dashboardState: StateFlow<DashboardUiState> = _dashboardState.asStateFlow()
 
     private val _downloadState = MutableStateFlow<DownloadState>(DownloadState.Idle)
@@ -71,13 +80,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _backupState = MutableStateFlow<BackupState>(BackupState.Idle)
     val backupState: StateFlow<BackupState> = _backupState.asStateFlow()
 
-    private val _packages = MutableStateFlow(SoftwarePackage.getPresets())
+    private val _packages = MutableStateFlow(SoftwarePackage.getPresets(loadSshPort()))
     val packages: StateFlow<List<SoftwarePackage>> = _packages.asStateFlow()
 
     private val _defaultTerminalUser = MutableStateFlow(loadDefaultTerminalUser())
     val defaultTerminalUser: StateFlow<String> = _defaultTerminalUser.asStateFlow()
 
     val isSessionRunning = terminalBridge.isRunning
+
+    fun setSshPort(port: Int) {
+        val validPort = if (port in 1..65535) port else 2222
+        prefs.edit().putInt("ssh_port", validPort).apply()
+        _sshPort.value = validPort
+
+        val currentPackages = _packages.value.map { pkg ->
+            if (pkg.id == "openssh_server") {
+                pkg.copy(
+                    launchCommand = SoftwarePackage.buildSshLaunchCommand(validPort),
+                    postInstallNotes = SoftwarePackage.buildSshPostInstallNotes(validPort)
+                )
+            } else {
+                pkg
+            }
+        }
+        _packages.value = currentPackages
+        _dashboardState.value = _dashboardState.value.copy(sshPort = validPort)
+    }
 
     private fun loadTerminalFontSize(): Int {
         return prefs.getInt("terminal_font_size", 13)
@@ -262,6 +290,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isVncInstalled = hasVnc,
             isNginxInstalled = hasNginx,
             isSshInstalled = hasSsh,
+            sshPort = _sshPort.value,
             containerUsers = users
         )
 
@@ -433,7 +462,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             terminalBridge.stopSession()
             rootfsManager.wipeRootfs()
             _downloadState.value = DownloadState.Idle
-            _packages.value = SoftwarePackage.getPresets()
+            _packages.value = SoftwarePackage.getPresets(_sshPort.value)
             refreshStatus()
         }
     }

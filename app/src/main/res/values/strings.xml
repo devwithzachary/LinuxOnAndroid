@@ -28,7 +28,7 @@
     <string name="section_one_touch_launchers">One-Touch Service Launchers</string>
     <string name="btn_start_vnc">Start TigerVNC Desktop Server (Port 5901)</string>
     <string name="btn_start_nginx">Start NGINX HTTP Web Server (Port 80)</string>
-    <string name="btn_start_ssh">Start OpenSSH Server (Port 2222)</string>
+    <string name="btn_start_ssh">Start OpenSSH Server (Port %1$d)</string>
 
     <!-- System Status Card -->
     <string name="status_card_title">System Environment Status</string>
