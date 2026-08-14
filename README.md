@@ -24,9 +24,12 @@ Powered by a native **PRoot** engine, a JNI-backed **PTY pseudo-terminal**, and 
 ## 🚀 Key Features
 
 * **🔒 100% Rootless Operation**: Runs entirely in Android user-space using PRoot ptrace system call interception. No root access or bootloader unlocking required.
+* **🔄 RootFS Incremental Upgrades**: Track container build versions and apply incremental improvements, network configs, and PAM fixes to existing containers with 1-tap without wiping data.
+* **💾 RootFS Backup & Restore**: 1-tap export and import of complete `.tar.gz` container backups with real-time extraction and compression progress.
 * **🖥️ Full Graphical Desktop Access (GUI)**: One-click installation of a complete **XFCE4 Desktop Environment** with TigerVNC and noVNC support for full windowed GUI desktop access right on your phone or tablet.
-* **⚡ Interactive Native Terminal**: Built-in VT100/XTerm-compatible terminal emulator with full ANSI color support, buffer scrolling, and custom quick-action keys (Ctrl, Alt, Esc, Tab, Arrow navigation).
-* **🛠️ Software Hub & One-Click Stacks**: Pre-configured software installers for common stacks:
+* **⚡ Interactive Native Terminal & Typography**: Built-in VT100/XTerm-compatible terminal emulator with full ANSI color support, buffer scrolling, customizable hotkeys, multiple color themes, and font families (JetBrains Mono, Monospace, Cursive, Casual, and CyberGlyphs).
+* **🌐 Custom DNS Server Configuration**: Configure and persist custom `/etc/resolv.conf` nameservers directly from Settings with quick presets (Google, Cloudflare, Quad9, AdGuard, OpenDNS) or custom IPs.
+* **🛠️ Software Hub with 1-Click Upgrades**: Pre-configured software installers and 1-tap upgraders for common stacks:
   * **Desktop Environments**: XFCE4 Desktop, XFCE Terminal, TigerVNC Server, noVNC web interface.
   * **Python 3 Developer Stack**: Python 3, pip, venv, Git, C/C++ GCC build-essential, Neovim.
   * **Node.js Developer Stack**: Node.js, npm, Yarn, Git, C/C++ GCC build-essential, Neovim.
@@ -42,14 +45,14 @@ Powered by a native **PRoot** engine, a JNI-backed **PTY pseudo-terminal**, and 
 
 ```
 +------------------------------------------------------------------+
-|                   Android UI Layer (Jetpack Compose)            |
-|       WizardScreen  |  DashboardScreen  |  TerminalScreen        |
+|                   Android UI Layer (Jetpack Compose)             |
+|   DashboardScreen | TerminalScreen | SoftwareHub | SettingsScreen|
 +------------------------------------------------------------------+
                                   |
                                   v
 +------------------------------------------------------------------+
 |                      Kotlin Engine Core                          |
-|    RootfsManager    |   PRootEngine    |   TerminalBridge        |
+|  RootfsManager | PRootEngine | TerminalBridge | MigrationManager |
 +------------------------------------------------------------------+
             |                             |
             v                             v
@@ -67,7 +70,8 @@ Powered by a native **PRoot** engine, a JNI-backed **PTY pseudo-terminal**, and 
                            v
 +------------------------------------------------------------------+
 |              Guest Linux Rootfs (Ubuntu / Debian)                |
-|              /bin/bash, apt, dpkg, gcc, python, xfce4            |
+|       /bin/bash, apt, dpkg, gcc, python, xfce4, resolv.conf      |
+|       /etc/linuxonandroid_version & /etc/linuxonandroid_packages |
 +------------------------------------------------------------------+
 ```
 
@@ -79,14 +83,15 @@ PRoot uses the `ptrace` system call mechanism to bind system calls made by guest
 ### 2. Native PTY Bridge (`pty.cpp` & `PtyNative.kt`)
 Interactive terminal applications (like `vim`, `htop`, `tmux`, `bash`) require a Unix pseudo-terminal (PTY) to handle window dimensions, signals (`SIGINT`, `SIGTSTP`), and line buffering. The native C++ layer (`pty.cpp`) allocates a POSIX PTY via `posix_openpt()`, configures window size (`TIOCSWINSZ`), and spawns the PRoot child process via `fork()` and `execve()`.
 
-### 3. Rootfs Provisioning & APT Engine (`RootfsManager.kt`)
+### 3. Rootfs Provisioning, Versioning & Migrations (`RootfsManager.kt` & `RootfsMigration.kt`)
 * Downloads minimal Linux rootfs tarballs (e.g., Ubuntu Base) directly from official mirrors.
-* Extracts the rootfs using native system `tar` or an embedded fallback `Java TarExtractor`.
-* Auto-configures essential network and system files:
-  * `/etc/resolv.conf` (DNS configuration)
+* Extracts the rootfs using native system `tar` or an embedded fallback `Java TarExtractor` with 64KB high-throughput streaming buffers.
+* Auto-configures and maintains essential network and system files:
+  * `/etc/resolv.conf` (DNS configuration with quick provider presets)
   * `/etc/apt/sources.list` (Arch-aware mirrors: `ports.ubuntu.com` for ARM64/ARMv7 vs `archive.ubuntu.com` for x86_64)
   * `/etc/apt/apt.conf.d/99linuxonandroid` (`APT::Sandbox::User "root"`, disabled HTTP pipelining & pdiffs for zero-hang network updates)
-  * `/etc/hosts` and `/etc/environment`
+  * `/etc/linuxonandroid_version` (tracks container schema and applied migrations)
+  * `/etc/linuxonandroid_packages` (manifest of installed 1-click bundles and versions)
 
 ---
 
@@ -115,8 +120,8 @@ This project relies on several key open-source native components. We gratefully 
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/your-username/linuxonandroid.git
-   cd linuxonandroid
+   git clone https://github.com/devwithzachary/LinuxOnAndroid.git
+   cd LinuxOnAndroid
    ```
 
 2. **Build Debug APK**:
@@ -141,6 +146,7 @@ Launch the application and follow the setup wizard:
 ### 2. Accessing the Linux Terminal
 * Navigate to the **Terminal** tab to open an interactive session.
 * Use the top quick-toolbar to easily type special keys like `Ctrl`, `Esc`, `Tab`, `Alt`, and directional arrows.
+* Customize font family, size, and ANSI color themes in the **Settings** tab.
 
 ### 3. Running a Graphical Desktop (XFCE4)
 1. Go to the **Software Hub** tab.
@@ -150,6 +156,11 @@ Launch the application and follow the setup wizard:
    vncserver :1 -geometry 1280x720 -depth 24
    ```
 4. Connect using any Android VNC viewer app (such as bVNC or VNC Viewer) at address `127.0.0.1:5901`.
+
+### 4. Backups, DNS & Incremental Upgrades
+* **Backup & Restore**: Export and import `.tar.gz` container images directly in **Settings > Storage & Reset**.
+* **DNS Configuration**: Set custom DNS nameservers or quick presets under **Settings > Network & DNS**.
+* **RootFS Upgrades**: When a new version is released, tap **RootFS Upgrade** in Settings to update your container without data loss.
 
 ---
 
