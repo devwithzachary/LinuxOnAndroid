@@ -292,6 +292,16 @@ class PRootEngine(val context: Context) {
         val targetUser = loginUser?.takeIf { it.isNotBlank() } ?: "root"
         val userHome = if (targetUser == "root") "/root" else "/home/$targetUser"
 
+        val codename = try {
+            val osReleaseFile = File(rootfsDir, "etc/os-release")
+            if (osReleaseFile.exists()) {
+                val match = Regex("""(?:UBUNTU_CODENAME|VERSION_CODENAME)=["']?([a-zA-Z0-9_-]+)["']?""").find(osReleaseFile.readText())
+                match?.groupValues?.get(1) ?: "resolute"
+            } else "resolute"
+        } catch (_: Exception) {
+            "resolute"
+        }
+
         val env = mutableMapOf(
             "LD_LIBRARY_PATH" to nativeLibDir,
             "PROOT_TMP_DIR" to tmpDir.absolutePath,
@@ -308,7 +318,9 @@ class PRootEngine(val context: Context) {
             "TERM" to "xterm-256color",
             "LANG" to "C.UTF-8",
             "TMPDIR" to "/tmp",
-            "TMP" to "/tmp"
+            "TMP" to "/tmp",
+            "UBUNTU_CODENAME" to codename,
+            "VERSION_CODENAME" to codename
         )
 
         if (loaderFile.exists() && loaderFile.length() > 0L) {

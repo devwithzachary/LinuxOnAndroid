@@ -422,7 +422,9 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             ID_LIKE=debian
             PRETTY_NAME="Ubuntu 26.04 LTS"
             VERSION_ID="26.04"
-            """.trimIndent()
+            UBUNTU_CODENAME=resolute
+            VERSION_CODENAME=resolute
+            """.trimIndent() + "\n"
         )
     }
 
@@ -523,6 +525,73 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         File(localBin, "sudo").delete()
         File(localBin, "sudod.py").delete()
         File(localBin, "su").delete()
+
+        // Configure /etc/os-release, /etc/lsb-release, /etc/environment, and /etc/profile.d/ for UBUNTU_CODENAME / VERSION_CODENAME
+        try {
+            val osReleaseFile = File(etcDir, "os-release")
+            var osCodename = "resolute"
+            if (osReleaseFile.exists()) {
+                val content = osReleaseFile.readText()
+                val match = Regex("""(?:UBUNTU_CODENAME|VERSION_CODENAME)=["']?([a-zA-Z0-9_-]+)["']?""").find(content)
+                if (match != null) {
+                    osCodename = match.groupValues[1]
+                }
+                if (!content.contains("UBUNTU_CODENAME=") || !content.contains("VERSION_CODENAME=")) {
+                    val updated = buildString {
+                        append(content.trimEnd())
+                        appendLine()
+                        if (!content.contains("UBUNTU_CODENAME=")) appendLine("UBUNTU_CODENAME=$osCodename")
+                        if (!content.contains("VERSION_CODENAME=")) appendLine("VERSION_CODENAME=$osCodename")
+                    }
+                    osReleaseFile.writeText(updated)
+                }
+            }
+
+            val lsbReleaseFile = File(etcDir, "lsb-release")
+            if (!lsbReleaseFile.exists()) {
+                lsbReleaseFile.writeText(
+                    """
+                    DISTRIB_ID=Ubuntu
+                    DISTRIB_RELEASE=26.04
+                    DISTRIB_CODENAME=$osCodename
+                    DISTRIB_DESCRIPTION="Ubuntu 26.04 LTS"
+                    """.trimIndent() + "\n"
+                )
+            }
+
+            val envFile = File(etcDir, "environment")
+            val envContent = if (envFile.exists()) envFile.readText() else ""
+            if (!envContent.contains("UBUNTU_CODENAME=") || !envContent.contains("VERSION_CODENAME=")) {
+                val updated = buildString {
+                    append(envContent.trimEnd())
+                    if (envContent.isNotBlank()) appendLine()
+                    if (!envContent.contains("PATH=")) appendLine("PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"")
+                    if (!envContent.contains("LANG=")) appendLine("LANG=\"C.UTF-8\"")
+                    if (!envContent.contains("UBUNTU_CODENAME=")) appendLine("UBUNTU_CODENAME=\"$osCodename\"")
+                    if (!envContent.contains("VERSION_CODENAME=")) appendLine("VERSION_CODENAME=\"$osCodename\"")
+                }
+                envFile.writeText(updated)
+            }
+
+            val profileD = File(etcDir, "profile.d").apply { mkdirs() }
+            val envProfileScript = File(profileD, "00-linuxonandroid-env.sh")
+            envProfileScript.writeText(
+                """
+                #!/bin/sh
+                if [ -f /etc/os-release ]; then
+                    . /etc/os-release
+                    export UBUNTU_CODENAME="${'$'}{UBUNTU_CODENAME:-${'$'}VERSION_CODENAME}"
+                    export VERSION_CODENAME="${'$'}{VERSION_CODENAME:-${'$'}UBUNTU_CODENAME}"
+                else
+                    export UBUNTU_CODENAME="$osCodename"
+                    export VERSION_CODENAME="$osCodename"
+                fi
+                """.trimIndent() + "\n"
+            )
+            envProfileScript.setExecutable(true, false)
+            envProfileScript.setReadable(true, false)
+        } catch (_: Exception) {
+        }
     }
 
     private fun fixPermissionsRecursively(file: File) {

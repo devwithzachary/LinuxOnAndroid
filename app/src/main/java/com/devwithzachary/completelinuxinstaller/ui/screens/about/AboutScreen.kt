@@ -284,7 +284,8 @@ fun AboutScreen() {
                     date = "In Development",
                     initialExpanded = true,
                     highlights = listOf(
-                        "Expanded Android 6.0+ (API 23) Support: Lowered minimum supported SDK to Android 6.0 (Marshmallow), broadening device support to 2015+ hardware without sacrificing modern Jetpack Compose Material 3 features."
+                        "Expanded Android 6.0+ (API 23) Support: Lowered minimum supported SDK to Android 6.0 (Marshmallow), broadening device support to 2015+ hardware without sacrificing modern Jetpack Compose Material 3 features.",
+                        "UBUNTU_CODENAME & VERSION_CODENAME Exports: Configured system-wide codename environment variables in /etc/os-release, /etc/environment, /etc/lsb-release, and /etc/profile.d/, simplifying Docker installations and third-party repository setup."
                     )
                 )
 

@@ -377,6 +377,101 @@ object RootfsMigrationManager {
                 emitLog("OpenSSH and terminal subsystem upgraded.")
                 return true
             }
+        },
+
+        // v10: OS Release, LSB Release & Environment Codename Variables
+        object : RootfsMigrationStep {
+            override val targetVersionCode: Int = 10
+            override val name: String = "OS Release & Environment Codename Configuration"
+            override val description: String = "Configures UBUNTU_CODENAME and VERSION_CODENAME across /etc/os-release, /etc/environment, /etc/lsb-release, and /etc/profile.d/ for Docker and third-party apt repositories."
+
+            override fun execute(pRootEngine: PRootEngine?, rootfsDir: File, emitLog: (String) -> Unit): Boolean {
+                emitLog("Configuring OS release and environment codename exports...")
+                val etcDir = File(rootfsDir, "etc").apply { mkdirs() }
+
+                // Read existing codename from os-release or default to resolute
+                var codename = "resolute"
+                val osReleaseFile = File(etcDir, "os-release")
+                if (osReleaseFile.exists()) {
+                    val content = osReleaseFile.readText()
+                    val match = Regex("""(?:UBUNTU_CODENAME|VERSION_CODENAME)=["']?([a-zA-Z0-9_-]+)["']?""").find(content)
+                    if (match != null) {
+                        codename = match.groupValues[1]
+                    }
+                    if (!content.contains("UBUNTU_CODENAME=") || !content.contains("VERSION_CODENAME=")) {
+                        val updated = buildString {
+                            append(content.trimEnd())
+                            appendLine()
+                            if (!content.contains("UBUNTU_CODENAME=")) appendLine("UBUNTU_CODENAME=$codename")
+                            if (!content.contains("VERSION_CODENAME=")) appendLine("VERSION_CODENAME=$codename")
+                        }
+                        osReleaseFile.writeText(updated)
+                    }
+                } else {
+                    osReleaseFile.writeText(
+                        """
+                        NAME="Ubuntu"
+                        VERSION="26.04 LTS (Resolute Raccoon)"
+                        ID=ubuntu
+                        ID_LIKE=debian
+                        PRETTY_NAME="Ubuntu 26.04 LTS"
+                        VERSION_ID="26.04"
+                        UBUNTU_CODENAME=resolute
+                        VERSION_CODENAME=resolute
+                        """.trimIndent() + "\n"
+                    )
+                }
+
+                // /etc/lsb-release
+                val lsbReleaseFile = File(etcDir, "lsb-release")
+                if (!lsbReleaseFile.exists() || !lsbReleaseFile.readText().contains("DISTRIB_CODENAME=")) {
+                    lsbReleaseFile.writeText(
+                        """
+                        DISTRIB_ID=Ubuntu
+                        DISTRIB_RELEASE=26.04
+                        DISTRIB_CODENAME=$codename
+                        DISTRIB_DESCRIPTION="Ubuntu 26.04 LTS"
+                        """.trimIndent() + "\n"
+                    )
+                }
+
+                // /etc/environment
+                val envFile = File(etcDir, "environment")
+                val envContent = if (envFile.exists()) envFile.readText() else ""
+                if (!envContent.contains("UBUNTU_CODENAME=") || !envContent.contains("VERSION_CODENAME=")) {
+                    val updated = buildString {
+                        append(envContent.trimEnd())
+                        if (envContent.isNotBlank()) appendLine()
+                        if (!envContent.contains("PATH=")) appendLine("PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"")
+                        if (!envContent.contains("LANG=")) appendLine("LANG=\"C.UTF-8\"")
+                        if (!envContent.contains("UBUNTU_CODENAME=")) appendLine("UBUNTU_CODENAME=\"$codename\"")
+                        if (!envContent.contains("VERSION_CODENAME=")) appendLine("VERSION_CODENAME=\"$codename\"")
+                    }
+                    envFile.writeText(updated)
+                }
+
+                // /etc/profile.d/00-linuxonandroid-env.sh
+                val profileD = File(etcDir, "profile.d").apply { mkdirs() }
+                val envProfileScript = File(profileD, "00-linuxonandroid-env.sh")
+                envProfileScript.writeText(
+                    """
+                    #!/bin/sh
+                    if [ -f /etc/os-release ]; then
+                        . /etc/os-release
+                        export UBUNTU_CODENAME="${'$'}{UBUNTU_CODENAME:-${'$'}VERSION_CODENAME}"
+                        export VERSION_CODENAME="${'$'}{VERSION_CODENAME:-${'$'}UBUNTU_CODENAME}"
+                    else
+                        export UBUNTU_CODENAME="$codename"
+                        export VERSION_CODENAME="$codename"
+                    fi
+                    """.trimIndent() + "\n"
+                )
+                envProfileScript.setExecutable(true, false)
+                envProfileScript.setReadable(true, false)
+
+                emitLog("Environment codename exports configured.")
+                return true
+            }
         }
     )
 

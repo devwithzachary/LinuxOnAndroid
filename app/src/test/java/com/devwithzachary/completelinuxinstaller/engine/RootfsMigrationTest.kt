@@ -52,15 +52,15 @@ class RootfsMigrationTest {
 
     @Test
     fun testGetPendingMigrations_resolvesCorrectSteps() {
-        val allPending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 1, targetVersionCode = 8)
-        assertEquals(7, allPending.size)
-        assertEquals(listOf(2, 3, 4, 5, 6, 7, 8), allPending.map { it.targetVersionCode })
+        val allPending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 1, targetVersionCode = 10)
+        assertEquals(8, allPending.size)
+        assertEquals(listOf(2, 3, 4, 5, 6, 7, 8, 10), allPending.map { it.targetVersionCode })
 
-        val partialPending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 5, targetVersionCode = 8)
-        assertEquals(3, partialPending.size)
-        assertEquals(listOf(6, 7, 8), partialPending.map { it.targetVersionCode })
+        val partialPending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 5, targetVersionCode = 10)
+        assertEquals(4, partialPending.size)
+        assertEquals(listOf(6, 7, 8, 10), partialPending.map { it.targetVersionCode })
 
-        val upToDate = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 8, targetVersionCode = 8)
+        val upToDate = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 10, targetVersionCode = 10)
         assertTrue("No migrations should be pending when current equals target", upToDate.isEmpty())
     }
 
@@ -72,7 +72,7 @@ class RootfsMigrationTest {
         File(rootfsDir, "etc").mkdirs()
         File(rootfsDir, "usr/bin/sudo").createNewFile()
 
-        val pending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 1, targetVersionCode = 8)
+        val pending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 1, targetVersionCode = 10)
 
         val logs = mutableListOf<String>()
         for (step in pending) {
@@ -104,18 +104,37 @@ class RootfsMigrationTest {
         val sshConf = File(rootfsDir, "etc/ssh/sshd_config.d/00-linuxonandroid.conf")
         assertTrue("00-linuxonandroid.conf must exist", sshConf.exists())
         assertTrue(sshConf.readText().contains("Port 2222"))
+
+        // Verify OS Release, LSB Release & Environment variables (v10)
+        val osRelease = File(rootfsDir, "etc/os-release")
+        assertTrue("os-release must exist", osRelease.exists())
+        assertTrue(osRelease.readText().contains("UBUNTU_CODENAME=resolute"))
+        assertTrue(osRelease.readText().contains("VERSION_CODENAME=resolute"))
+
+        val lsbRelease = File(rootfsDir, "etc/lsb-release")
+        assertTrue("lsb-release must exist", lsbRelease.exists())
+        assertTrue(lsbRelease.readText().contains("DISTRIB_CODENAME=resolute"))
+
+        val envFile = File(rootfsDir, "etc/environment")
+        assertTrue("environment must exist", envFile.exists())
+        assertTrue(envFile.readText().contains("UBUNTU_CODENAME=\"resolute\""))
+        assertTrue(envFile.readText().contains("VERSION_CODENAME=\"resolute\""))
+
+        val profileScript = File(rootfsDir, "etc/profile.d/00-linuxonandroid-env.sh")
+        assertTrue("00-linuxonandroid-env.sh must exist", profileScript.exists())
+        assertTrue(profileScript.canExecute())
     }
 
     @Test
     fun testHasRootfsImprovements_handlesVersionsWithoutChanges() {
-        // App is on build 8, container is on build 8 -> no improvements
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 8, targetVersionCode = 8))
+        // App is on build 10, container is on build 10 -> no improvements
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 10, targetVersionCode = 10))
 
-        // Hypothetical future app build 9 without any added migrations beyond 8
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 8, targetVersionCode = 9))
+        // Hypothetical future app build 11 without any added migrations beyond 10
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 10, targetVersionCode = 11))
 
-        // Legacy container on build 1 -> has improvements up to build 8
-        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 8))
+        // Legacy container on build 1 -> has improvements up to build 10
+        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 10))
     }
 
     @Test
