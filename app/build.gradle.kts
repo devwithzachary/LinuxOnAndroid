@@ -11,10 +11,10 @@ android {
     compileSdk = 36
     defaultConfig {
         applicationId = "com.devwithzachary.completelinuxinstaller"
-        minSdk = 24
+        minSdk = 23
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.2.0"
+        versionCode = 10
+        versionName = "1.3.0"
     }
 
     dependenciesInfo {

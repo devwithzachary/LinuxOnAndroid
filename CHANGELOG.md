@@ -2,6 +2,11 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.3.0] - Unreleased
+
+### 📱 Device Compatibility & Architecture
+- **Expanded Android 6.0+ (API 23) Support**: Lowered minimum supported Android SDK to API 23 (Marshmallow), enabling support for legacy devices and tablets without sacrificing modern Jetpack Compose Material 3 features.
+
 ## [1.2.0] - 2026-08-14
 
 ### 🔄 RootFS Incremental Upgrades & Container Versioning

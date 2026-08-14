@@ -2,7 +2,7 @@
 
 [![Google Play Store](https://img.shields.io/badge/Google%20Play-Download-brightgreen.svg?logo=googleplay)](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)
 [![Google Play Open Testing](https://img.shields.io/badge/Google%20Play-Open%20Beta-blue.svg?logo=googleplay)](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)
-[![Android MinSDK](https://img.shields.io/badge/Min%20SDK-24%20%28Android%207.0%2B%29-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
+[![Android MinSDK](https://img.shields.io/badge/Min%20SDK-23%20%28Android%206.0%2B%29-brightgreen.svg)](https://developer.android.com/about/versions/marshmallow)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg)](https://kotlinlang.org/)
 [![UI Framework](https://img.shields.io/badge/UI-Jetpack%20Compose%20Material3-purple.svg)](https://developer.android.com/jetpack/compose)
 [![Architecture](https://img.shields.io/badge/Architecture-ARM64%20%7C%20x86__64%20%7C%20ARMv7-orange.svg)](#multi-architecture-support)

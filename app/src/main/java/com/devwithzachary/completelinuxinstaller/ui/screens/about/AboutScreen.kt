@@ -252,7 +252,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.2.0")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.3.0")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
@@ -280,9 +280,18 @@ fun AboutScreen() {
                 }
 
                 ChangelogItem(
+                    version = "v1.3.0",
+                    date = "In Development",
+                    initialExpanded = true,
+                    highlights = listOf(
+                        "Expanded Android 6.0+ (API 23) Support: Lowered minimum supported SDK to Android 6.0 (Marshmallow), broadening device support to 2015+ hardware without sacrificing modern Jetpack Compose Material 3 features."
+                    )
+                )
+
+                ChangelogItem(
                     version = "v1.2.0",
                     date = "August 14, 2026",
-                    initialExpanded = true,
+                    initialExpanded = false,
                     highlights = listOf(
                         "RootFS Incremental Upgrades: Track container build versions and apply incremental improvements, network configurations, and PAM fixes to existing containers with 1-tap without data loss.",
                         "Manifest-Based 1-Click Package Tracking: Authoritative package installation and version tracking via /etc/linuxonandroid_packages, eliminating false-positive binary detections.",
