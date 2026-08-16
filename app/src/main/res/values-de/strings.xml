@@ -1,0 +1,114 @@
+<resources>
+    <string name="app_name">Linux Installer</string>
+    <string name="app_title">Complete Linux Installer</string>
+    <string name="app_tagline">PRoot-basierender Linux Container-Mnager für Android</string>
+    <string name="app_tagline_hero">PRoot-basierender Linux Image-Manager für nicht-gerootete Android-Geräte.</string>
+    <string name="website_domain">linuxonandroid.com</string>
+    <string name="website_url">https://linuxonandroid.com</string>
+    <string name="patreon_url">https://www.patreon.com/cw/DevWithZachary/membership</string>
+    <string name="buymeacoffee_url">http://buymeacoffee.com/linuxonandroid</string>
+    <string name="github_issues_url">https://github.com/devwithzachary/LinuxOnAndroid/issues</string>
+
+    <!-- Navigation Tabs -->
+    <string name="nav_dashboard">Übersicht</string>
+    <string name="nav_terminal">Terminal</string>
+    <string name="nav_software">Software</string>
+    <string name="nav_settings">Einstellungen</string>
+    <string name="nav_about">Über</string>
+
+    <!-- Dashboard Screen -->
+    <string name="status_ready">BEREIT</string>
+    <string name="status_not_installed">NICHT INSTALLIERT</string>
+    <string name="dashboard_setup_required_title">Ubuntu 26.04 LTS rootfs ist noch nicht initialisiert.</string>
+    <string name="btn_install_barebones">Barebones Ubuntu RootFS installieren</string>
+    <string name="section_quick_actions">Befehls-Shortcuts</string>
+    <string name="btn_terminal">Terminal</string>
+    <string name="btn_start_shell">Shell starten</string>
+    <string name="btn_stop">Stop</string>
+    <string name="section_one_touch_launchers">One-Touch Services</string>
+    <string name="btn_start_vnc">TigerVNC Desktop Server (Port 5901) starten</string>
+    <string name="btn_start_nginx">NGINX HTTP Web Server (Port 80) starten</string>
+    <string name="btn_start_ssh">OpenSSH Server (Port %1$d) starten</string>
+
+    <!-- System Status Card -->
+    <string name="status_card_title">Status der Systemumgebung</string>
+    <string name="label_distribution">Distribution:</string>
+    <string name="label_storage_allocated">Speicherverbrauch:</string>
+    <string name="label_sdcard_bound">SDCard-Zugriff:</string>
+    <string name="value_sdcard_yes">Ja (/sdcard)</string>
+    <string name="value_sdcard_disabled">Aus</string>
+
+    <!-- Patreon & Buy Me a Coffee Banner & Support -->
+    <string name="patreon_banner_title">Projekt unterstützen</string>
+    <string name="patreon_banner_text">Dir gefällt der Complete Linux Installer? Unterstüze die Etnwicklung mit einem monatlichen Patreon-Abonnement oder hinterlasse ein einmaliges Trinkgeld für einen Kaffee!</string>
+    <string name="btn_join_patreon">Patreon beitreten</string>
+    <string name="btn_buy_me_a_coffee">Spendier mir einen Kaffee</string>
+    <string name="patreon_support_title">Das Projekt unterstützen</string>
+    <string name="patreon_support_text">Der Complete Linux Installer ist kostenfreie Open-Source Software. Wenn du die App hilfreich findest und langfristig die Entwicklung, neue Features und Distributionen unterstützen willst, triit Patreon ab $1 pro Monat bei oder spendier mir einmalig einen Kaffee!</string>
+
+    <!-- Active Development & Bug Reporting -->
+    <string name="alpha_card_title">Entwicklung &amp; Probleme melden</string>
+    <string name="alpha_card_text">Der Complete Linux Installer ist in der Entwicklung. Es können bugs und unerwartetes Verhalten auftreten. Bemerkst du solche Probleme, reiche gerne ein Issue auf GitHub ein!</string>
+    <string name="btn_report_github_issue">Ein Problem auf GitHub melden</string>
+
+    <!-- About Screen -->
+    <string name="about_info_title">App- &amp; Systemumgebungs-Infos</string>
+    <string name="about_changelog_title">Changelog &amp; Entwicklungshistorie</string>
+    <string name="label_app_version">Version der App</string>
+    <string name="label_build_target">Build-Target</string>
+    <string name="label_linux_distro">Linux-Distribution</string>
+    <string name="label_virtualization_engine">Virtualisierungssystem</string>
+    <string name="label_developer">Entwickler</string>
+
+    <!-- Software Hub -->
+    <string name="hub_title">Software- &amp; Paket-Hub</string>
+    <string name="hub_apt_card_title">Beliebige apt-Pakete installieren</string>
+    <string name="hub_apt_placeholder">bspw. ffmpeg, rustc, git</string>
+    <string name="btn_install">Installieren</string>
+    <string name="btn_one_click_install">1-Klick Installation</string>
+    <string name="btn_view_logs">Logs prüfen</string>
+    <string name="btn_view_terminal_output">Terminal-Ausgabe prüfen</string>
+    <string name="btn_start_service">Starten</string>
+    <string name="status_installed">Installiert</string>
+    <string name="status_installing">Installation läuft</string>
+    <string name="status_failed">Es ist ein Fehler aufgetreten</string>
+
+    <!-- Log Viewer Popup -->
+    <string name="log_viewer_terminal_output_log">Terminal-Output Log</string>
+    <string name="log_status_installing">INSTALLIERE PAKETE...</string>
+    <string name="log_status_complete">INSTALLATION ABGESCHLOSSEN</string>
+    <string name="log_status_failed">INSTALLATION FEHLGESCHLAGEN</string>
+    <string name="log_status_not_installed">NICHT INSTALLIERT</string>
+    <string name="btn_close_log_viewer">Log-Viewer schließen</string>
+    <string name="log_viewer_setup_title">Ubuntu-Initialisierung: Setup-Log</string>
+    <string name="btn_close_log">Log schließen</string>
+    <string name="log_initializing">Initialisiere Installationsprozesse...</string>
+
+    <!-- Wizard Screen -->
+    <string name="wizard_step2_title">Konto- &amp; Passwort-Setup</string>
+    <string name="wizard_step2_description">Lege das Passwort für den Linux root-Administrator fest und einen regulären User für sichere SSH-Nutzung und sudo-Rechte an.</string>
+    <string name="label_root_password">Root-Benutzer Passwort</string>
+    <string name="label_regular_username">Regulärer Benutzername (Sudo)</string>
+    <string name="label_regular_password">Passwort für den regulären Benutzer</string>
+    <string name="btn_save_account">Konten speichern &amp; Übersicht öffnen</string>
+    <string name="btn_view_setup_logs">Setup-Logs prüfen</string>
+    <string name="wizard_intro_part1">Teil des LinuxonAndroid-Projekts (</string>
+    <string name="wizard_intro_part2">). Nutze eine vollständige Linux-Distribution ohne Root-Zugriff auf deinem Android-Gerät.</string>
+    <string name="feature_no_root_title">Kein Root-Zugriff nötig</string>
+    <string name="feature_no_root_desc">Nutzt PRoot Userspace-Virtualisierung um Linux-Binaries sicher in einer isolierten App-Sandbox zu starten.</string>
+    <string name="feature_ubuntu_base_title">Offizielles Ubuntu 26.04 LTS (Base)</string>
+    <string name="feature_ubuntu_base_desc">Das offizielle, minimale Ubuntu-Image (~30 MB) mit Unterstützung des APT Paket-Managers installieren.</string>
+    <string name="feature_cli_title">CLI &amp; Entwickler-Tools</string>
+    <string name="feature_cli_desc">Installiere und nutze Python, Git, GCC, Curl, Node.js, und Kommandozeilen-Utilities direkt auf deinem Mobilgerät.</string>
+    <string name="btn_download_ubuntu">Ubuntu 26.04 herunterladen &amp; einrichten</string>
+    <string name="btn_retry_download">Download erneut versuchen</string>
+    <string name="btn_view_failure_logs">Fehler-Logs prüfen</string>
+
+    <!-- Hotkeys Editor -->
+    <string name="hotkey_editor_title">Hotkey Manager</string>
+    <string name="hotkey_editor_desc">Ergänze, entferne oder sortiere die Touch-Hotkeys und Befehls-Shortcuts, die über der Tastatur angezeigt werden.</string>
+    <string name="hotkey_add_placeholder">Taste oder Befehl festlegen (bspw. ls -la)</string>
+    <string name="btn_add_key">Taste ergänzen</string>
+    <string name="btn_reset_default_keys">Zurücksetzen</string>
+    <string name="btn_save_keys">Hotkeys speichern</string>
+</resources>
