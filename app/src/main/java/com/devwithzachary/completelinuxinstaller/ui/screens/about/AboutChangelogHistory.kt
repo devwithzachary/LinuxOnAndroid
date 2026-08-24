@@ -27,6 +27,7 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "In Development",
         initialExpanded = true,
         highlights = listOf(
+            "Dynamic Splash Screen: Replaced static badge with detected architecture info and real-time environment loading status messages.",
             "German Localization (PR #27): Added full German language support across all screens, wizards, and dialogs (contributed by @bkodenkt).",
             "Community Credits & Contributors: Added dedicated Credits section to the About screen highlighting code/PR contributors, issue reporters, and Patreon sponsors.",
             "Official Discord Community: Added direct 1-tap invite link to the official LinuxOnAndroid Discord community in the About screen.",

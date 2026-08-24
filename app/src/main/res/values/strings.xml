@@ -10,6 +10,11 @@
     <string name="buymeacoffee_url">http://buymeacoffee.com/linuxonandroid</string>
     <string name="github_issues_url">https://github.com/devwithzachary/LinuxOnAndroid/issues</string>
 
+    <!-- Splash & Initialization -->
+    <string name="splash_init_verifying_binaries">Verifying CPU architecture &amp; PRoot binaries…</string>
+    <string name="splash_init_checking_filesystem">Checking Linux rootfs filesystem &amp; storage…</string>
+    <string name="splash_init_preparing">Preparing container environment…</string>
+
     <!-- Navigation Tabs -->
     <string name="nav_dashboard">Dashboard</string>
     <string name="nav_terminal">Terminal</string>

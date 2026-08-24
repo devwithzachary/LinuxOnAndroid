@@ -24,13 +24,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.RootfsMigrationManager
 import com.devwithzachary.completelinuxinstaller.engine.RootfsVersionInfo
 import com.devwithzachary.completelinuxinstaller.engine.UpgradeState
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
 
+enum class InitStep(val stringResId: Int) {
+    VERIFYING_BINARIES(R.string.splash_init_verifying_binaries),
+    CHECKING_FILESYSTEM(R.string.splash_init_checking_filesystem),
+    PREPARING_ENVIRONMENT(R.string.splash_init_preparing)
+}
+
 data class DashboardUiState(
     val isInitializing: Boolean = true,
+    val initStep: InitStep = InitStep.VERIFYING_BINARIES,
     val isInstalled: Boolean = false,
     val storageUsedMb: Long = 0L,
     val distroName: String = "Ubuntu 26.04 LTS (ARM64/x86_64)",
@@ -184,9 +192,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         viewModelScope.launch {
+            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.VERIFYING_BINARIES)
             pRootEngine.ensurePRootExecutable()
+            kotlinx.coroutines.delay(200)
+
+            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.CHECKING_FILESYSTEM)
             refreshStatusInternal()
-            kotlinx.coroutines.delay(500)
+            kotlinx.coroutines.delay(250)
+
+            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.PREPARING_ENVIRONMENT)
+            kotlinx.coroutines.delay(250)
+
             _dashboardState.value = _dashboardState.value.copy(isInitializing = false)
         }
     }

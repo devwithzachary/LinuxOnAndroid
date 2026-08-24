@@ -26,6 +26,9 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ### 🌟 Project Credits & Contributor Recognition
 - **Community Credits Section**: Added dedicated Credits & Contributors card in the About screen celebrating code/translation contributors (PRs), bug hunters & feature pioneers (issues #7, #8, #9, #10, #11, #12, #13, #14, #16, #19, #21, #31), and Patreon backers with interactive GitHub profile and issue links.
 
+### 🚀 Dynamic Splash Screen & Environment Initialization
+- **Real-Time Loading Status**: Replaced cryptic "PRoot Environment v1.0" badge with dynamic detected architecture chip (`PRoot Virtualization • ARM64/x86_64`) and real-time step-by-step progress status messages during environment pre-flight checks.
+
 ## [1.2.0] - 2026-08-14
 
 ### 🔄 RootFS Incremental Upgrades & Container Versioning

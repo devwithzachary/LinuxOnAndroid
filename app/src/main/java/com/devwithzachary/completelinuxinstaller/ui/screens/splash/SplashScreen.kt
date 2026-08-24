@@ -16,14 +16,16 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.R
 
 @Composable
 fun SplashScreen(
-    statusText: String = "Initializing PRoot Container..."
+    statusText: String = stringResource(R.string.splash_init_verifying_binaries)
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
@@ -44,6 +46,14 @@ fun SplashScreen(
         ),
         label = "alpha"
     )
+
+    val primaryAbi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
+    val archLabel = when {
+        primaryAbi.contains("arm64") || primaryAbi.contains("aarch64") -> "ARM64"
+        primaryAbi.contains("x86_64") || primaryAbi.contains("amd64") -> "x86_64"
+        primaryAbi.contains("v7") || primaryAbi.contains("arm") -> "ARMv7"
+        else -> primaryAbi
+    }
 
     Box(
         modifier = Modifier
@@ -106,20 +116,32 @@ fun SplashScreen(
                 fontWeight = FontWeight.SemiBold
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
+            // Architecture & Virtualization Environment Badge
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.padding(top = 4.dp)
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
             ) {
-                Text(
-                    text = "PRoot Environment v1.0",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.LightGray,
-                    fontFamily = FontFamily.Monospace,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF3FB950))
+                    )
+                    Text(
+                        text = "PRoot Virtualization • $archLabel",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.LightGray,
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(48.dp))
@@ -131,13 +153,13 @@ fun SplashScreen(
                 strokeWidth = 3.dp
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // Status message
+            // Dynamic Step-by-Step Status message
             Text(
                 text = statusText,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray,
+                color = Color(0xFFBAC2DE),
                 modifier = Modifier.alpha(alpha)
             )
         }

@@ -56,7 +56,8 @@ fun MainAppContent(viewModel: MainViewModel) {
     }
 
     if (isInitializing || currentScreen == AppScreen.SPLASH) {
-        SplashScreen()
+        val statusText = stringResource(dashboardState.initStep.stringResId)
+        SplashScreen(statusText = statusText)
     } else {
         Scaffold(
             bottomBar = {
@@ -128,7 +129,8 @@ fun MainAppContent(viewModel: MainViewModel) {
             ) {
                 when (currentScreen) {
                     AppScreen.SPLASH -> {
-                        SplashScreen()
+                        val statusText = stringResource(dashboardState.initStep.stringResId)
+                        SplashScreen(statusText = statusText)
                     }
 
                     AppScreen.WIZARD -> {
