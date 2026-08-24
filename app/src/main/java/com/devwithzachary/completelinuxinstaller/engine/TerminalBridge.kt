@@ -108,12 +108,20 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
         emulator.scrollToBottom()
         scope.launch(writeDispatcher) {
             try {
-                val proc = ptyProcess
+                var proc = ptyProcess
+                if (proc == null || !_isRunning.value) {
+                    if (!_isRunning.value) {
+                        startSession()
+                    }
+                    for (i in 0 until 50) {
+                        proc = ptyProcess
+                        if (proc != null && _isRunning.value) break
+                        kotlinx.coroutines.delay(50)
+                    }
+                }
                 if (proc != null && _isRunning.value) {
                     val bytes = input.toByteArray(Charsets.UTF_8)
                     Os.write(proc.parcelFd.fileDescriptor, bytes, 0, bytes.size)
-                } else if (!_isRunning.value) {
-                    startSession()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error writing to PTY stream via POSIX write", e)

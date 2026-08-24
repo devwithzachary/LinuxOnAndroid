@@ -28,6 +28,7 @@ import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.RootfsMigrationManager
 import com.devwithzachary.completelinuxinstaller.engine.RootfsVersionInfo
 import com.devwithzachary.completelinuxinstaller.engine.UpgradeState
+import com.devwithzachary.completelinuxinstaller.service.PRootForegroundService
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
 
 enum class InitStep(val stringResId: Int) {
@@ -113,6 +114,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _defaultTerminalUser = MutableStateFlow(loadDefaultTerminalUser())
     val defaultTerminalUser: StateFlow<String> = _defaultTerminalUser.asStateFlow()
 
+    private fun loadKeepAliveEnabled(): Boolean {
+        return prefs.getBoolean("keep_alive_enabled", true)
+    }
+
+    private val _isKeepAliveEnabled = MutableStateFlow(loadKeepAliveEnabled())
+    val isKeepAliveEnabled: StateFlow<Boolean> = _isKeepAliveEnabled.asStateFlow()
+
+    fun toggleKeepAlive() {
+        val next = !_isKeepAliveEnabled.value
+        prefs.edit().putBoolean("keep_alive_enabled", next).apply()
+        _isKeepAliveEnabled.value = next
+        if (!next) {
+            PRootForegroundService.stop(getApplication())
+        } else if (terminalBridge.isRunning.value) {
+            PRootForegroundService.start(getApplication())
+        }
+    }
+
+    private val _requestedScreen = MutableStateFlow<AppScreen?>(null)
+    val requestedScreen: StateFlow<AppScreen?> = _requestedScreen.asStateFlow()
+
+    fun navigateToScreen(screen: AppScreen) {
+        _requestedScreen.value = screen
+    }
+
+    fun clearRequestedScreen() {
+        _requestedScreen.value = null
+    }
+
     val isSessionRunning = terminalBridge.isRunning
 
     fun setDnsServers(servers: List<String>) {
@@ -191,6 +221,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
+        PRootForegroundService.isTerminalActiveProvider = { terminalBridge.isRunning.value }
+        PRootForegroundService.rootfsDirProvider = { pRootEngine.rootfsDir }
+        PRootForegroundService.sshPortProvider = { _sshPort.value }
+        PRootForegroundService.onStopSessionRequested = { stopTerminalSession() }
+
         viewModelScope.launch {
             _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.VERIFYING_BINARIES)
             pRootEngine.ensurePRootExecutable()
@@ -417,15 +452,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startTerminalSession() {
         terminalBridge.startSession(loginUser = _defaultTerminalUser.value)
+        if (_isKeepAliveEnabled.value) {
+            PRootForegroundService.start(getApplication())
+        }
         refreshStatus()
     }
 
     fun stopTerminalSession() {
         terminalBridge.stopSession()
+        PRootForegroundService.stop(getApplication())
         refreshStatus()
     }
 
     fun sendTerminalCommand(command: String) {
+        if (!terminalBridge.isRunning.value) {
+            startTerminalSession()
+        } else if (_isKeepAliveEnabled.value) {
+            PRootForegroundService.start(getApplication())
+        }
         terminalBridge.sendCommand(command)
     }
 
@@ -461,6 +505,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun installSoftwarePackage(packageId: String) {
+        if (_isKeepAliveEnabled.value) {
+            PRootForegroundService.start(getApplication())
+        }
         val currentPackages = _packages.value.toMutableList()
         val index = currentPackages.indexOfFirst { it.id == packageId }
         if (index == -1) return

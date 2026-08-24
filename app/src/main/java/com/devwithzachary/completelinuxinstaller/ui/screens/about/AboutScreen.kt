@@ -307,7 +307,7 @@ fun AboutScreen() {
                 InfoRow(label = stringResource(R.string.label_app_version), value = "v1.3.0")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
-                InfoRow(label = stringResource(R.string.label_virtualization_engine), value = "PRoot 5.3 (Link2Symlink)")
+                InfoRow(label = stringResource(R.string.label_container_engine), value = "PRoot 5.3 (Link2Symlink)")
                 InfoRow(label = stringResource(R.string.label_developer), value = "DevWithZachary")
             }
         }

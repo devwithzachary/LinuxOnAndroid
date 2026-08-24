@@ -27,7 +27,15 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Community Credits Section**: Added dedicated Credits & Contributors card in the About screen celebrating code/translation contributors (PRs), bug hunters & feature pioneers (issues #7, #8, #9, #10, #11, #12, #13, #14, #16, #19, #21, #31), and Patreon backers with interactive GitHub profile and issue links.
 
 ### 🚀 Dynamic Splash Screen & Environment Initialization
-- **Real-Time Loading Status**: Replaced cryptic "PRoot Environment v1.0" badge with dynamic detected architecture chip (`PRoot Virtualization • ARM64/x86_64`) and real-time step-by-step progress status messages during environment pre-flight checks.
+- **Real-Time Loading Status**: Replaced cryptic "PRoot Environment v1.0" badge with dynamic detected architecture chip (`PRoot Container • ARM64/x86_64`) and real-time step-by-step progress status messages during environment pre-flight checks.
+
+### 🛡️ Persistent Foreground Service & Resource Monitor
+- **Background Execution & WakeLock**: Runs PRoot inside an Android Foreground Service holding a partial CPU `WakeLock`, preventing Android Doze and Phantom Process Killer from terminating long `apt upgrade` operations, C/C++/Rust compilations, SSH sessions, or background servers when the app is minimized.
+- **Swipe & Recents Persistence (`stopWithTask="false"`)**: Container sessions and background daemons persist across task dismissal and app minimization with `onTaskRemoved` lifecycle handling.
+- **Android 13+ Notification Permission (`POST_NOTIFICATIONS`)**: Added automatic runtime permission prompt on modern Android versions (API 33+) ensuring persistent service notifications and live resource status are visible in the status bar.
+- **Live Service Status & Resource Monitoring**: Displays active container status (e.g., `SSH :2222 | VNC :5901 • RAM: 140MB`) in the persistent Android notification shade with quick actions to "Open Terminal" or "Stop Session".
+- **Dedicated Background Execution Settings**: Configurable in its own dedicated card and filter category under Settings > Background Execution with instant start/stop lifecycle management and real-time protection summary.
+
 
 ## [1.2.0] - 2026-08-14
 

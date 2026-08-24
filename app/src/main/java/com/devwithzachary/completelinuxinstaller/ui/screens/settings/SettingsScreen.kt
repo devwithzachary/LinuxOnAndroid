@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Upgrade
@@ -43,12 +44,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.BuildConfig
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
@@ -57,6 +60,7 @@ import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFon
 enum class SettingsCategory(val displayName: String, val icon: ImageVector) {
     ALL("All", Icons.Default.Apps),
     CONTAINER("Container", Icons.Default.Upgrade),
+    BACKGROUND("Background", Icons.Default.PlayArrow),
     NETWORK("Network & DNS", Icons.Default.Dns),
     TERMINAL("Terminal", Icons.Default.Palette),
     SECURITY("Security", Icons.Default.Person),
@@ -180,7 +184,9 @@ fun SettingsScreen(
     onExportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
     onImportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
     onUpgradeRootfsClick: () -> Unit = {},
-    onDismissBackupStatus: () -> Unit = {}
+    onDismissBackupStatus: () -> Unit = {},
+    isKeepAliveEnabled: Boolean = true,
+    onToggleKeepAlive: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val contentResolver = context.contentResolver
@@ -190,6 +196,7 @@ fun SettingsScreen(
         mutableStateOf(
             mapOf(
                 "upgrade" to false,
+                "background" to false,
                 "backup" to false,
                 "dns" to false,
                 "theme" to false,
@@ -297,6 +304,12 @@ fun SettingsScreen(
                                     expandedCards = expandedCards.toMutableMap().apply {
                                         put("upgrade", true)
                                         put("backup", true)
+                                    }
+                                }
+
+                                SettingsCategory.BACKGROUND -> {
+                                    expandedCards = expandedCards.toMutableMap().apply {
+                                        put("background", true)
                                     }
                                 }
 
@@ -477,6 +490,78 @@ fun SettingsScreen(
                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Import Container")
+                    }
+                }
+            }
+        }
+
+        // 3. Background Execution & Power Management Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.BACKGROUND || selectedCategory == SettingsCategory.CONTAINER) {
+            CollapsibleSettingsCard(
+                title = stringResource(R.string.setting_keep_alive_title),
+                subtitle = if (isKeepAliveEnabled) "Foreground Service & WakeLock Active" else "Standard Background Limits",
+                icon = Icons.Default.PlayArrow,
+                isExpanded = isCardExpanded("background"),
+                onToggleExpand = { toggleCard("background") },
+                badge = {
+                    Surface(
+                        color = if (isKeepAliveEnabled) Color(0xFF1E3A1E) else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = if (isKeepAliveEnabled) "WakeLock Active" else "Disabled",
+                            color = if (isKeepAliveEnabled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            ) {
+                Text(
+                    text = "Controls whether LinuxOnAndroid keeps the PRoot environment alive in the background when the app is minimized or the screen is turned off.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Enable Foreground Service & WakeLock", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            stringResource(R.string.setting_keep_alive_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isKeepAliveEnabled,
+                        onCheckedChange = { onToggleKeepAlive() }
+                    )
+                }
+
+                if (isKeepAliveEnabled) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "🛡️ Protection Status:",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "• Partial CPU WakeLock held during active sessions\n• Ongoing low-priority notification with quick actions\n• Resilient against Android Doze and Phantom Process Killer",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

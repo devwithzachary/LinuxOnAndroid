@@ -118,7 +118,7 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Architecture & Virtualization Environment Badge
+            // Architecture & PRoot Container Environment Badge
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
@@ -135,7 +135,7 @@ fun SplashScreen(
                             .background(Color(0xFF3FB950))
                     )
                     Text(
-                        text = "PRoot Virtualization • $archLabel",
+                        text = "PRoot Container • $archLabel",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.LightGray,
                         fontFamily = FontFamily.Monospace,

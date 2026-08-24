@@ -39,10 +39,18 @@ fun MainAppContent(viewModel: MainViewModel) {
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val packages by viewModel.packages.collectAsStateWithLifecycle()
+    val requestedScreen by viewModel.requestedScreen.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
     var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
+
+    LaunchedEffect(requestedScreen) {
+        requestedScreen?.let { target ->
+            currentScreen = target
+            viewModel.clearRequestedScreen()
+        }
+    }
 
     // Sync screen navigation state when initialization completes or installation status is confirmed
     LaunchedEffect(isInitializing, isInstalled) {
@@ -200,6 +208,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val defaultUser by viewModel.defaultTerminalUser.collectAsState()
                         val fontSize by viewModel.terminalFontSize.collectAsState()
                         val fontFamily by viewModel.terminalFontFamily.collectAsState()
+                        val isKeepAliveEnabled by viewModel.isKeepAliveEnabled.collectAsState()
                         SettingsScreen(
                             state = dashboardState,
                             backupState = backupState,
@@ -207,6 +216,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                             defaultTerminalUser = defaultUser,
                             terminalFontSize = fontSize,
                             terminalFontFamily = fontFamily,
+                            isKeepAliveEnabled = isKeepAliveEnabled,
+                            onToggleKeepAlive = { viewModel.toggleKeepAlive() },
                             onSelectTheme = { themeId -> viewModel.setTerminalTheme(themeId) },
                             onUpdateCustomTheme = { fg, bg, cursor, sel, ansi ->
                                 viewModel.updateCustomTheme(fg, bg, cursor, sel, ansi)

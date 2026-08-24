@@ -15,6 +15,20 @@
     <string name="splash_init_checking_filesystem">Linux-RootFS &amp; Speicher werden überprüft…</string>
     <string name="splash_init_preparing">Container-Umgebung wird vorbereitet…</string>
 
+    <!-- Foreground Service & Resource Monitor -->
+    <string name="notification_channel_name">Linux Container &amp; Service-Monitor</string>
+    <string name="notification_channel_desc">Zeigt aktive Linux-Containersitzungen, Server und Hintergrundprozesse an.</string>
+    <string name="notification_title_active">Linux-Container aktiv</string>
+    <string name="notification_title_idle">Linux-Container im Standby</string>
+    <string name="notification_action_open_terminal">Terminal öffnen</string>
+    <string name="notification_action_stop_session">Sitzung beenden</string>
+    <string name="notification_status_terminal_active">Terminal-Sitzung aktiv</string>
+    <string name="notification_status_ssh_listening">SSH lauscht auf :%1$d</string>
+    <string name="notification_status_vnc_active">VNC-Server auf :5901</string>
+    <string name="notification_status_nginx_active">NGINX-Server auf :80</string>
+    <string name="setting_keep_alive_title">Hintergrund-Ausführung &amp; WakeLock</string>
+    <string name="setting_keep_alive_desc">Führt einen Foreground Service mit partiellem CPU-WakeLock aus, um das Beenden von Kompilierungen, SSH-Servern oder Terminal-Sitzungen durch Android Doze zu verhindern.</string>
+
     <!-- Navigation Tabs -->
     <string name="nav_dashboard">Übersicht</string>
     <string name="nav_terminal">Terminal</string>
@@ -76,7 +90,7 @@
     <string name="label_app_version">Version der App</string>
     <string name="label_build_target">Build-Target</string>
     <string name="label_linux_distro">Linux-Distribution</string>
-    <string name="label_virtualization_engine">Virtualisierungssystem</string>
+    <string name="label_container_engine">Container-Engine</string>
     <string name="label_developer">Entwickler</string>
 
     <!-- Software Hub -->
@@ -114,7 +128,7 @@
     <string name="wizard_intro_part1">Teil des LinuxonAndroid-Projekts (</string>
     <string name="wizard_intro_part2">). Nutze eine vollständige Linux-Distribution ohne Root-Zugriff auf deinem Android-Gerät.</string>
     <string name="feature_no_root_title">Kein Root-Zugriff nötig</string>
-    <string name="feature_no_root_desc">Nutzt PRoot Userspace-Virtualisierung um Linux-Binaries sicher in einer isolierten App-Sandbox zu starten.</string>
+    <string name="feature_no_root_desc">Nutzt PRoot User-Space-Interception (ptrace), um Linux-Binaries sicher und ohne Root in einer isolierten Container-Sandbox auszuführen.</string>
     <string name="feature_ubuntu_base_title">Offizielles Ubuntu 26.04 LTS (Base)</string>
     <string name="feature_ubuntu_base_desc">Das offizielle, minimale Ubuntu-Image (~30 MB) mit Unterstützung des APT Paket-Managers installieren.</string>
     <string name="feature_cli_title">CLI &amp; Entwickler-Tools</string>
