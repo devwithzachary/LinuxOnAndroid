@@ -312,6 +312,9 @@ fun AboutScreen() {
             }
         }
 
+        // Project Credits & Contributors Section
+        AboutCreditsSection()
+
         // Changelog History Section
         AboutChangelogSection()
     }

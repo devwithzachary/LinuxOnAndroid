@@ -27,6 +27,7 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "In Development",
         initialExpanded = true,
         highlights = listOf(
+            "Community Credits & Contributors: Added dedicated Credits section to the About screen highlighting code/PR contributors, issue reporters, and Patreon sponsors.",
             "Official Discord Community: Added direct 1-tap invite link to the official LinuxOnAndroid Discord community in the About screen.",
             "Terminal Monospace Font Engine: Bundled authentic JetBrains Mono and Ubuntu Mono font assets directly in APK, fixing character gap issues on Samsung One UI and custom OEM system fonts.",
             "Expanded Android 6.0+ (API 23) Support: Lowered minimum supported SDK to Android 6.0 (Marshmallow), broadening device support to 2015+ hardware without sacrificing modern Jetpack Compose Material 3 features.",

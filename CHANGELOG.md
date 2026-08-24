@@ -20,6 +20,9 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ### 💬 Community & Discord
 - **Official Discord Community**: Added direct 1-tap invitation link to the LinuxOnAndroid Discord community in the About screen and project documentation.
 
+### 🌟 Project Credits & Contributor Recognition
+- **Community Credits Section**: Added dedicated Credits & Contributors card in the About screen celebrating code/translation contributors (PRs), bug hunters & feature pioneers (issues #7, #8, #9, #10, #11, #12, #13, #14, #16, #19, #21, #31), and Patreon backers with interactive GitHub profile and issue links.
+
 ## [1.2.0] - 2026-08-14
 
 ### 🔄 RootFS Incremental Upgrades & Container Versioning

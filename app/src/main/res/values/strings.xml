@@ -59,6 +59,14 @@
 
     <!-- About Screen -->
     <string name="about_info_title">App &amp; Environment Information</string>
+    <string name="about_credits_title">Credits &amp; Community Contributors</string>
+    <string name="about_credits_subtitle">Celebrating the open-source community members who contribute code, bug reports, and features to LinuxOnAndroid.</string>
+    <string name="credits_tab_code">Code &amp; PRs</string>
+    <string name="credits_tab_issues">Bug Hunters &amp; Pioneers</string>
+    <string name="credits_tab_patreon">Patreon Sponsors</string>
+    <string name="credits_patreon_empty_title">No Patreon Sponsors Yet</string>
+    <string name="credits_patreon_empty_text">Be the first to sponsor ongoing development on Patreon and have your profile featured here!</string>
+    <string name="credits_btn_become_sponsor">Become a Sponsor on Patreon</string>
     <string name="about_changelog_title">Changelog History</string>
     <string name="label_app_version">Application Version</string>
     <string name="label_build_target">Build Target</string>

@@ -59,6 +59,14 @@
 
     <!-- About Screen -->
     <string name="about_info_title">App- &amp; Systemumgebungs-Infos</string>
+    <string name="about_credits_title">Danksagung &amp; Mitwirkende</string>
+    <string name="about_credits_subtitle">Wir danken den Open-Source-Community-Mitgliedern, die Code, Fehlerberichte und Features zu LinuxOnAndroid beisteuern.</string>
+    <string name="credits_tab_code">Code &amp; PRs</string>
+    <string name="credits_tab_issues">Bug-Jäger &amp; Feature-Pioniere</string>
+    <string name="credits_tab_patreon">Patreon-Sponsoren</string>
+    <string name="credits_patreon_empty_title">Noch keine Patreon-Sponsoren</string>
+    <string name="credits_patreon_empty_text">Sei der Erste, der die Entwicklung auf Patreon unterstützt und dein Profil hier verewigen lässt!</string>
+    <string name="credits_btn_become_sponsor">Patreon-Sponsor werden</string>
     <string name="about_changelog_title">Changelog &amp; Entwicklungshistorie</string>
     <string name="label_app_version">Version der App</string>
     <string name="label_build_target">Build-Target</string>
