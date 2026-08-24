@@ -354,7 +354,7 @@ fun FullTerminalView(
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
                     autoCorrectEnabled = false,
-                    keyboardType = KeyboardType.Password,
+                    keyboardType = KeyboardType.Uri,
                     imeAction = ImeAction.Send
                 ),
                 keyboardActions = KeyboardActions(
