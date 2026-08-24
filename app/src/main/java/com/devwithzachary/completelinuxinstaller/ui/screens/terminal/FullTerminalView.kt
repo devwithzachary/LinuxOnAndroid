@@ -54,6 +54,9 @@ fun FullTerminalView(
     focusRequester: FocusRequester,
     onTapTerminal: () -> Unit,
     modifier: Modifier = Modifier,
+    isCtrlActive: Boolean = false,
+    isAltActive: Boolean = false,
+    onConsumeModifiers: () -> Unit = {},
     fontSizeSp: Int = 13,
     fontFamilyName: String = TerminalFonts.DEFAULT_FONT
 ) {
@@ -227,6 +230,25 @@ fun FullTerminalView(
                     val oldText = lastText
                     val newText = newValue.text
 
+                    if (isCtrlActive || isAltActive) {
+                        val addedText = if (newText.length > oldText.length) {
+                            newText.substring(oldText.length)
+                        } else if (newText.isNotEmpty()) {
+                            newText
+                        } else {
+                            ""
+                        }
+                        if (addedText.isNotEmpty()) {
+                            for (ch in addedText) {
+                                terminalBridge.sendModifiedChar(ch, isCtrlActive, isAltActive)
+                            }
+                            onConsumeModifiers()
+                        }
+                        textFieldValue = TextFieldValue("", TextRange.Zero)
+                        lastText = ""
+                        return@BasicTextField
+                    }
+
                     if (newText.contains("\n") || newText.contains("\r")) {
                         terminalBridge.sendInput("\r")
                         textFieldValue = TextFieldValue("", TextRange.Zero)
@@ -268,11 +290,19 @@ fun FullTerminalView(
                     .size(1.dp)
                     .alpha(0.01f)
                     .focusRequester(focusRequester)
-                    .onPreviewKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown) {
-                            val isCtrlOrMeta = event.isCtrlPressed || event.isMetaPressed
-                            when {
-                                isCtrlOrMeta && event.key == Key.V -> {
+                .onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown) {
+                        val isCtrlOrMeta = event.isCtrlPressed || event.isMetaPressed
+                        if (isCtrlActive || isAltActive) {
+                            val codePoint = event.utf16CodePoint
+                            if (codePoint > 0 && !Character.isISOControl(codePoint)) {
+                                terminalBridge.sendModifiedChar(codePoint.toChar(), isCtrlActive, isAltActive)
+                                onConsumeModifiers()
+                                return@onPreviewKeyEvent true
+                            }
+                        }
+                        when {
+                            isCtrlOrMeta && event.key == Key.V -> {
                                     val clipText = clipboardManager.getText()?.text
                                     if (!clipText.isNullOrEmpty()) {
                                         terminalBridge.pasteText(clipText)

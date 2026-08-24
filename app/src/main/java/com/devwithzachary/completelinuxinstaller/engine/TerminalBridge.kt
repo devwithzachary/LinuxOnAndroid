@@ -14,6 +14,31 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
 
     companion object {
         private const val TAG = "TerminalBridge"
+
+        fun getModifiedSequence(char: Char, isCtrl: Boolean, isAlt: Boolean): String {
+            if (!isCtrl && !isAlt) return char.toString()
+
+            var sequence = if (isCtrl) {
+                val upper = char.uppercaseChar()
+                when {
+                    upper in 'A'..'Z' -> (upper.code - 'A'.code + 1).toChar().toString()
+                    char == '@' || char == ' ' || char == '`' -> "\u0000"
+                    char == '[' || char == '{' -> "\u001B"
+                    char == '\\' || char == '|' -> "\u001C"
+                    char == ']' || char == '}' -> "\u001D"
+                    char == '^' || char == '~' -> "\u001E"
+                    char == '_' || char == '?' -> "\u001F"
+                    else -> char.toString()
+                }
+            } else {
+                char.toString()
+            }
+
+            if (isAlt) {
+                sequence = "\u001B$sequence"
+            }
+            return sequence
+        }
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + Job())
@@ -244,6 +269,11 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
 
     fun sendArrowLeft() {
         if (emulator.appCursorKeys) sendInput("\u001BOD") else sendInput("\u001B[D")
+    }
+
+    fun sendModifiedChar(char: Char, isCtrl: Boolean, isAlt: Boolean) {
+        val seq = getModifiedSequence(char, isCtrl, isAlt)
+        sendInput(seq)
     }
 
     fun stopSession() {
