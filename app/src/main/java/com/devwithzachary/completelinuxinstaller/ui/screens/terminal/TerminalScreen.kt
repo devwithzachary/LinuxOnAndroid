@@ -36,7 +36,7 @@ fun TerminalScreen(
     onStopSession: () -> Unit,
     defaultLoginUser: String = "root",
     fontSizeSp: Int = 13,
-    fontFamilyName: String = "Monospace"
+    fontFamilyName: String = TerminalFonts.DEFAULT_FONT
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current

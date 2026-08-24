@@ -55,7 +55,7 @@ fun FullTerminalView(
     onTapTerminal: () -> Unit,
     modifier: Modifier = Modifier,
     fontSizeSp: Int = 13,
-    fontFamilyName: String = "Monospace"
+    fontFamilyName: String = TerminalFonts.DEFAULT_FONT
 ) {
     val density = LocalDensity.current
     val fontSizePx = with(density) { fontSizeSp.sp.toPx() }
@@ -70,16 +70,12 @@ fun FullTerminalView(
     var showSelectPortionDialog by remember { mutableStateOf(false) }
     var accumulatedScrollY by remember { mutableFloatStateOf(0f) }
 
-    val selectedTypeface = remember(fontFamilyName) {
-        when (fontFamilyName) {
-            "JetBrains Mono" -> Typeface.create("monospace", Typeface.BOLD)
-            "Sans Serif" -> Typeface.create("sans-serif", Typeface.NORMAL)
-            "Serif" -> Typeface.create("serif", Typeface.NORMAL)
-            "Cursive" -> Typeface.create("cursive", Typeface.NORMAL)
-            "Casual" -> Typeface.create("casual", Typeface.NORMAL)
-            "CyberGlyphs" -> Typeface.create("monospace", Typeface.NORMAL)
-            else -> Typeface.MONOSPACE
-        }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val selectedTypeface = remember(fontFamilyName, context) {
+        TerminalFonts.getTypeface(context, fontFamilyName, bold = false)
+    }
+    val boldTypeface = remember(fontFamilyName, context) {
+        TerminalFonts.getTypeface(context, fontFamilyName, bold = true)
     }
 
     val paint = remember(fontSizePx, selectedTypeface) {
@@ -434,7 +430,8 @@ fun FullTerminalView(
                             paint.color = cell.fgColor.toArgb()
                         }
 
-                        paint.isFakeBoldText = cell.bold
+                        paint.typeface = if (cell.bold) boldTypeface else selectedTypeface
+                        paint.isFakeBoldText = false
                         paint.isUnderlineText = cell.underline
 
                         if (cell.ch != ' ') {
@@ -565,7 +562,7 @@ fun FullTerminalView(
                         Text(
                             text = fullTerminalText.ifEmpty { "Terminal output is empty" },
                             color = Color(0xFFE0E0E0),
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = TerminalFonts.JetBrainsMonoFontFamily,
                             fontSize = 12.sp,
                             modifier = Modifier.verticalScroll(rememberScrollState())
                         )

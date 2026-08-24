@@ -7,6 +7,12 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ### 📱 Device Compatibility & Architecture
 - **Expanded Android 6.0+ (API 23) Support**: Lowered minimum supported Android SDK to API 23 (Marshmallow), enabling support for legacy devices and tablets without sacrificing modern Jetpack Compose Material 3 features.
 
+### 🔤 Terminal Font Engine & Character Spacing (Issue #31)
+- **Bundled Monospace Font Assets**: Embedded authentic **JetBrains Mono** and **Ubuntu Mono** font families directly into APK resources, guaranteeing fixed-pitch character metrics across all Android devices.
+- **Samsung One UI & Custom System Font Compatibility**: Fixed issue where custom system fonts (e.g. SamsungOne) replaced system monospace font mappings with proportional typefaces and caused large uneven character gaps.
+- **Native Bold Font Rendering**: Replaced synthetic fake-bold text scaling with authentic bold font variants (`jetbrains_mono_bold`, `ubuntu_mono_bold`) for crystal-clear terminal text at any font size.
+- **Curated Monospace Font Picker**: Streamlined Settings to dedicated developer monospace typefaces (JetBrains Mono, Ubuntu Mono, Monospace, CyberGlyphs).
+
 ### 🐧 Linux Environment & Shell Variables
 - **System-Wide `UBUNTU_CODENAME` & `VERSION_CODENAME`**: Configured and exported `UBUNTU_CODENAME` and `VERSION_CODENAME` across `/etc/os-release`, `/etc/environment`, `/etc/lsb-release`, and `/etc/profile.d/00-linuxonandroid-env.sh`, ensuring full compatibility with Docker installation scripts and 3rd-party apt repo sources.
 - **PRoot Environment Export**: Injected `UBUNTU_CODENAME` and `VERSION_CODENAME` directly into the PRoot runtime environment for all container sessions and shell invocations.

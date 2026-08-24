@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import com.devwithzachary.completelinuxinstaller.engine.RootfsMigrationManager
 import com.devwithzachary.completelinuxinstaller.engine.RootfsVersionInfo
 import com.devwithzachary.completelinuxinstaller.engine.UpgradeState
+import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
 
 data class DashboardUiState(
     val isInitializing: Boolean = true,
@@ -151,8 +152,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadTerminalFontFamily(): String {
-        val saved = prefs.getString("terminal_font_family", "Monospace") ?: "Monospace"
-        return saved
+        val saved = prefs.getString("terminal_font_family", TerminalFonts.DEFAULT_FONT)
+        return TerminalFonts.normalizeFontName(saved)
     }
 
     fun setTerminalFontSize(size: Int) {
@@ -162,8 +163,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setTerminalFontFamily(family: String) {
-        prefs.edit().putString("terminal_font_family", family).apply()
-        _terminalFontFamily.value = family
+        val normalized = TerminalFonts.normalizeFontName(family)
+        prefs.edit().putString("terminal_font_family", normalized).apply()
+        _terminalFontFamily.value = normalized
     }
 
     private fun loadDefaultTerminalUser(): String {

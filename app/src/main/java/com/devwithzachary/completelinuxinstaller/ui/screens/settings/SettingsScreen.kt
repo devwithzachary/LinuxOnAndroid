@@ -52,6 +52,7 @@ import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
+import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
 
 enum class SettingsCategory(val displayName: String, val icon: ImageVector) {
     ALL("All", Icons.Default.Apps),
@@ -762,8 +763,7 @@ fun SettingsScreen(
                 // Font Family Selector Section
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Terminal Font Family", fontWeight = FontWeight.SemiBold)
-                    val fontFamilies =
-                        listOf("Monospace", "JetBrains Mono", "Sans Serif", "Serif", "Cursive", "Casual", "CyberGlyphs")
+                    val fontFamilies = TerminalFonts.AVAILABLE_FONTS
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -795,24 +795,8 @@ fun SettingsScreen(
                 HorizontalDivider()
 
                 // Theme Quick Preview Box
-                val previewFontFamily = when (terminalFontFamily) {
-                    "Sans Serif" -> FontFamily.SansSerif
-                    "Serif" -> FontFamily.Serif
-                    "Cursive" -> FontFamily.Cursive
-                    "Casual" -> FontFamily(
-                        androidx.compose.ui.text.font.Typeface(
-                            android.graphics.Typeface.create(
-                                "casual",
-                                android.graphics.Typeface.NORMAL
-                            )
-                        )
-                    )
-
-                    "CyberGlyphs" -> FontFamily.Monospace
-                    else -> FontFamily.Monospace
-                }
-                val previewFontWeight =
-                    if (terminalFontFamily == "JetBrains Mono") FontWeight.Bold else FontWeight.Normal
+                val previewFontFamily = TerminalFonts.getComposeFontFamily(terminalFontFamily)
+                val previewFontWeight = FontWeight.Normal
 
                 fun toPreviewText(text: String): String {
                     return if (terminalFontFamily == "CyberGlyphs") {
