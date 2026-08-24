@@ -17,6 +17,9 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **System-Wide `UBUNTU_CODENAME` & `VERSION_CODENAME`**: Configured and exported `UBUNTU_CODENAME` and `VERSION_CODENAME` across `/etc/os-release`, `/etc/environment`, `/etc/lsb-release`, and `/etc/profile.d/00-linuxonandroid-env.sh`, ensuring full compatibility with Docker installation scripts and 3rd-party apt repo sources.
 - **PRoot Environment Export**: Injected `UBUNTU_CODENAME` and `VERSION_CODENAME` directly into the PRoot runtime environment for all container sessions and shell invocations.
 
+### 🌐 Internationalization & Localization (PR #27)
+- **German Language Support (Deutsch)**: Added complete German localization across all screens, setup wizard, settings, dialogs, and software hub (contributed by @bkodenkt via [PR #27](https://github.com/devwithzachary/LinuxOnAndroid/pull/27)).
+
 ### 💬 Community & Discord
 - **Official Discord Community**: Added direct 1-tap invitation link to the LinuxOnAndroid Discord community in the About screen and project documentation.
 

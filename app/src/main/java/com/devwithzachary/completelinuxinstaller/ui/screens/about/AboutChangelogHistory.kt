@@ -27,6 +27,7 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "In Development",
         initialExpanded = true,
         highlights = listOf(
+            "German Localization (PR #27): Added full German language support across all screens, wizards, and dialogs (contributed by @bkodenkt).",
             "Community Credits & Contributors: Added dedicated Credits section to the About screen highlighting code/PR contributors, issue reporters, and Patreon sponsors.",
             "Official Discord Community: Added direct 1-tap invite link to the official LinuxOnAndroid Discord community in the About screen.",
             "Terminal Monospace Font Engine: Bundled authentic JetBrains Mono and Ubuntu Mono font assets directly in APK, fixing character gap issues on Samsung One UI and custom OEM system fonts.",
