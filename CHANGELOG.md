@@ -17,6 +17,9 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **System-Wide `UBUNTU_CODENAME` & `VERSION_CODENAME`**: Configured and exported `UBUNTU_CODENAME` and `VERSION_CODENAME` across `/etc/os-release`, `/etc/environment`, `/etc/lsb-release`, and `/etc/profile.d/00-linuxonandroid-env.sh`, ensuring full compatibility with Docker installation scripts and 3rd-party apt repo sources.
 - **PRoot Environment Export**: Injected `UBUNTU_CODENAME` and `VERSION_CODENAME` directly into the PRoot runtime environment for all container sessions and shell invocations.
 
+### 💬 Community & Discord
+- **Official Discord Community**: Added direct 1-tap invitation link to the LinuxOnAndroid Discord community in the About screen and project documentation.
+
 ## [1.2.0] - 2026-08-14
 
 ### 🔄 RootFS Incremental Upgrades & Container Versioning

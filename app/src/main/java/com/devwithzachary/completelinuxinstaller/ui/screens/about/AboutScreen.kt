@@ -28,6 +28,7 @@ import com.devwithzachary.completelinuxinstaller.ui.components.InfoRow
 fun AboutScreen() {
     val uriHandler = LocalUriHandler.current
     val websiteUrl = stringResource(R.string.website_url)
+    val discordUrl = stringResource(R.string.discord_url)
     val patreonUrl = stringResource(R.string.patreon_url)
     val buymeacoffeeUrl = stringResource(R.string.buymeacoffee_url)
     val githubIssuesUrl = stringResource(R.string.github_issues_url)
@@ -177,6 +178,57 @@ fun AboutScreen() {
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(stringResource(R.string.btn_buy_me_a_coffee))
                     }
+                }
+            }
+        }
+
+        // Discord Community Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFF5865F2).copy(alpha = 0.12f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Forum,
+                        contentDescription = null,
+                        tint = Color(0xFF5865F2)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.discord_card_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Text(
+                    text = stringResource(R.string.discord_card_text),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Button(
+                    onClick = {
+                        try {
+                            uriHandler.openUri(discordUrl)
+                        } catch (_: Exception) {}
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF5865F2)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Forum, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.btn_join_discord), color = Color.White)
                 }
             }
         }

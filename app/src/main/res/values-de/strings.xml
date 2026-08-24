@@ -5,6 +5,7 @@
     <string name="app_tagline_hero">PRoot-basierender Linux Image-Manager für nicht-gerootete Android-Geräte.</string>
     <string name="website_domain">linuxonandroid.com</string>
     <string name="website_url">https://linuxonandroid.com</string>
+    <string name="discord_url">https://discord.gg/vJbBagx8JA</string>
     <string name="patreon_url">https://www.patreon.com/cw/DevWithZachary/membership</string>
     <string name="buymeacoffee_url">http://buymeacoffee.com/linuxonandroid</string>
     <string name="github_issues_url">https://github.com/devwithzachary/LinuxOnAndroid/issues</string>
@@ -45,6 +46,11 @@
     <string name="btn_buy_me_a_coffee">Spendier mir einen Kaffee</string>
     <string name="patreon_support_title">Das Projekt unterstützen</string>
     <string name="patreon_support_text">Der Complete Linux Installer ist kostenfreie Open-Source Software. Wenn du die App hilfreich findest und langfristig die Entwicklung, neue Features und Distributionen unterstützen willst, triit Patreon ab $1 pro Monat bei oder spendier mir einmalig einen Kaffee!</string>
+
+    <!-- Discord Community -->
+    <string name="discord_card_title">Community &amp; Diskussion</string>
+    <string name="discord_card_text">Tritt unserer offiziellen Discord-Community bei, um dich mit anderen Nutzern auszutauschen, Setups zu teilen, Fragen zu stellen und Entwicklungs-Updates zu verfolgen.</string>
+    <string name="btn_join_discord">Discord beitreten</string>
 
     <!-- Active Development & Bug Reporting -->
     <string name="alpha_card_title">Entwicklung &amp; Probleme melden</string>

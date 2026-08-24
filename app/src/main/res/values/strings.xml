@@ -5,6 +5,7 @@
     <string name="app_tagline_hero">PRoot-based Linux image manager for non-rooted Android devices.</string>
     <string name="website_domain">linuxonandroid.com</string>
     <string name="website_url">https://linuxonandroid.com</string>
+    <string name="discord_url">https://discord.gg/vJbBagx8JA</string>
     <string name="patreon_url">https://www.patreon.com/cw/DevWithZachary/membership</string>
     <string name="buymeacoffee_url">http://buymeacoffee.com/linuxonandroid</string>
     <string name="github_issues_url">https://github.com/devwithzachary/LinuxOnAndroid/issues</string>
@@ -45,6 +46,11 @@
     <string name="btn_buy_me_a_coffee">Buy Me a Coffee</string>
     <string name="patreon_support_title">Support the Project</string>
     <string name="patreon_support_text">Complete Linux Installer is free and open-source software. If you find this app helpful and want to support ongoing development, new features, and distros, join my Patreon from $1/month or leave a one-off tip on Buy Me a Coffee!</string>
+
+    <!-- Discord Community -->
+    <string name="discord_card_title">Community &amp; Discussion</string>
+    <string name="discord_card_text">Join our official Discord community to chat with other users, share Linux setups, ask questions, and follow development updates.</string>
+    <string name="btn_join_discord">Join Discord Community</string>
 
     <!-- Active Development & Bug Reporting -->
     <string name="alpha_card_title">Active Development &amp; Issue Reporting</string>
