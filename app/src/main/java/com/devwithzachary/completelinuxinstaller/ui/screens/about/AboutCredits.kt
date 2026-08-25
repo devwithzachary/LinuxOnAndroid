@@ -79,6 +79,24 @@ val CODE_CONTRIBUTORS: List<Contributor> = listOf(
                 isPr = true
             )
         )
+    ),
+    Contributor(
+        username = "sleepy-snowflake",
+        displayName = "sleepy-snowflake",
+        roleBadge = "Screen WakeLock & Font Licenses",
+        isCodeContributor = true,
+        contributions = listOf(
+            ContributionItem(
+                title = "Add license files for the bundled terminal fonts",
+                referenceNumber = 33,
+                isPr = true
+            ),
+            ContributionItem(
+                title = "Keep screen on while terminal session is running",
+                referenceNumber = 34,
+                isPr = true
+            )
+        )
     )
 )
 
@@ -95,7 +113,8 @@ val ISSUE_CONTRIBUTORS: List<Contributor> = listOf(
             ContributionItem("Selecting the SSH port for the quick-start button", 13),
             ContributionItem("Custom DNS server configuration & presets", 14),
             ContributionItem("Copy and Paste in terminal & screen selection", 16),
-            ContributionItem("OpenSSH Server one-touch launcher error fix", 21)
+            ContributionItem("OpenSSH Server one-touch launcher error fix", 21),
+            ContributionItem("Keeping the screen alive during terminal and SSH sessions", 25)
         )
     ),
     Contributor(

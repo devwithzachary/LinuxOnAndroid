@@ -8,7 +8,7 @@ import org.junit.Test
 class AboutCreditsTest {
 
     @Test
-    fun testCodeContributors_containsGermanLocalizationPr() {
+    fun testCodeContributors_containsContributions() {
         val codeContribs = CODE_CONTRIBUTORS
         assertTrue(codeContribs.any { it.username == "bkodenkt" })
 
@@ -16,11 +16,19 @@ class AboutCreditsTest {
         assertTrue(bkodenkt.isCodeContributor)
         assertTrue(bkodenkt.contributions.any { it.referenceNumber == 27 && it.isPr })
         assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/27", bkodenkt.contributions.first { it.referenceNumber == 27 }.url)
+
+        assertTrue(codeContribs.any { it.username == "sleepy-snowflake" })
+        val sleepy = codeContribs.first { it.username == "sleepy-snowflake" }
+        assertTrue(sleepy.isCodeContributor)
+        assertTrue(sleepy.contributions.any { it.referenceNumber == 33 && it.isPr })
+        assertTrue(sleepy.contributions.any { it.referenceNumber == 34 && it.isPr })
+        assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/33", sleepy.contributions.first { it.referenceNumber == 33 }.url)
+        assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/34", sleepy.contributions.first { it.referenceNumber == 34 }.url)
     }
 
     @Test
     fun testIssueContributors_containsAllReportedIssues() {
-        val expectedIssues = listOf(7, 8, 9, 10, 11, 12, 13, 14, 16, 19, 21, 31)
+        val expectedIssues = listOf(7, 8, 9, 10, 11, 12, 13, 14, 16, 19, 21, 25, 31)
         val allReportedIssues = ISSUE_CONTRIBUTORS.flatMap { it.contributions }.map { it.referenceNumber }
 
         for (issueNum in expectedIssues) {
@@ -33,7 +41,7 @@ class AboutCreditsTest {
         val bkodenkt = ISSUE_CONTRIBUTORS.firstOrNull { it.username == "bkodenkt" }
         assertTrue(bkodenkt != null)
         val bkodenktIssues = bkodenkt!!.contributions.map { it.referenceNumber }
-        assertTrue(bkodenktIssues.containsAll(listOf(9, 10, 11, 12, 13, 14, 16, 21)))
+        assertTrue(bkodenktIssues.containsAll(listOf(9, 10, 11, 12, 13, 14, 16, 21, 25)))
 
         val hax4dazy = ISSUE_CONTRIBUTORS.firstOrNull { it.username == "hax4dazy" }
         assertTrue(hax4dazy != null)
