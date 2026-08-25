@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,18 +37,36 @@ fun TerminalScreen(
     onStopSession: () -> Unit,
     defaultLoginUser: String = "root",
     fontSizeSp: Int = 13,
-    fontFamilyName: String = "Monospace"
+    fontFamilyName: String = TerminalFonts.DEFAULT_FONT,
+    isKeepScreenOnEnabled: Boolean = true
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
     val clipboardManager = LocalClipboardManager.current
     val isRunning by terminalBridge.isRunning.collectAsStateWithLifecycle()
     val refreshTrigger by terminalBridge.refreshTrigger.collectAsStateWithLifecycle()
+
+    // Keep the display awake during active sessions (issue #25)
+    DisposableEffect(isKeepScreenOnEnabled, isRunning) {
+        val shouldKeepScreenOn = isKeepScreenOnEnabled && isRunning
+        if (shouldKeepScreenOn) {
+            view.keepScreenOn = true
+        }
+        onDispose {
+            if (shouldKeepScreenOn) {
+                view.keepScreenOn = false
+            }
+        }
+    }
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var customHotkeys by remember { mutableStateOf(HotkeyManager.getHotkeys(context)) }
     var showEditHotkeysDialog by remember { mutableStateOf(false) }
+
+    var isCtrlActive by remember { mutableStateOf(false) }
+    var isAltActive by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         if (!isRunning) {
@@ -133,7 +152,11 @@ fun TerminalScreen(
                     }
 
                     if (isRunning) {
-                        IconButton(onClick = onStopSession) {
+                        IconButton(onClick = {
+                            isCtrlActive = false
+                            isAltActive = false
+                            onStopSession()
+                        }) {
                             Icon(
                                 imageVector = Icons.Default.Stop,
                                 contentDescription = "Stop Terminal",
@@ -162,6 +185,12 @@ fun TerminalScreen(
                 focusRequester.requestFocus()
                 keyboardController?.show()
             },
+            isCtrlActive = isCtrlActive,
+            isAltActive = isAltActive,
+            onConsumeModifiers = {
+                isCtrlActive = false
+                isAltActive = false
+            },
             modifier = Modifier.weight(1f),
             fontSizeSp = fontSizeSp,
             fontFamilyName = fontFamilyName
@@ -170,6 +199,18 @@ fun TerminalScreen(
         // Touch Navigation & Quick Command Keys Ribbon (Positioned directly above keyboard)
         ExtraKeysRow(
             keys = customHotkeys,
+            isCtrlActive = isCtrlActive,
+            onToggleCtrl = {
+                isCtrlActive = !isCtrlActive
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            },
+            isAltActive = isAltActive,
+            onToggleAlt = {
+                isAltActive = !isAltActive
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            },
             onKeyClick = { key ->
                 if (key == "Paste") {
                     val clipText = clipboardManager.getText()?.text
@@ -177,7 +218,17 @@ fun TerminalScreen(
                         terminalBridge.pasteText(clipText)
                     }
                 } else {
-                    terminalBridge.sendKeyShortcut(key)
+                    if (isCtrlActive || isAltActive) {
+                        if (key.length == 1) {
+                            terminalBridge.sendModifiedChar(key[0], isCtrlActive, isAltActive)
+                        } else {
+                            terminalBridge.sendKeyShortcut(key)
+                        }
+                        isCtrlActive = false
+                        isAltActive = false
+                    } else {
+                        terminalBridge.sendKeyShortcut(key)
+                    }
                 }
             }
         )

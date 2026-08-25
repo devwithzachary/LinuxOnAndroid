@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Upgrade
@@ -43,19 +44,23 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.BuildConfig
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
+import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
 
 enum class SettingsCategory(val displayName: String, val icon: ImageVector) {
     ALL("All", Icons.Default.Apps),
     CONTAINER("Container", Icons.Default.Upgrade),
+    BACKGROUND("Background", Icons.Default.PlayArrow),
     NETWORK("Network & DNS", Icons.Default.Dns),
     TERMINAL("Terminal", Icons.Default.Palette),
     SECURITY("Security", Icons.Default.Person),
@@ -179,7 +184,11 @@ fun SettingsScreen(
     onExportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
     onImportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
     onUpgradeRootfsClick: () -> Unit = {},
-    onDismissBackupStatus: () -> Unit = {}
+    onDismissBackupStatus: () -> Unit = {},
+    isKeepAliveEnabled: Boolean = true,
+    onToggleKeepAlive: () -> Unit = {},
+    isKeepScreenOnEnabled: Boolean = true,
+    onSetKeepScreenOn: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val contentResolver = context.contentResolver
@@ -189,6 +198,7 @@ fun SettingsScreen(
         mutableStateOf(
             mapOf(
                 "upgrade" to false,
+                "background" to false,
                 "backup" to false,
                 "dns" to false,
                 "theme" to false,
@@ -296,6 +306,12 @@ fun SettingsScreen(
                                     expandedCards = expandedCards.toMutableMap().apply {
                                         put("upgrade", true)
                                         put("backup", true)
+                                    }
+                                }
+
+                                SettingsCategory.BACKGROUND -> {
+                                    expandedCards = expandedCards.toMutableMap().apply {
+                                        put("background", true)
                                     }
                                 }
 
@@ -476,6 +492,156 @@ fun SettingsScreen(
                         Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Import Container")
+                    }
+                }
+            }
+        }
+
+        // 3. Background Execution & Power Management Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.BACKGROUND || selectedCategory == SettingsCategory.CONTAINER) {
+            CollapsibleSettingsCard(
+                title = stringResource(R.string.setting_keep_alive_title),
+                subtitle = if (isKeepAliveEnabled) "Foreground Service & WakeLock Active" else "Standard Background Limits",
+                icon = Icons.Default.PlayArrow,
+                isExpanded = isCardExpanded("background"),
+                onToggleExpand = { toggleCard("background") },
+                badge = {
+                    Surface(
+                        color = if (isKeepAliveEnabled) Color(0xFF1E3A1E) else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = if (isKeepAliveEnabled) "WakeLock Active" else "Disabled",
+                            color = if (isKeepAliveEnabled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            ) {
+                Text(
+                    text = "Controls whether LinuxOnAndroid keeps the PRoot environment alive in the background when the app is minimized or the screen is turned off.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Enable Foreground Service & WakeLock", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            stringResource(R.string.setting_keep_alive_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isKeepAliveEnabled,
+                        onCheckedChange = { onToggleKeepAlive() }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.setting_keep_screen_on_title),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.setting_keep_screen_on_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isKeepScreenOnEnabled,
+                        onCheckedChange = { onSetKeepScreenOn(it) }
+                    )
+                }
+
+                if (isKeepAliveEnabled) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "🛡️ Protection Status:",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "• Partial CPU WakeLock held during active sessions\n• Ongoing low-priority notification with quick actions\n• Resilient against Android Doze and Phantom Process Killer",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    var isNotifGranted by remember {
+                        mutableStateOf(
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.POST_NOTIFICATIONS
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        )
+                    }
+                    val notifLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+                    ) { granted ->
+                        isNotifGranted = granted
+                    }
+
+                    if (!isNotifGranted) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "Notification Permission Disabled",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                                Text(
+                                    text = "Android 13+ requires notification permission to display the foreground service status and prevent background terminations.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Button(
+                                    onClick = { notifLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Text("Grant Notification Permission")
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -762,8 +928,7 @@ fun SettingsScreen(
                 // Font Family Selector Section
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Terminal Font Family", fontWeight = FontWeight.SemiBold)
-                    val fontFamilies =
-                        listOf("Monospace", "JetBrains Mono", "Sans Serif", "Serif", "Cursive", "Casual", "CyberGlyphs")
+                    val fontFamilies = TerminalFonts.AVAILABLE_FONTS
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -795,24 +960,8 @@ fun SettingsScreen(
                 HorizontalDivider()
 
                 // Theme Quick Preview Box
-                val previewFontFamily = when (terminalFontFamily) {
-                    "Sans Serif" -> FontFamily.SansSerif
-                    "Serif" -> FontFamily.Serif
-                    "Cursive" -> FontFamily.Cursive
-                    "Casual" -> FontFamily(
-                        androidx.compose.ui.text.font.Typeface(
-                            android.graphics.Typeface.create(
-                                "casual",
-                                android.graphics.Typeface.NORMAL
-                            )
-                        )
-                    )
-
-                    "CyberGlyphs" -> FontFamily.Monospace
-                    else -> FontFamily.Monospace
-                }
-                val previewFontWeight =
-                    if (terminalFontFamily == "JetBrains Mono") FontWeight.Bold else FontWeight.Normal
+                val previewFontFamily = TerminalFonts.getComposeFontFamily(terminalFontFamily)
+                val previewFontWeight = FontWeight.Normal
 
                 fun toPreviewText(text: String): String {
                     return if (terminalFontFamily == "CyberGlyphs") {

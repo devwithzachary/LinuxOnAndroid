@@ -93,4 +93,21 @@ class SoftwarePackageTest {
             assertTrue("postInstallNotes must reflect custom port 8022", it.postInstallNotes != null && it.postInstallNotes.contains("-p 8022"))
         }
     }
+
+    @Test
+    fun testPreset_xfce_desktop_configuresVncAndStartup() {
+        val xfce = SoftwarePackage.getPresets().find { it.id == "xfce_desktop" }
+        assertNotNull("xfce_desktop preset must exist", xfce)
+        xfce?.let {
+            assertTrue("installCommand must configure xstartup", it.installCommand.contains("/etc/vnc/xstartup"))
+            assertTrue("installCommand must configure startxfce4", it.installCommand.contains("startxfce4"))
+            assertTrue("installCommand must configure dbus-launch", it.installCommand.contains("dbus-launch"))
+            assertTrue("installCommand must configure bwrap stub", it.installCommand.contains("/usr/bin/bwrap"))
+            assertTrue("launchCommand must exist for xfce_desktop", it.launchCommand != null)
+            assertTrue("launchCommand must start display :1", it.launchCommand?.contains("vncserver :1") == true)
+            assertTrue("launchCommand must specify SecurityTypes None,VncAuth", it.launchCommand?.contains("-SecurityTypes None,VncAuth") == true)
+            assertTrue("launchCommand must specify -UseBlacklist=0", it.launchCommand?.contains("-UseBlacklist=0") == true)
+            assertTrue("launchCommand must include --I-KNOW-THIS-IS-INSECURE", it.launchCommand?.contains("--I-KNOW-THIS-IS-INSECURE") == true)
+        }
+    }
 }

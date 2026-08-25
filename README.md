@@ -2,7 +2,8 @@
 
 [![Google Play Store](https://img.shields.io/badge/Google%20Play-Download-brightgreen.svg?logo=googleplay)](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)
 [![Google Play Open Testing](https://img.shields.io/badge/Google%20Play-Open%20Beta-blue.svg?logo=googleplay)](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)
-[![Android MinSDK](https://img.shields.io/badge/Min%20SDK-24%20%28Android%207.0%2B%29-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
+[![Discord Community](https://img.shields.io/badge/Discord-Join%20Community-5865F2.svg?logo=discord&logoColor=white)](https://discord.gg/vJbBagx8JA)
+[![Android MinSDK](https://img.shields.io/badge/Min%20SDK-23%20%28Android%206.0%2B%29-brightgreen.svg)](https://developer.android.com/about/versions/marshmallow)
 [![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg)](https://kotlinlang.org/)
 [![UI Framework](https://img.shields.io/badge/UI-Jetpack%20Compose%20Material3-purple.svg)](https://developer.android.com/jetpack/compose)
 [![Architecture](https://img.shields.io/badge/Architecture-ARM64%20%7C%20x86__64%20%7C%20ARMv7-orange.svg)](#multi-architecture-support)
@@ -106,6 +107,8 @@ This project relies on several key open-source native components. We gratefully 
 | **talloc (`libtalloc.so`)** | Hierarchical pool-based memory allocator developed by the Samba project, required by PRoot. | [Samba talloc](https://talloc.samba.org/) / [LGPL-3.0](https://www.gnu.org/licenses/lgpl-3.0.html) |
 | **Ubuntu Base** | Official minimal root filesystem tarballs provided by Canonical Ltd. | [Ubuntu Base Releases](https://cdimage.ubuntu.com/ubuntu-base/) / Canonical Ltd. |
 | **Termux Project** | Architectural references and patches for running PRoot and PTY subprocesses on Android. | [Termux](https://github.com/termux) / [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) |
+| **JetBrains Mono** | Bundled monospace font used by the terminal renderer. | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) / [SIL OFL 1.1](licenses/fonts/JetBrainsMono-OFL-1.1.txt) |
+| **Ubuntu Mono** | Bundled monospace font option for the terminal. | [Ubuntu Font Family](https://design.ubuntu.com/font/) / [Ubuntu Font Licence](licenses/fonts/UbuntuFontLicence.txt) |
 
 ---
 

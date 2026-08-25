@@ -54,8 +54,11 @@ fun FullTerminalView(
     focusRequester: FocusRequester,
     onTapTerminal: () -> Unit,
     modifier: Modifier = Modifier,
+    isCtrlActive: Boolean = false,
+    isAltActive: Boolean = false,
+    onConsumeModifiers: () -> Unit = {},
     fontSizeSp: Int = 13,
-    fontFamilyName: String = "Monospace"
+    fontFamilyName: String = TerminalFonts.DEFAULT_FONT
 ) {
     val density = LocalDensity.current
     val fontSizePx = with(density) { fontSizeSp.sp.toPx() }
@@ -70,16 +73,12 @@ fun FullTerminalView(
     var showSelectPortionDialog by remember { mutableStateOf(false) }
     var accumulatedScrollY by remember { mutableFloatStateOf(0f) }
 
-    val selectedTypeface = remember(fontFamilyName) {
-        when (fontFamilyName) {
-            "JetBrains Mono" -> Typeface.create("monospace", Typeface.BOLD)
-            "Sans Serif" -> Typeface.create("sans-serif", Typeface.NORMAL)
-            "Serif" -> Typeface.create("serif", Typeface.NORMAL)
-            "Cursive" -> Typeface.create("cursive", Typeface.NORMAL)
-            "Casual" -> Typeface.create("casual", Typeface.NORMAL)
-            "CyberGlyphs" -> Typeface.create("monospace", Typeface.NORMAL)
-            else -> Typeface.MONOSPACE
-        }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val selectedTypeface = remember(fontFamilyName, context) {
+        TerminalFonts.getTypeface(context, fontFamilyName, bold = false)
+    }
+    val boldTypeface = remember(fontFamilyName, context) {
+        TerminalFonts.getTypeface(context, fontFamilyName, bold = true)
     }
 
     val paint = remember(fontSizePx, selectedTypeface) {
@@ -231,6 +230,25 @@ fun FullTerminalView(
                     val oldText = lastText
                     val newText = newValue.text
 
+                    if (isCtrlActive || isAltActive) {
+                        val addedText = if (newText.length > oldText.length) {
+                            newText.substring(oldText.length)
+                        } else if (newText.isNotEmpty()) {
+                            newText
+                        } else {
+                            ""
+                        }
+                        if (addedText.isNotEmpty()) {
+                            for (ch in addedText) {
+                                terminalBridge.sendModifiedChar(ch, isCtrlActive, isAltActive)
+                            }
+                            onConsumeModifiers()
+                        }
+                        textFieldValue = TextFieldValue("", TextRange.Zero)
+                        lastText = ""
+                        return@BasicTextField
+                    }
+
                     if (newText.contains("\n") || newText.contains("\r")) {
                         terminalBridge.sendInput("\r")
                         textFieldValue = TextFieldValue("", TextRange.Zero)
@@ -272,11 +290,19 @@ fun FullTerminalView(
                     .size(1.dp)
                     .alpha(0.01f)
                     .focusRequester(focusRequester)
-                    .onPreviewKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown) {
-                            val isCtrlOrMeta = event.isCtrlPressed || event.isMetaPressed
-                            when {
-                                isCtrlOrMeta && event.key == Key.V -> {
+                .onPreviewKeyEvent { event ->
+                    if (event.type == KeyEventType.KeyDown) {
+                        val isCtrlOrMeta = event.isCtrlPressed || event.isMetaPressed
+                        if (isCtrlActive || isAltActive) {
+                            val codePoint = event.utf16CodePoint
+                            if (codePoint > 0 && !Character.isISOControl(codePoint)) {
+                                terminalBridge.sendModifiedChar(codePoint.toChar(), isCtrlActive, isAltActive)
+                                onConsumeModifiers()
+                                return@onPreviewKeyEvent true
+                            }
+                        }
+                        when {
+                            isCtrlOrMeta && event.key == Key.V -> {
                                     val clipText = clipboardManager.getText()?.text
                                     if (!clipText.isNullOrEmpty()) {
                                         terminalBridge.pasteText(clipText)
@@ -358,7 +384,7 @@ fun FullTerminalView(
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
                     autoCorrectEnabled = false,
-                    keyboardType = KeyboardType.Password,
+                    keyboardType = KeyboardType.Uri,
                     imeAction = ImeAction.Send
                 ),
                 keyboardActions = KeyboardActions(
@@ -434,7 +460,8 @@ fun FullTerminalView(
                             paint.color = cell.fgColor.toArgb()
                         }
 
-                        paint.isFakeBoldText = cell.bold
+                        paint.typeface = if (cell.bold) boldTypeface else selectedTypeface
+                        paint.isFakeBoldText = false
                         paint.isUnderlineText = cell.underline
 
                         if (cell.ch != ' ') {
@@ -565,7 +592,7 @@ fun FullTerminalView(
                         Text(
                             text = fullTerminalText.ifEmpty { "Terminal output is empty" },
                             color = Color(0xFFE0E0E0),
-                            fontFamily = FontFamily.Monospace,
+                            fontFamily = TerminalFonts.JetBrainsMonoFontFamily,
                             fontSize = 12.sp,
                             modifier = Modifier.verticalScroll(rememberScrollState())
                         )

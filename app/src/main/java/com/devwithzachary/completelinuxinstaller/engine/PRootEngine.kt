@@ -139,7 +139,7 @@ class PRootEngine(val context: Context) {
             cmdList.add(config.rootfsDir.absolutePath)
 
             val mounts = mutableListOf(
-                "/proc", "/sys", "/dev", "/dev/pts", "/system",
+                "/proc", "/sys", "/dev", "/dev/pts",
                 "/proc/self/fd:/dev/fd",
                 "/proc/self/fd/0:/dev/stdin",
                 "/proc/self/fd/1:/dev/stdout",
@@ -239,6 +239,16 @@ class PRootEngine(val context: Context) {
             if (l2sDir.exists()) {
                 cmdList.add("-b")
                 cmdList.add(l2sDir.absolutePath)
+                val dataDataL2s = File(l2sDir.absolutePath.replace("/data/user/0/", "/data/data/"))
+                if (dataDataL2s.exists() && dataDataL2s.absolutePath != l2sDir.absolutePath) {
+                    cmdList.add("-b")
+                    cmdList.add(dataDataL2s.absolutePath)
+                }
+                val user0L2s = File(l2sDir.absolutePath.replace("/data/data/", "/data/user/0/"))
+                if (user0L2s.exists() && user0L2s.absolutePath != l2sDir.absolutePath) {
+                    cmdList.add("-b")
+                    cmdList.add(user0L2s.absolutePath)
+                }
             }
 
             cmdList.add("-w")
@@ -292,6 +302,16 @@ class PRootEngine(val context: Context) {
         val targetUser = loginUser?.takeIf { it.isNotBlank() } ?: "root"
         val userHome = if (targetUser == "root") "/root" else "/home/$targetUser"
 
+        val codename = try {
+            val osReleaseFile = File(rootfsDir, "etc/os-release")
+            if (osReleaseFile.exists()) {
+                val match = Regex("""(?:UBUNTU_CODENAME|VERSION_CODENAME)=["']?([a-zA-Z0-9_-]+)["']?""").find(osReleaseFile.readText())
+                match?.groupValues?.get(1) ?: "resolute"
+            } else "resolute"
+        } catch (_: Exception) {
+            "resolute"
+        }
+
         val env = mutableMapOf(
             "LD_LIBRARY_PATH" to nativeLibDir,
             "PROOT_TMP_DIR" to tmpDir.absolutePath,
@@ -308,7 +328,9 @@ class PRootEngine(val context: Context) {
             "TERM" to "xterm-256color",
             "LANG" to "C.UTF-8",
             "TMPDIR" to "/tmp",
-            "TMP" to "/tmp"
+            "TMP" to "/tmp",
+            "UBUNTU_CODENAME" to codename,
+            "VERSION_CODENAME" to codename
         )
 
         if (loaderFile.exists() && loaderFile.length() > 0L) {

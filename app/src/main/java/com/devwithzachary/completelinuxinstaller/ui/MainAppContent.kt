@@ -39,10 +39,18 @@ fun MainAppContent(viewModel: MainViewModel) {
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val packages by viewModel.packages.collectAsStateWithLifecycle()
+    val requestedScreen by viewModel.requestedScreen.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
     var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
+
+    LaunchedEffect(requestedScreen) {
+        requestedScreen?.let { target ->
+            currentScreen = target
+            viewModel.clearRequestedScreen()
+        }
+    }
 
     // Sync screen navigation state when initialization completes or installation status is confirmed
     LaunchedEffect(isInitializing, isInstalled) {
@@ -56,7 +64,8 @@ fun MainAppContent(viewModel: MainViewModel) {
     }
 
     if (isInitializing || currentScreen == AppScreen.SPLASH) {
-        SplashScreen()
+        val statusText = stringResource(dashboardState.initStep.stringResId)
+        SplashScreen(statusText = statusText)
     } else {
         Scaffold(
             bottomBar = {
@@ -128,7 +137,8 @@ fun MainAppContent(viewModel: MainViewModel) {
             ) {
                 when (currentScreen) {
                     AppScreen.SPLASH -> {
-                        SplashScreen()
+                        val statusText = stringResource(dashboardState.initStep.stringResId)
+                        SplashScreen(statusText = statusText)
                     }
 
                     AppScreen.WIZARD -> {
@@ -164,13 +174,15 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val defaultUser by viewModel.defaultTerminalUser.collectAsState()
                         val fontSize by viewModel.terminalFontSize.collectAsState()
                         val fontFamily by viewModel.terminalFontFamily.collectAsState()
+                        val isKeepScreenOnEnabled by viewModel.isKeepScreenOnEnabled.collectAsState()
                         TerminalScreen(
                             terminalBridge = viewModel.terminalBridge,
                             onStartSession = { viewModel.startTerminalSession() },
                             onStopSession = { viewModel.stopTerminalSession() },
                             defaultLoginUser = defaultUser,
                             fontSizeSp = fontSize,
-                            fontFamilyName = fontFamily
+                            fontFamilyName = fontFamily,
+                            isKeepScreenOnEnabled = isKeepScreenOnEnabled
                         )
                     }
 
@@ -198,6 +210,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val defaultUser by viewModel.defaultTerminalUser.collectAsState()
                         val fontSize by viewModel.terminalFontSize.collectAsState()
                         val fontFamily by viewModel.terminalFontFamily.collectAsState()
+                        val isKeepAliveEnabled by viewModel.isKeepAliveEnabled.collectAsState()
+                        val isKeepScreenOnEnabled by viewModel.isKeepScreenOnEnabled.collectAsState()
                         SettingsScreen(
                             state = dashboardState,
                             backupState = backupState,
@@ -205,6 +219,10 @@ fun MainAppContent(viewModel: MainViewModel) {
                             defaultTerminalUser = defaultUser,
                             terminalFontSize = fontSize,
                             terminalFontFamily = fontFamily,
+                            isKeepAliveEnabled = isKeepAliveEnabled,
+                            onToggleKeepAlive = { viewModel.toggleKeepAlive() },
+                            isKeepScreenOnEnabled = isKeepScreenOnEnabled,
+                            onSetKeepScreenOn = { enabled -> viewModel.setKeepScreenOnEnabled(enabled) },
                             onSelectTheme = { themeId -> viewModel.setTerminalTheme(themeId) },
                             onUpdateCustomTheme = { fg, bg, cursor, sel, ansi ->
                                 viewModel.updateCustomTheme(fg, bg, cursor, sel, ansi)
@@ -238,5 +256,16 @@ fun MainAppContent(viewModel: MainViewModel) {
             upgradeState = upgradeState,
             onDismiss = { viewModel.dismissUpgradeState() }
         )
+
+        if (isInstalled) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            com.devwithzachary.completelinuxinstaller.ui.components.NotificationPermissionRationaleHandler(
+                onPermissionGranted = {
+                    if (viewModel.isKeepAliveEnabled.value && viewModel.isSessionRunning.value) {
+                        com.devwithzachary.completelinuxinstaller.service.PRootForegroundService.start(context)
+                    }
+                }
+            )
+        }
     }
 }

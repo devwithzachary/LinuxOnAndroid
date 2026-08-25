@@ -14,6 +14,31 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
 
     companion object {
         private const val TAG = "TerminalBridge"
+
+        fun getModifiedSequence(char: Char, isCtrl: Boolean, isAlt: Boolean): String {
+            if (!isCtrl && !isAlt) return char.toString()
+
+            var sequence = if (isCtrl) {
+                val upper = char.uppercaseChar()
+                when {
+                    upper in 'A'..'Z' -> (upper.code - 'A'.code + 1).toChar().toString()
+                    char == '@' || char == ' ' || char == '`' -> "\u0000"
+                    char == '[' || char == '{' -> "\u001B"
+                    char == '\\' || char == '|' -> "\u001C"
+                    char == ']' || char == '}' -> "\u001D"
+                    char == '^' || char == '~' -> "\u001E"
+                    char == '_' || char == '?' -> "\u001F"
+                    else -> char.toString()
+                }
+            } else {
+                char.toString()
+            }
+
+            if (isAlt) {
+                sequence = "\u001B$sequence"
+            }
+            return sequence
+        }
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + Job())
@@ -43,6 +68,7 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
                 envMap["COLORTERM"] = "truecolor"
                 envMap["PROOT_NO_SECCOMP"] = "1"
                 envMap["PROOT_FORCE_SETID"] = "1"
+                envMap["PROOT_LINK2SYMLINK"] = "1"
                 envMap["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
                 val envArray = envMap.map { "${it.key}=${it.value}" }.toTypedArray()
@@ -108,12 +134,20 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
         emulator.scrollToBottom()
         scope.launch(writeDispatcher) {
             try {
-                val proc = ptyProcess
+                var proc = ptyProcess
+                if (proc == null || !_isRunning.value) {
+                    if (!_isRunning.value) {
+                        startSession()
+                    }
+                    for (i in 0 until 50) {
+                        proc = ptyProcess
+                        if (proc != null && _isRunning.value) break
+                        kotlinx.coroutines.delay(50)
+                    }
+                }
                 if (proc != null && _isRunning.value) {
                     val bytes = input.toByteArray(Charsets.UTF_8)
                     Os.write(proc.parcelFd.fileDescriptor, bytes, 0, bytes.size)
-                } else if (!_isRunning.value) {
-                    startSession()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error writing to PTY stream via POSIX write", e)
@@ -236,6 +270,11 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
 
     fun sendArrowLeft() {
         if (emulator.appCursorKeys) sendInput("\u001BOD") else sendInput("\u001B[D")
+    }
+
+    fun sendModifiedChar(char: Char, isCtrl: Boolean, isAlt: Boolean) {
+        val seq = getModifiedSequence(char, isCtrl, isAlt)
+        sendInput(seq)
     }
 
     fun stopSession() {

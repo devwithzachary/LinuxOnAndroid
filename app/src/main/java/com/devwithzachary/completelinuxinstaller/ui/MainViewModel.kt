@@ -24,12 +24,22 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.RootfsMigrationManager
 import com.devwithzachary.completelinuxinstaller.engine.RootfsVersionInfo
 import com.devwithzachary.completelinuxinstaller.engine.UpgradeState
+import com.devwithzachary.completelinuxinstaller.service.PRootForegroundService
+import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
+
+enum class InitStep(val stringResId: Int) {
+    VERIFYING_BINARIES(R.string.splash_init_verifying_binaries),
+    CHECKING_FILESYSTEM(R.string.splash_init_checking_filesystem),
+    PREPARING_ENVIRONMENT(R.string.splash_init_preparing)
+}
 
 data class DashboardUiState(
     val isInitializing: Boolean = true,
+    val initStep: InitStep = InitStep.VERIFYING_BINARIES,
     val isInstalled: Boolean = false,
     val storageUsedMb: Long = 0L,
     val distroName: String = "Ubuntu 26.04 LTS (ARM64/x86_64)",
@@ -87,7 +97,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _dashboardState = MutableStateFlow(
         DashboardUiState(
             sshPort = loadSshPort(),
-            dnsServers = rootfsManager.getDnsServers()
+            dnsServers = rootfsManager.getDnsServers(),
+            storageUsedMb = rootfsManager.getCachedStorageUsedMb()
         )
     )
     val dashboardState: StateFlow<DashboardUiState> = _dashboardState.asStateFlow()
@@ -103,6 +114,47 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _defaultTerminalUser = MutableStateFlow(loadDefaultTerminalUser())
     val defaultTerminalUser: StateFlow<String> = _defaultTerminalUser.asStateFlow()
+
+    private fun loadKeepAliveEnabled(): Boolean {
+        return prefs.getBoolean("keep_alive_enabled", true)
+    }
+
+    private val _isKeepAliveEnabled = MutableStateFlow(loadKeepAliveEnabled())
+    val isKeepAliveEnabled: StateFlow<Boolean> = _isKeepAliveEnabled.asStateFlow()
+
+    fun toggleKeepAlive() {
+        val next = !_isKeepAliveEnabled.value
+        prefs.edit().putBoolean("keep_alive_enabled", next).apply()
+        _isKeepAliveEnabled.value = next
+        if (!next) {
+            PRootForegroundService.stop(getApplication())
+        } else if (terminalBridge.isRunning.value) {
+            PRootForegroundService.start(getApplication())
+        }
+    }
+
+    private fun loadKeepScreenOnEnabled(): Boolean {
+        return prefs.getBoolean("terminal_keep_screen_on", true)
+    }
+
+    private val _isKeepScreenOnEnabled = MutableStateFlow(loadKeepScreenOnEnabled())
+    val isKeepScreenOnEnabled: StateFlow<Boolean> = _isKeepScreenOnEnabled.asStateFlow()
+
+    fun setKeepScreenOnEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("terminal_keep_screen_on", enabled).apply()
+        _isKeepScreenOnEnabled.value = enabled
+    }
+
+    private val _requestedScreen = MutableStateFlow<AppScreen?>(null)
+    val requestedScreen: StateFlow<AppScreen?> = _requestedScreen.asStateFlow()
+
+    fun navigateToScreen(screen: AppScreen) {
+        _requestedScreen.value = screen
+    }
+
+    fun clearRequestedScreen() {
+        _requestedScreen.value = null
+    }
 
     val isSessionRunning = terminalBridge.isRunning
 
@@ -151,8 +203,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadTerminalFontFamily(): String {
-        val saved = prefs.getString("terminal_font_family", "Monospace") ?: "Monospace"
-        return saved
+        val saved = prefs.getString("terminal_font_family", TerminalFonts.DEFAULT_FONT)
+        return TerminalFonts.normalizeFontName(saved)
     }
 
     fun setTerminalFontSize(size: Int) {
@@ -162,8 +214,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setTerminalFontFamily(family: String) {
-        prefs.edit().putString("terminal_font_family", family).apply()
-        _terminalFontFamily.value = family
+        val normalized = TerminalFonts.normalizeFontName(family)
+        prefs.edit().putString("terminal_font_family", normalized).apply()
+        _terminalFontFamily.value = normalized
     }
 
     private fun loadDefaultTerminalUser(): String {
@@ -181,10 +234,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
+        PRootForegroundService.isTerminalActiveProvider = { terminalBridge.isRunning.value }
+        PRootForegroundService.rootfsDirProvider = { pRootEngine.rootfsDir }
+        PRootForegroundService.sshPortProvider = { _sshPort.value }
+        PRootForegroundService.onStopSessionRequested = { stopTerminalSession() }
+
         viewModelScope.launch {
+            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.VERIFYING_BINARIES)
             pRootEngine.ensurePRootExecutable()
+            kotlinx.coroutines.delay(200)
+
+            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.CHECKING_FILESYSTEM)
             refreshStatusInternal()
-            kotlinx.coroutines.delay(500)
+            kotlinx.coroutines.delay(250)
+
+            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.PREPARING_ENVIRONMENT)
+            kotlinx.coroutines.delay(250)
+
             _dashboardState.value = _dashboardState.value.copy(isInitializing = false)
         }
     }
@@ -323,7 +389,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val currentDns = rootfsManager.getDnsServers()
         _dnsServers.value = currentDns
 
-        val storage = if (installed) rootfsManager.getStorageUsedMb() else 0L
+        val cachedStorage = if (installed) rootfsManager.getCachedStorageUsedMb() else 0L
 
         _dashboardState.value = _dashboardState.value.copy(
             isInstalled = installed,
@@ -336,8 +402,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isUpgradeAvailable = isUpgradeAvail,
             dnsServers = currentDns,
             containerUsers = users,
-            storageUsedMb = storage
+            storageUsedMb = cachedStorage
         )
+
+        if (installed) {
+            triggerAsyncStorageCalculation()
+        }
+    }
+
+    private var storageCalculationJob: kotlinx.coroutines.Job? = null
+
+    private fun triggerAsyncStorageCalculation() {
+        storageCalculationJob?.cancel()
+        storageCalculationJob = viewModelScope.launch(Dispatchers.IO) {
+            val installed = rootfsManager.isInstalled()
+            if (installed) {
+                val freshStorageMb = rootfsManager.getStorageUsedMb()
+                _dashboardState.value = _dashboardState.value.copy(storageUsedMb = freshStorageMb)
+            } else {
+                _dashboardState.value = _dashboardState.value.copy(storageUsedMb = 0L)
+            }
+        }
     }
 
     fun refreshStatus() {
@@ -399,15 +484,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startTerminalSession() {
         terminalBridge.startSession(loginUser = _defaultTerminalUser.value)
+        if (_isKeepAliveEnabled.value) {
+            PRootForegroundService.start(getApplication())
+        }
         refreshStatus()
     }
 
     fun stopTerminalSession() {
         terminalBridge.stopSession()
+        PRootForegroundService.stop(getApplication())
         refreshStatus()
     }
 
     fun sendTerminalCommand(command: String) {
+        if (!terminalBridge.isRunning.value) {
+            startTerminalSession()
+        } else if (_isKeepAliveEnabled.value) {
+            PRootForegroundService.start(getApplication())
+        }
         terminalBridge.sendCommand(command)
     }
 
@@ -443,6 +537,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun installSoftwarePackage(packageId: String) {
+        if (_isKeepAliveEnabled.value) {
+            PRootForegroundService.start(getApplication())
+        }
         val currentPackages = _packages.value.toMutableList()
         val index = currentPackages.indexOfFirst { it.id == packageId }
         if (index == -1) return

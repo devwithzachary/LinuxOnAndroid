@@ -52,15 +52,15 @@ class RootfsMigrationTest {
 
     @Test
     fun testGetPendingMigrations_resolvesCorrectSteps() {
-        val allPending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 1, targetVersionCode = 8)
-        assertEquals(7, allPending.size)
-        assertEquals(listOf(2, 3, 4, 5, 6, 7, 8), allPending.map { it.targetVersionCode })
+        val allPending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 1, targetVersionCode = 10)
+        assertEquals(8, allPending.size)
+        assertEquals(listOf(2, 3, 4, 5, 6, 7, 8, 10), allPending.map { it.targetVersionCode })
 
-        val partialPending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 5, targetVersionCode = 8)
-        assertEquals(3, partialPending.size)
-        assertEquals(listOf(6, 7, 8), partialPending.map { it.targetVersionCode })
+        val partialPending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 5, targetVersionCode = 10)
+        assertEquals(4, partialPending.size)
+        assertEquals(listOf(6, 7, 8, 10), partialPending.map { it.targetVersionCode })
 
-        val upToDate = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 8, targetVersionCode = 8)
+        val upToDate = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 10, targetVersionCode = 10)
         assertTrue("No migrations should be pending when current equals target", upToDate.isEmpty())
     }
 
@@ -72,7 +72,7 @@ class RootfsMigrationTest {
         File(rootfsDir, "etc").mkdirs()
         File(rootfsDir, "usr/bin/sudo").createNewFile()
 
-        val pending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 1, targetVersionCode = 8)
+        val pending = RootfsMigrationManager.getPendingMigrations(currentVersionCode = 1, targetVersionCode = 10)
 
         val logs = mutableListOf<String>()
         for (step in pending) {
@@ -104,18 +104,65 @@ class RootfsMigrationTest {
         val sshConf = File(rootfsDir, "etc/ssh/sshd_config.d/00-linuxonandroid.conf")
         assertTrue("00-linuxonandroid.conf must exist", sshConf.exists())
         assertTrue(sshConf.readText().contains("Port 2222"))
+
+        // Verify OS Release, LSB Release & Environment variables (v10)
+        val osRelease = File(rootfsDir, "etc/os-release")
+        assertTrue("os-release must exist", osRelease.exists())
+        assertTrue(osRelease.readText().contains("UBUNTU_CODENAME=resolute"))
+        assertTrue(osRelease.readText().contains("VERSION_CODENAME=resolute"))
+
+        val lsbRelease = File(rootfsDir, "etc/lsb-release")
+        assertTrue("lsb-release must exist", lsbRelease.exists())
+        assertTrue(lsbRelease.readText().contains("DISTRIB_CODENAME=resolute"))
+
+        val envFile = File(rootfsDir, "etc/environment")
+        assertTrue("environment must exist", envFile.exists())
+        assertTrue(envFile.readText().contains("UBUNTU_CODENAME=\"resolute\""))
+        assertTrue(envFile.readText().contains("VERSION_CODENAME=\"resolute\""))
+
+        val profileScript = File(rootfsDir, "etc/profile.d/00-linuxonandroid-env.sh")
+        assertTrue("00-linuxonandroid-env.sh must exist", profileScript.exists())
+        assertTrue(profileScript.canExecute())
     }
 
     @Test
     fun testHasRootfsImprovements_handlesVersionsWithoutChanges() {
-        // App is on build 8, container is on build 8 -> no improvements
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 8, targetVersionCode = 8))
+        // App is on build 11, container is on build 11 -> no improvements
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 11, targetVersionCode = 11))
 
-        // Hypothetical future app build 9 without any added migrations beyond 8
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 8, targetVersionCode = 9))
+        // Hypothetical future app build 12 without any added migrations beyond 11
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 11, targetVersionCode = 12))
 
-        // Legacy container on build 1 -> has improvements up to build 8
-        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 8))
+        // Legacy container on build 1 -> has improvements up to build 11
+        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 11))
+    }
+
+    @Test
+    fun testMigration_v11_configuresXfceAndBwrapStub() {
+        val rootfsDir = tempFolder.newFolder("v11_test_rootfs")
+        val migration11 = RootfsMigrationManager.ALL_MIGRATIONS.find { it.targetVersionCode == 11 }
+        assertNotNull("Migration v11 must exist", migration11)
+
+        val logs = mutableListOf<String>()
+        val success = migration11?.execute(null, rootfsDir) { logs.add(it) } ?: false
+        assertTrue("Migration v11 must succeed", success)
+
+        val bwrapBin = File(rootfsDir, "usr/bin/bwrap")
+        assertTrue("bwrap stub must exist", bwrapBin.exists())
+        assertTrue("bwrap stub must be executable", bwrapBin.canExecute())
+        assertTrue("bwrap stub must bypass sandboxing", bwrapBin.readText().contains("execv"))
+
+        val xstartup = File(rootfsDir, "etc/vnc/xstartup")
+        assertTrue("xstartup must exist", xstartup.exists())
+        assertTrue("xstartup must be executable", xstartup.canExecute())
+        assertTrue("xstartup must launch startxfce4", xstartup.readText().contains("startxfce4"))
+        assertTrue("xstartup must use dbus-launch", xstartup.readText().contains("dbus-launch"))
+        assertTrue("xstartup must disable glycin sandboxing", xstartup.readText().contains("GLYCIN_DISABLE_SANDBOX=1"))
+
+        val vncConfig = File(rootfsDir, "etc/vnc/config")
+        assertTrue("vnc config must exist", vncConfig.exists())
+        assertTrue("vnc config must specify securitytypes", vncConfig.readText().contains("securitytypes=None,VncAuth"))
+        assertTrue("vnc config must specify useblacklist=0", vncConfig.readText().contains("useblacklist=0"))
     }
 
     @Test

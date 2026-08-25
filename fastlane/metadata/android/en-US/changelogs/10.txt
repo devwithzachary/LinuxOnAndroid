@@ -1,0 +1,5 @@
+• Persistent Background Execution: Runs PRoot in a Foreground Service with WakeLock to prevent Doze/battery limits from interrupting compiles, SSH, and servers.
+• Live Container RAM & Resource Status: Real-time notification shade monitor with true process tree memory usage.
+• Instant Startup: Fast async storage scanning eliminates splash screen delays.
+• XFCE 4 Desktop & VNC Fixes: Smooth GUI launch with bypass for image loaders.
+• Bundled JetBrains & Ubuntu Mono Fonts: Flawless monospace spacing.

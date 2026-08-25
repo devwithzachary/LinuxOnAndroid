@@ -5,9 +5,31 @@
     <string name="app_tagline_hero">PRoot-based Linux image manager for non-rooted Android devices.</string>
     <string name="website_domain">linuxonandroid.com</string>
     <string name="website_url">https://linuxonandroid.com</string>
+    <string name="discord_url">https://discord.gg/vJbBagx8JA</string>
     <string name="patreon_url">https://www.patreon.com/cw/DevWithZachary/membership</string>
     <string name="buymeacoffee_url">http://buymeacoffee.com/linuxonandroid</string>
     <string name="github_issues_url">https://github.com/devwithzachary/LinuxOnAndroid/issues</string>
+
+    <!-- Splash & Initialization -->
+    <string name="splash_init_verifying_binaries">Verifying CPU architecture &amp; PRoot binaries…</string>
+    <string name="splash_init_checking_filesystem">Checking Linux rootfs filesystem &amp; storage…</string>
+    <string name="splash_init_preparing">Preparing container environment…</string>
+
+    <!-- Foreground Service & Resource Monitor -->
+    <string name="notification_channel_name">Linux Container &amp; Service Monitor</string>
+    <string name="notification_channel_desc">Displays active Linux container sessions, servers, and background compilation status.</string>
+    <string name="notification_title_active">Linux Container Active</string>
+    <string name="notification_title_idle">Linux Container Standby</string>
+    <string name="notification_action_open_terminal">Open Terminal</string>
+    <string name="notification_action_stop_session">Stop Session</string>
+    <string name="notification_status_terminal_active">Terminal session active</string>
+    <string name="notification_status_ssh_listening">SSH listening on :%1$d</string>
+    <string name="notification_status_vnc_active">VNC server on :5901</string>
+    <string name="notification_status_nginx_active">NGINX server on :80</string>
+    <string name="setting_keep_alive_title">Background Execution &amp; WakeLock</string>
+    <string name="setting_keep_alive_desc">Runs a persistent foreground service with partial CPU WakeLock to prevent Android Doze and Phantom Process Killer from terminating compilations, SSH servers, or terminal sessions.</string>
+    <string name="setting_keep_screen_on_title">Keep Screen On While Terminal Is Active</string>
+    <string name="setting_keep_screen_on_desc">Keeps the display awake while a terminal session is on screen, so long running tasks stay visible without needing to touch the screen.</string>
 
     <!-- Navigation Tabs -->
     <string name="nav_dashboard">Dashboard</string>
@@ -46,6 +68,11 @@
     <string name="patreon_support_title">Support the Project</string>
     <string name="patreon_support_text">Complete Linux Installer is free and open-source software. If you find this app helpful and want to support ongoing development, new features, and distros, join my Patreon from $1/month or leave a one-off tip on Buy Me a Coffee!</string>
 
+    <!-- Discord Community -->
+    <string name="discord_card_title">Community &amp; Discussion</string>
+    <string name="discord_card_text">Join our official Discord community to chat with other users, share Linux setups, ask questions, and follow development updates.</string>
+    <string name="btn_join_discord">Join Discord Community</string>
+
     <!-- Active Development & Bug Reporting -->
     <string name="alpha_card_title">Active Development &amp; Issue Reporting</string>
     <string name="alpha_card_text">Complete Linux Installer is under constant development. You may encounter bugs or unexpected behavior. If you discover any issues, please submit them on GitHub!</string>
@@ -53,11 +80,19 @@
 
     <!-- About Screen -->
     <string name="about_info_title">App &amp; Environment Information</string>
+    <string name="about_credits_title">Credits &amp; Community Contributors</string>
+    <string name="about_credits_subtitle">Celebrating the open-source community members who contribute code, bug reports, and features to LinuxOnAndroid.</string>
+    <string name="credits_tab_code">Code &amp; PRs</string>
+    <string name="credits_tab_issues">Bug Hunters &amp; Pioneers</string>
+    <string name="credits_tab_patreon">Patreon Sponsors</string>
+    <string name="credits_patreon_empty_title">No Patreon Sponsors Yet</string>
+    <string name="credits_patreon_empty_text">Be the first to sponsor ongoing development on Patreon and have your profile featured here!</string>
+    <string name="credits_btn_become_sponsor">Become a Sponsor on Patreon</string>
     <string name="about_changelog_title">Changelog History</string>
     <string name="label_app_version">Application Version</string>
     <string name="label_build_target">Build Target</string>
     <string name="label_linux_distro">Linux Distribution</string>
-    <string name="label_virtualization_engine">Virtualization Engine</string>
+    <string name="label_container_engine">Container Engine</string>
     <string name="label_developer">Developer</string>
 
     <!-- Software Hub -->
@@ -95,7 +130,7 @@
     <string name="wizard_intro_part1">Part of the LinuxonAndroid project (</string>
     <string name="wizard_intro_part2">). Run a full Linux distribution on your phone without root access.</string>
     <string name="feature_no_root_title">No Root Required</string>
-    <string name="feature_no_root_desc">Uses PRoot user-space virtualization to safely execute Linux binaries inside an isolated app sandbox.</string>
+    <string name="feature_no_root_desc">Uses PRoot user-space interception (ptrace) to safely execute Linux binaries inside an isolated rootless container sandbox.</string>
     <string name="feature_ubuntu_base_title">Official Ubuntu 26.04 LTS Base</string>
     <string name="feature_ubuntu_base_desc">Downloads a minimal official Ubuntu image (~30 MB) with APT package manager support.</string>
     <string name="feature_cli_title">CLI &amp; Developer Tools</string>
@@ -111,4 +146,14 @@
     <string name="btn_add_key">Add Key</string>
     <string name="btn_reset_default_keys">Reset Defaults</string>
     <string name="btn_save_keys">Save Hotkeys</string>
+
+    <!-- Notification Permission Rationale & Wizard -->
+    <string name="wizard_notification_title">Background Service &amp; Notification Monitor</string>
+    <string name="wizard_notification_desc">LinuxOnAndroid runs a persistent background service holding a partial WakeLock to keep your container, terminal sessions, SSH, and VNC running even when the app is minimized. Grant notification permission to view live RAM usage and container status in your notification shade.</string>
+    <string name="wizard_notification_granted">Notification &amp; Service Monitor Permission Granted</string>
+    <string name="wizard_notification_btn">Grant Notification Permission</string>
+    <string name="dialog_notification_permission_title">Enable Live Service Notification</string>
+    <string name="dialog_notification_permission_desc">LinuxOnAndroid uses a persistent foreground service to prevent Android Doze and battery savers from killing your terminal, SSH, and VNC sessions when minimized. Granting notification permission displays live CPU/RAM usage and service status in your notification shade.</string>
+    <string name="dialog_notification_permission_grant">Grant Permission</string>
+    <string name="dialog_notification_permission_not_now">Not Now</string>
 </resources>

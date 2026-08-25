@@ -377,6 +377,225 @@ object RootfsMigrationManager {
                 emitLog("OpenSSH and terminal subsystem upgraded.")
                 return true
             }
+        },
+
+        // v10: OS Release, LSB Release & Environment Codename Variables
+        object : RootfsMigrationStep {
+            override val targetVersionCode: Int = 10
+            override val name: String = "OS Release & Environment Codename Configuration"
+            override val description: String = "Configures UBUNTU_CODENAME and VERSION_CODENAME across /etc/os-release, /etc/environment, /etc/lsb-release, and /etc/profile.d/ for Docker and third-party apt repositories."
+
+            override fun execute(pRootEngine: PRootEngine?, rootfsDir: File, emitLog: (String) -> Unit): Boolean {
+                emitLog("Configuring OS release and environment codename exports...")
+                val etcDir = File(rootfsDir, "etc").apply { mkdirs() }
+
+                // Read existing codename from os-release or default to resolute
+                var codename = "resolute"
+                val osReleaseFile = File(etcDir, "os-release")
+                if (osReleaseFile.exists()) {
+                    val content = osReleaseFile.readText()
+                    val match = Regex("""(?:UBUNTU_CODENAME|VERSION_CODENAME)=["']?([a-zA-Z0-9_-]+)["']?""").find(content)
+                    if (match != null) {
+                        codename = match.groupValues[1]
+                    }
+                    if (!content.contains("UBUNTU_CODENAME=") || !content.contains("VERSION_CODENAME=")) {
+                        val updated = buildString {
+                            append(content.trimEnd())
+                            appendLine()
+                            if (!content.contains("UBUNTU_CODENAME=")) appendLine("UBUNTU_CODENAME=$codename")
+                            if (!content.contains("VERSION_CODENAME=")) appendLine("VERSION_CODENAME=$codename")
+                        }
+                        osReleaseFile.writeText(updated)
+                    }
+                } else {
+                    osReleaseFile.writeText(
+                        """
+                        NAME="Ubuntu"
+                        VERSION="26.04 LTS (Resolute Raccoon)"
+                        ID=ubuntu
+                        ID_LIKE=debian
+                        PRETTY_NAME="Ubuntu 26.04 LTS"
+                        VERSION_ID="26.04"
+                        UBUNTU_CODENAME=resolute
+                        VERSION_CODENAME=resolute
+                        """.trimIndent() + "\n"
+                    )
+                }
+
+                // /etc/lsb-release
+                val lsbReleaseFile = File(etcDir, "lsb-release")
+                if (!lsbReleaseFile.exists() || !lsbReleaseFile.readText().contains("DISTRIB_CODENAME=")) {
+                    lsbReleaseFile.writeText(
+                        """
+                        DISTRIB_ID=Ubuntu
+                        DISTRIB_RELEASE=26.04
+                        DISTRIB_CODENAME=$codename
+                        DISTRIB_DESCRIPTION="Ubuntu 26.04 LTS"
+                        """.trimIndent() + "\n"
+                    )
+                }
+
+                // /etc/environment
+                val envFile = File(etcDir, "environment")
+                val envContent = if (envFile.exists()) envFile.readText() else ""
+                if (!envContent.contains("UBUNTU_CODENAME=") || !envContent.contains("VERSION_CODENAME=")) {
+                    val updated = buildString {
+                        append(envContent.trimEnd())
+                        if (envContent.isNotBlank()) appendLine()
+                        if (!envContent.contains("PATH=")) appendLine("PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"")
+                        if (!envContent.contains("LANG=")) appendLine("LANG=\"C.UTF-8\"")
+                        if (!envContent.contains("UBUNTU_CODENAME=")) appendLine("UBUNTU_CODENAME=\"$codename\"")
+                        if (!envContent.contains("VERSION_CODENAME=")) appendLine("VERSION_CODENAME=\"$codename\"")
+                    }
+                    envFile.writeText(updated)
+                }
+
+                // /etc/profile.d/00-linuxonandroid-env.sh
+                val profileD = File(etcDir, "profile.d").apply { mkdirs() }
+                val envProfileScript = File(profileD, "00-linuxonandroid-env.sh")
+                envProfileScript.writeText(
+                    """
+                    #!/bin/sh
+                    if [ -f /etc/os-release ]; then
+                        . /etc/os-release
+                        export UBUNTU_CODENAME="${'$'}{UBUNTU_CODENAME:-${'$'}VERSION_CODENAME}"
+                        export VERSION_CODENAME="${'$'}{VERSION_CODENAME:-${'$'}UBUNTU_CODENAME}"
+                    else
+                        export UBUNTU_CODENAME="$codename"
+                        export VERSION_CODENAME="$codename"
+                    fi
+                    """.trimIndent() + "\n"
+                )
+                envProfileScript.setExecutable(true, false)
+                envProfileScript.setReadable(true, false)
+
+                emitLog("Environment codename exports configured.")
+                return true
+            }
+        },
+
+        // v11: XFCE Desktop, TigerVNC & Bubblewrap Bypass
+        object : RootfsMigrationStep {
+            override val targetVersionCode: Int = 11
+            override val name: String = "XFCE Desktop, TigerVNC & Image Loader Subsystem"
+            override val description: String = "Configures Bubblewrap sandboxing bypass, TigerVNC xstartup, and socket directories for graphical desktop environments."
+
+            override fun execute(pRootEngine: PRootEngine?, rootfsDir: File, emitLog: (String) -> Unit): Boolean {
+                emitLog("Configuring Bubblewrap bypass and TigerVNC startup scripts...")
+
+                // 1. Bubblewrap bypass stub
+                val bwrapBin = File(rootfsDir, "usr/bin/bwrap").apply { parentFile?.mkdirs() }
+                val bwrapReal = File(rootfsDir, "usr/bin/bwrap.real")
+                if (bwrapBin.exists() && !bwrapReal.exists()) {
+                    try { bwrapBin.renameTo(bwrapReal) } catch (_: Exception) {}
+                }
+                bwrapBin.writeText(
+                    """
+                    #!/usr/bin/env python3
+                    import sys, os
+
+                    args = sys.argv[1:]
+                    exec_idx = -1
+                    for i, arg in enumerate(args):
+                        if arg.startswith("/usr/") and os.path.isfile(arg) and os.access(arg, os.X_OK):
+                            exec_idx = i
+                            break
+
+                    if exec_idx >= 0:
+                        target_cmd = args[exec_idx]
+                        target_args = args[exec_idx:]
+                        os.execv(target_cmd, target_args)
+                    else:
+                        sys.exit(0)
+                    """.trimIndent() + "\n"
+                )
+                bwrapBin.setExecutable(true, false)
+                bwrapBin.setReadable(true, false)
+
+                // 2. /tmp/.X11-unix and /tmp/.ICE-unix socket directories
+                val tmpDir = File(rootfsDir, "tmp").apply { mkdirs() }
+                File(tmpDir, ".X11-unix").mkdirs()
+                File(tmpDir, ".ICE-unix").mkdirs()
+
+                // 3. /etc/vnc/xstartup and /etc/X11/Xtigervnc-session
+                val vncDir = File(rootfsDir, "etc/vnc").apply { mkdirs() }
+                val xstartupFile = File(vncDir, "xstartup")
+                xstartupFile.writeText(
+                    """
+                    #!/bin/sh
+                    unset SESSION_MANAGER
+                    unset DBUS_SESSION_BUS_ADDRESS
+                    export XDG_SESSION_TYPE=x11
+                    export XDG_CURRENT_DESKTOP=XFCE
+                    export DESKTOP_SESSION=xfce
+                    export NO_AT_BRIDGE=1
+                    export GDK_BACKEND=x11
+                    export GTK_OVERLAY_SCROLLING=0
+                    export GLYCIN_DISABLE_SANDBOX=1
+                    export GLYCIN_ENABLE_SANDBOX=0
+                    export LIBGL_ALWAYS_SOFTWARE=1
+                    [ -r ${'$'}HOME/.Xresources ] && xrdb ${'$'}HOME/.Xresources 2>/dev/null || true
+                    if command -v dbus-launch >/dev/null 2>&1; then
+                        eval ${'$'}(dbus-launch --sh-syntax --exit-with-session)
+                    fi
+                    xsetroot -solid "#1e293b" 2>/dev/null || true
+                    xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true
+                    xfsettingsd --daemon 2>/dev/null || true
+                    xfwm4 --compositor=off --daemon 2>/dev/null || xfwm4 --compositor=off &
+                    xfce4-panel &
+                    Thunar --daemon 2>/dev/null &
+                    if command -v xfdesktop >/dev/null 2>&1; then
+                        exec xfdesktop
+                    elif command -v startxfce4 >/dev/null 2>&1; then
+                        exec startxfce4
+                    else
+                        exec xterm
+                    fi
+                    """.trimIndent() + "\n"
+                )
+                xstartupFile.setExecutable(true, false)
+                xstartupFile.setReadable(true, false)
+
+                val x11Session = File(rootfsDir, "etc/X11/Xtigervnc-session").apply { parentFile?.mkdirs() }
+                x11Session.writeText(xstartupFile.readText())
+                x11Session.setExecutable(true, false)
+                x11Session.setReadable(true, false)
+
+                // 4. TigerVNC default config
+                val vncConfigFile = File(vncDir, "config")
+                vncConfigFile.writeText("securitytypes=None,VncAuth\nuseblacklist=0\ngeometry=1280x720\nlocalhost=no\nalwaysshared=1\n")
+                val tigervncDefaults = File(rootfsDir, "etc/tigervnc/vncserver-config-defaults")
+                if (tigervncDefaults.exists()) {
+                    try { tigervncDefaults.delete() } catch (_: Exception) {}
+                }
+
+                // 5. User skeletons
+                val rootVncDir = File(rootfsDir, "root/.vnc").apply { mkdirs() }
+                File(rootVncDir, "xstartup").writeText(xstartupFile.readText())
+                File(rootVncDir, "xstartup").setExecutable(true, false)
+                File(rootVncDir, "config").writeText(vncConfigFile.readText())
+
+                val skelVncDir = File(rootfsDir, "etc/skel/.vnc").apply { mkdirs() }
+                File(skelVncDir, "xstartup").writeText(xstartupFile.readText())
+                File(skelVncDir, "xstartup").setExecutable(true, false)
+                File(skelVncDir, "config").writeText(vncConfigFile.readText())
+
+                val homeDir = File(rootfsDir, "home")
+                if (homeDir.exists()) {
+                    homeDir.listFiles()?.filter { it.isDirectory }?.forEach { userDir ->
+                        val uVnc = File(userDir, ".vnc").apply { mkdirs() }
+                        val uXstartup = File(uVnc, "xstartup")
+                        uXstartup.writeText(xstartupFile.readText())
+                        uXstartup.setExecutable(true, false)
+                        File(uVnc, "config").writeText(vncConfigFile.readText())
+                        val uConfig = File(userDir, ".config/tigervnc").apply { mkdirs() }
+                        File(uConfig, "config").writeText(vncConfigFile.readText())
+                    }
+                }
+
+                emitLog("XFCE and TigerVNC configuration applied.")
+                return true
+            }
         }
     )
 
