@@ -26,9 +26,11 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Official Discord Community**: Added direct 1-tap invitation link to the LinuxOnAndroid Discord community in the About screen and project documentation.
 
 ### 🌟 Project Credits & Contributor Recognition
-- **Community Credits Section**: Added dedicated Credits & Contributors card in the About screen celebrating code/translation contributors (PRs), bug hunters & feature pioneers (issues #7, #8, #9, #10, #11, #12, #13, #14, #16, #19, #21, #31), and Patreon backers with interactive GitHub profile and issue links.
+- **Community Credits Section**: Added dedicated Credits & Contributors card in the About screen celebrating code/translation contributors (PR #27, PR #33, PR #34 by @sleepy-snowflake), bug hunters & feature pioneers (issues #7, #8, #9, #10, #11, #12, #13, #14, #16, #19, #21, #25, #31), and Patreon backers with interactive GitHub profile and issue links.
 
-### 🚀 Dynamic Splash Screen & Environment Initialization
+### 🚀 Dynamic Splash Screen & Instant Startup Performance
+- **Asynchronous Storage & Filesystem Pre-Flight Checks**: Replaced blocking recursive Java `File.listFiles()` rootfs disk scans with fast native `du -sk` (160ms vs 10+s) and non-blocking background coroutine calculation.
+- **Cached RootFS Storage**: Displays previously known container disk size instantly on app launch from persistent cache with zero startup delay.
 - **Real-Time Loading Status**: Replaced cryptic "PRoot Environment v1.0" badge with dynamic detected architecture chip (`PRoot Container • ARM64/x86_64`) and real-time step-by-step progress status messages during environment pre-flight checks.
 
 ### 🖥️ XFCE 4 Desktop & TigerVNC GUI Environment
@@ -40,9 +42,9 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Background Execution & WakeLock**: Runs PRoot inside an Android Foreground Service holding a partial CPU `WakeLock`, preventing Android Doze and Phantom Process Killer from terminating long `apt upgrade` operations, C/C++/Rust compilations, SSH sessions, or background servers when the app is minimized.
 - **Swipe & Recents Persistence (`stopWithTask="false"`)**: Container sessions and background daemons persist across task dismissal and app minimization with `onTaskRemoved` lifecycle handling.
 - **Android 13+ Notification Permission (`POST_NOTIFICATIONS`)**: Added automatic runtime permission prompt on modern Android versions (API 33+) ensuring persistent service notifications and live resource status are visible in the status bar.
-- **Live Service Status & Resource Monitoring**: Displays active container status (e.g., `SSH :2222 | VNC :5901 • RAM: 140MB`) in the persistent Android notification shade with quick actions to "Open Terminal" or "Stop Session".
+- **Full Container Process-Tree RAM Monitoring**: Upgraded RAM reporting in the notification shade to calculate true Resident Set Size (RSS) across all container child processes (`PRoot`, `Xtigervnc`, `xfdesktop`, `xfwm4`, `dbus`, `sshd`, compilers) via `/proc/*/statm`.
 - **Dedicated Background Execution Settings**: Configurable in its own dedicated card and filter category under Settings > Background Execution with instant start/stop lifecycle management and real-time protection summary.
-- **Keep Screen On While Terminal Is Active (Issue #25)**: Added a screen keep-alive tied to the terminal view, so the display no longer times out mid-session while watching long builds, log output, or interactive SSH work. Configurable under Settings > Background Execution and enabled by default.
+- **Keep Screen On While Terminal Is Active (PR #34 / Issue #25)**: Added a screen keep-alive tied to the terminal view, so the display no longer times out mid-session while watching long builds, log output, or interactive SSH work. Configurable under Settings > Background Execution and enabled by default.
 
 
 ## [1.2.0] - 2026-08-14

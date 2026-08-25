@@ -30,30 +30,69 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         private const val TAG = "RootfsManager"
     }
 
+    private val prefs = context.getSharedPreferences("rootfs_manager_prefs", Context.MODE_PRIVATE)
+
     val rootfsDir: File get() = pRootEngine.rootfsDir
 
     fun isInstalled(): Boolean = pRootEngine.isRootfsInstalled()
 
-    suspend fun getStorageUsedMb(): Long = withContext(Dispatchers.IO) {
-        if (!rootfsDir.exists()) return@withContext 0L
-        try {
-            calculateFolderSize(rootfsDir) / (1024 * 1024)
-        } catch (_: Exception) {
-            0L
-        }
+    fun getCachedStorageUsedMb(): Long {
+        return prefs.getLong("cached_storage_used_mb", 0L)
     }
 
-    private fun calculateFolderSize(dir: File): Long {
-        var size = 0L
-        val files = dir.listFiles() ?: return 0L
-        for (file in files) {
-            size += if (file.isDirectory) {
-                calculateFolderSize(file)
-            } else {
-                file.length()
-            }
+    suspend fun getStorageUsedMb(): Long = withContext(Dispatchers.IO) {
+        if (!rootfsDir.exists()) {
+            prefs.edit().putLong("cached_storage_used_mb", 0L).apply()
+            return@withContext 0L
         }
-        return size
+
+        // 1. Fast native 'du -sk' via system du
+        try {
+            val duBin = if (File("/system/bin/du").exists()) "/system/bin/du" else "du"
+            val pb = ProcessBuilder(duBin, "-sk", rootfsDir.absolutePath)
+            pb.redirectErrorStream(true)
+            val proc = pb.start()
+            val output = proc.inputStream.bufferedReader().readLine()
+            proc.waitFor()
+            if (output != null) {
+                val tokens = output.trim().split("\\s+".toRegex())
+                val kb = tokens.firstOrNull()?.toLongOrNull()
+                if (kb != null && kb > 0) {
+                    val mb = (kb / 1024L).coerceAtLeast(1L)
+                    prefs.edit().putLong("cached_storage_used_mb", mb).apply()
+                    return@withContext mb
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 2. Optimized NIO walkFileTree fallback (avoids millions of File object allocations)
+        try {
+            var totalBytes = 0L
+            java.nio.file.Files.walkFileTree(
+                rootfsDir.toPath(),
+                object : java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
+                    override fun visitFile(
+                        file: java.nio.file.Path,
+                        attrs: java.nio.file.attribute.BasicFileAttributes
+                    ): java.nio.file.FileVisitResult {
+                        totalBytes += attrs.size()
+                        return java.nio.file.FileVisitResult.CONTINUE
+                    }
+
+                    override fun visitFileFailed(
+                        file: java.nio.file.Path,
+                        exc: java.io.IOException?
+                    ): java.nio.file.FileVisitResult {
+                        return java.nio.file.FileVisitResult.CONTINUE
+                    }
+                }
+            )
+            val mb = (totalBytes / (1024 * 1024)).coerceAtLeast(0L)
+            prefs.edit().putLong("cached_storage_used_mb", mb).apply()
+            return@withContext mb
+        } catch (_: Exception) {
+            getCachedStorageUsedMb()
+        }
     }
 
     fun downloadAndInstallUbuntu(

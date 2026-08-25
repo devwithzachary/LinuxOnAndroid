@@ -97,7 +97,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _dashboardState = MutableStateFlow(
         DashboardUiState(
             sshPort = loadSshPort(),
-            dnsServers = rootfsManager.getDnsServers()
+            dnsServers = rootfsManager.getDnsServers(),
+            storageUsedMb = rootfsManager.getCachedStorageUsedMb()
         )
     )
     val dashboardState: StateFlow<DashboardUiState> = _dashboardState.asStateFlow()
@@ -388,7 +389,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val currentDns = rootfsManager.getDnsServers()
         _dnsServers.value = currentDns
 
-        val storage = if (installed) rootfsManager.getStorageUsedMb() else 0L
+        val cachedStorage = if (installed) rootfsManager.getCachedStorageUsedMb() else 0L
 
         _dashboardState.value = _dashboardState.value.copy(
             isInstalled = installed,
@@ -401,8 +402,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isUpgradeAvailable = isUpgradeAvail,
             dnsServers = currentDns,
             containerUsers = users,
-            storageUsedMb = storage
+            storageUsedMb = cachedStorage
         )
+
+        if (installed) {
+            triggerAsyncStorageCalculation()
+        }
+    }
+
+    private var storageCalculationJob: kotlinx.coroutines.Job? = null
+
+    private fun triggerAsyncStorageCalculation() {
+        storageCalculationJob?.cancel()
+        storageCalculationJob = viewModelScope.launch(Dispatchers.IO) {
+            val installed = rootfsManager.isInstalled()
+            if (installed) {
+                val freshStorageMb = rootfsManager.getStorageUsedMb()
+                _dashboardState.value = _dashboardState.value.copy(storageUsedMb = freshStorageMb)
+            } else {
+                _dashboardState.value = _dashboardState.value.copy(storageUsedMb = 0L)
+            }
+        }
     }
 
     fun refreshStatus() {
