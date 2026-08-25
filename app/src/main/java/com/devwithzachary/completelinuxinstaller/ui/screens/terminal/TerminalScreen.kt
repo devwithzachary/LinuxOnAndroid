@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,12 +37,27 @@ fun TerminalScreen(
     onStopSession: () -> Unit,
     defaultLoginUser: String = "root",
     fontSizeSp: Int = 13,
-    fontFamilyName: String = TerminalFonts.DEFAULT_FONT
+    fontFamilyName: String = TerminalFonts.DEFAULT_FONT,
+    isKeepScreenOnEnabled: Boolean = true
 ) {
     val context = LocalContext.current
+    val view = LocalView.current
     val clipboardManager = LocalClipboardManager.current
     val isRunning by terminalBridge.isRunning.collectAsStateWithLifecycle()
     val refreshTrigger by terminalBridge.refreshTrigger.collectAsStateWithLifecycle()
+
+    // Keep the display awake during active sessions (issue #25)
+    DisposableEffect(isKeepScreenOnEnabled, isRunning) {
+        val shouldKeepScreenOn = isKeepScreenOnEnabled && isRunning
+        if (shouldKeepScreenOn) {
+            view.keepScreenOn = true
+        }
+        onDispose {
+            if (shouldKeepScreenOn) {
+                view.keepScreenOn = false
+            }
+        }
+    }
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current

@@ -186,7 +186,9 @@ fun SettingsScreen(
     onUpgradeRootfsClick: () -> Unit = {},
     onDismissBackupStatus: () -> Unit = {},
     isKeepAliveEnabled: Boolean = true,
-    onToggleKeepAlive: () -> Unit = {}
+    onToggleKeepAlive: () -> Unit = {},
+    isKeepScreenOnEnabled: Boolean = true,
+    onSetKeepScreenOn: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val contentResolver = context.contentResolver
@@ -540,6 +542,28 @@ fun SettingsScreen(
                     Switch(
                         checked = isKeepAliveEnabled,
                         onCheckedChange = { onToggleKeepAlive() }
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.setting_keep_screen_on_title),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.setting_keep_screen_on_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isKeepScreenOnEnabled,
+                        onCheckedChange = { onSetKeepScreenOn(it) }
                     )
                 }
 
