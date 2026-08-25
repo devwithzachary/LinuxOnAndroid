@@ -107,6 +107,8 @@ This project relies on several key open-source native components. We gratefully 
 | **talloc (`libtalloc.so`)** | Hierarchical pool-based memory allocator developed by the Samba project, required by PRoot. | [Samba talloc](https://talloc.samba.org/) / [LGPL-3.0](https://www.gnu.org/licenses/lgpl-3.0.html) |
 | **Ubuntu Base** | Official minimal root filesystem tarballs provided by Canonical Ltd. | [Ubuntu Base Releases](https://cdimage.ubuntu.com/ubuntu-base/) / Canonical Ltd. |
 | **Termux Project** | Architectural references and patches for running PRoot and PTY subprocesses on Android. | [Termux](https://github.com/termux) / [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) |
+| **JetBrains Mono** | Bundled monospace font used by the terminal renderer. | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) / [SIL OFL 1.1](licenses/fonts/JetBrainsMono-OFL-1.1.txt) |
+| **Ubuntu Mono** | Bundled monospace font option for the terminal. | [Ubuntu Font Family](https://design.ubuntu.com/font/) / [Ubuntu Font Licence](licenses/fonts/UbuntuFontLicence.txt) |
 
 ---
 
