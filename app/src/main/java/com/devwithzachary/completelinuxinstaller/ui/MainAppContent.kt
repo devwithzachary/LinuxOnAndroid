@@ -256,5 +256,16 @@ fun MainAppContent(viewModel: MainViewModel) {
             upgradeState = upgradeState,
             onDismiss = { viewModel.dismissUpgradeState() }
         )
+
+        if (isInstalled) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            com.devwithzachary.completelinuxinstaller.ui.components.NotificationPermissionRationaleHandler(
+                onPermissionGranted = {
+                    if (viewModel.isKeepAliveEnabled.value && viewModel.isSessionRunning.value) {
+                        com.devwithzachary.completelinuxinstaller.service.PRootForegroundService.start(context)
+                    }
+                }
+            )
+        }
     }
 }

@@ -146,4 +146,14 @@
     <string name="btn_add_key">Add Key</string>
     <string name="btn_reset_default_keys">Reset Defaults</string>
     <string name="btn_save_keys">Save Hotkeys</string>
+
+    <!-- Notification Permission Rationale & Wizard -->
+    <string name="wizard_notification_title">Background Service &amp; Notification Monitor</string>
+    <string name="wizard_notification_desc">LinuxOnAndroid runs a persistent background service holding a partial WakeLock to keep your container, terminal sessions, SSH, and VNC running even when the app is minimized. Grant notification permission to view live RAM usage and container status in your notification shade.</string>
+    <string name="wizard_notification_granted">Notification &amp; Service Monitor Permission Granted</string>
+    <string name="wizard_notification_btn">Grant Notification Permission</string>
+    <string name="dialog_notification_permission_title">Enable Live Service Notification</string>
+    <string name="dialog_notification_permission_desc">LinuxOnAndroid uses a persistent foreground service to prevent Android Doze and battery savers from killing your terminal, SSH, and VNC sessions when minimized. Granting notification permission displays live CPU/RAM usage and service status in your notification shade.</string>
+    <string name="dialog_notification_permission_grant">Grant Permission</string>
+    <string name="dialog_notification_permission_not_now">Not Now</string>
 </resources>

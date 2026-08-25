@@ -146,4 +146,14 @@
     <string name="btn_add_key">Taste ergänzen</string>
     <string name="btn_reset_default_keys">Zurücksetzen</string>
     <string name="btn_save_keys">Hotkeys speichern</string>
+
+    <!-- Notification Permission Rationale & Wizard -->
+    <string name="wizard_notification_title">Hintergrunddienst &amp; Benachrichtigungsüberwachung</string>
+    <string name="wizard_notification_desc">LinuxOnAndroid führt einen persistenten Hintergrunddienst mit partiellem WakeLock aus, damit dein Container, Terminalsitzungen, SSH und VNC auch bei minimierter App aktiv bleiben. Erteile die Benachrichtigungsberechtigung, um den Live-Status und die RAM-Nutzung in der Statusleiste zu sehen.</string>
+    <string name="wizard_notification_granted">Benachrichtigungsberechtigung erteilt</string>
+    <string name="wizard_notification_btn">Benachrichtigungsberechtigung erteilen</string>
+    <string name="dialog_notification_permission_title">Live-Dienstbenachrichtigung aktivieren</string>
+    <string name="dialog_notification_permission_desc">LinuxOnAndroid nutzt einen Vordergrunddienst, um zu verhindern, dass Android Doze und Energiesparmodi deine Terminal-, SSH- und VNC-Sitzungen im Hintergrund beenden. Das Erteilen der Benachrichtigungsberechtigung zeigt den Live-Ressourcenstatus an.</string>
+    <string name="dialog_notification_permission_grant">Berechtigung erteilen</string>
+    <string name="dialog_notification_permission_not_now">Nicht jetzt</string>
 </resources>
