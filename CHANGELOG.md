@@ -42,6 +42,7 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Android 13+ Notification Permission (`POST_NOTIFICATIONS`)**: Added automatic runtime permission prompt on modern Android versions (API 33+) ensuring persistent service notifications and live resource status are visible in the status bar.
 - **Live Service Status & Resource Monitoring**: Displays active container status (e.g., `SSH :2222 | VNC :5901 • RAM: 140MB`) in the persistent Android notification shade with quick actions to "Open Terminal" or "Stop Session".
 - **Dedicated Background Execution Settings**: Configurable in its own dedicated card and filter category under Settings > Background Execution with instant start/stop lifecycle management and real-time protection summary.
+- **Keep Screen On While Terminal Is Active (Issue #25)**: Added a screen keep-alive tied to the terminal view, so the display no longer times out mid-session while watching long builds, log output, or interactive SSH work. Configurable under Settings > Background Execution and enabled by default.
 
 
 ## [1.2.0] - 2026-08-14

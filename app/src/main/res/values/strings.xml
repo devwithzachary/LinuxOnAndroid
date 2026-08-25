@@ -28,6 +28,8 @@
     <string name="notification_status_nginx_active">NGINX server on :80</string>
     <string name="setting_keep_alive_title">Background Execution &amp; WakeLock</string>
     <string name="setting_keep_alive_desc">Runs a persistent foreground service with partial CPU WakeLock to prevent Android Doze and Phantom Process Killer from terminating compilations, SSH servers, or terminal sessions.</string>
+    <string name="setting_keep_screen_on_title">Keep Screen On While Terminal Is Active</string>
+    <string name="setting_keep_screen_on_desc">Keeps the display awake while a terminal session is on screen, so long running tasks stay visible without needing to touch the screen.</string>
 
     <!-- Navigation Tabs -->
     <string name="nav_dashboard">Dashboard</string>

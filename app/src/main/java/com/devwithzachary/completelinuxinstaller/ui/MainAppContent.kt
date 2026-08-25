@@ -174,13 +174,15 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val defaultUser by viewModel.defaultTerminalUser.collectAsState()
                         val fontSize by viewModel.terminalFontSize.collectAsState()
                         val fontFamily by viewModel.terminalFontFamily.collectAsState()
+                        val isKeepScreenOnEnabled by viewModel.isKeepScreenOnEnabled.collectAsState()
                         TerminalScreen(
                             terminalBridge = viewModel.terminalBridge,
                             onStartSession = { viewModel.startTerminalSession() },
                             onStopSession = { viewModel.stopTerminalSession() },
                             defaultLoginUser = defaultUser,
                             fontSizeSp = fontSize,
-                            fontFamilyName = fontFamily
+                            fontFamilyName = fontFamily,
+                            isKeepScreenOnEnabled = isKeepScreenOnEnabled
                         )
                     }
 
@@ -209,6 +211,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val fontSize by viewModel.terminalFontSize.collectAsState()
                         val fontFamily by viewModel.terminalFontFamily.collectAsState()
                         val isKeepAliveEnabled by viewModel.isKeepAliveEnabled.collectAsState()
+                        val isKeepScreenOnEnabled by viewModel.isKeepScreenOnEnabled.collectAsState()
                         SettingsScreen(
                             state = dashboardState,
                             backupState = backupState,
@@ -218,6 +221,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                             terminalFontFamily = fontFamily,
                             isKeepAliveEnabled = isKeepAliveEnabled,
                             onToggleKeepAlive = { viewModel.toggleKeepAlive() },
+                            isKeepScreenOnEnabled = isKeepScreenOnEnabled,
+                            onSetKeepScreenOn = { enabled -> viewModel.setKeepScreenOnEnabled(enabled) },
                             onSelectTheme = { themeId -> viewModel.setTerminalTheme(themeId) },
                             onUpdateCustomTheme = { fg, bg, cursor, sel, ansi ->
                                 viewModel.updateCustomTheme(fg, bg, cursor, sel, ansi)

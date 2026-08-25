@@ -132,6 +132,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun loadKeepScreenOnEnabled(): Boolean {
+        return prefs.getBoolean("terminal_keep_screen_on", true)
+    }
+
+    private val _isKeepScreenOnEnabled = MutableStateFlow(loadKeepScreenOnEnabled())
+    val isKeepScreenOnEnabled: StateFlow<Boolean> = _isKeepScreenOnEnabled.asStateFlow()
+
+    fun setKeepScreenOnEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("terminal_keep_screen_on", enabled).apply()
+        _isKeepScreenOnEnabled.value = enabled
+    }
+
     private val _requestedScreen = MutableStateFlow<AppScreen?>(null)
     val requestedScreen: StateFlow<AppScreen?> = _requestedScreen.asStateFlow()
 
