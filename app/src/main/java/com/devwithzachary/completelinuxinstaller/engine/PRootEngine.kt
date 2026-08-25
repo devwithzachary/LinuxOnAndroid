@@ -139,7 +139,7 @@ class PRootEngine(val context: Context) {
             cmdList.add(config.rootfsDir.absolutePath)
 
             val mounts = mutableListOf(
-                "/proc", "/sys", "/dev", "/dev/pts", "/system",
+                "/proc", "/sys", "/dev", "/dev/pts",
                 "/proc/self/fd:/dev/fd",
                 "/proc/self/fd/0:/dev/stdin",
                 "/proc/self/fd/1:/dev/stdout",
@@ -239,6 +239,16 @@ class PRootEngine(val context: Context) {
             if (l2sDir.exists()) {
                 cmdList.add("-b")
                 cmdList.add(l2sDir.absolutePath)
+                val dataDataL2s = File(l2sDir.absolutePath.replace("/data/user/0/", "/data/data/"))
+                if (dataDataL2s.exists() && dataDataL2s.absolutePath != l2sDir.absolutePath) {
+                    cmdList.add("-b")
+                    cmdList.add(dataDataL2s.absolutePath)
+                }
+                val user0L2s = File(l2sDir.absolutePath.replace("/data/data/", "/data/user/0/"))
+                if (user0L2s.exists() && user0L2s.absolutePath != l2sDir.absolutePath) {
+                    cmdList.add("-b")
+                    cmdList.add(user0L2s.absolutePath)
+                }
             }
 
             cmdList.add("-w")

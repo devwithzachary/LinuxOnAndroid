@@ -31,6 +31,11 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ### 🚀 Dynamic Splash Screen & Environment Initialization
 - **Real-Time Loading Status**: Replaced cryptic "PRoot Environment v1.0" badge with dynamic detected architecture chip (`PRoot Container • ARM64/x86_64`) and real-time step-by-step progress status messages during environment pre-flight checks.
 
+### 🖥️ XFCE 4 Desktop & TigerVNC GUI Environment
+- **Bubblewrap Sandbox Bypass for PRoot**: Added user-space Bubblewrap bypass shim (`/usr/bin/bwrap`) enabling `glycin-loaders`, `libgdk-pixbuf`, and GTK3/GTK4 to load PNG, SVG, JPEG, and desktop icons without requiring Linux user namespace privileges.
+- **Universal XFCE & TigerVNC Startup**: Fully automated `xstartup` generation across `/etc/vnc/xstartup`, `/etc/X11/Xtigervnc-session`, and all user directories (`~/.vnc/xstartup`), ensuring `dbus-launch` session buses, software GL rasterization, and icon caches initialize properly.
+- **Passwordless 1-Tap VNC Launch**: Configured TigerVNC launch command with `-SecurityTypes None --I-KNOW-THIS-IS-INSECURE` and automatic stale lock recovery (`/tmp/.X11-unix`, `/tmp/.ICE-unix`), allowing instant 1-tap connections from any Android VNC client on port 5901.
+
 ### 🛡️ Persistent Foreground Service & Resource Monitor
 - **Background Execution & WakeLock**: Runs PRoot inside an Android Foreground Service holding a partial CPU `WakeLock`, preventing Android Doze and Phantom Process Killer from terminating long `apt upgrade` operations, C/C++/Rust compilations, SSH sessions, or background servers when the app is minimized.
 - **Swipe & Recents Persistence (`stopWithTask="false"`)**: Container sessions and background daemons persist across task dismissal and app minimization with `onTaskRemoved` lifecycle handling.

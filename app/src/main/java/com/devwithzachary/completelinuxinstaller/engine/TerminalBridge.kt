@@ -68,6 +68,7 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
                 envMap["COLORTERM"] = "truecolor"
                 envMap["PROOT_NO_SECCOMP"] = "1"
                 envMap["PROOT_FORCE_SETID"] = "1"
+                envMap["PROOT_LINK2SYMLINK"] = "1"
                 envMap["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
                 val envArray = envMap.map { "${it.key}=${it.value}" }.toTypedArray()

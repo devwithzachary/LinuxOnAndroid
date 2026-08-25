@@ -127,14 +127,42 @@ class RootfsMigrationTest {
 
     @Test
     fun testHasRootfsImprovements_handlesVersionsWithoutChanges() {
-        // App is on build 10, container is on build 10 -> no improvements
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 10, targetVersionCode = 10))
+        // App is on build 11, container is on build 11 -> no improvements
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 11, targetVersionCode = 11))
 
-        // Hypothetical future app build 11 without any added migrations beyond 10
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 10, targetVersionCode = 11))
+        // Hypothetical future app build 12 without any added migrations beyond 11
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 11, targetVersionCode = 12))
 
-        // Legacy container on build 1 -> has improvements up to build 10
-        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 10))
+        // Legacy container on build 1 -> has improvements up to build 11
+        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 11))
+    }
+
+    @Test
+    fun testMigration_v11_configuresXfceAndBwrapStub() {
+        val rootfsDir = tempFolder.newFolder("v11_test_rootfs")
+        val migration11 = RootfsMigrationManager.ALL_MIGRATIONS.find { it.targetVersionCode == 11 }
+        assertNotNull("Migration v11 must exist", migration11)
+
+        val logs = mutableListOf<String>()
+        val success = migration11?.execute(null, rootfsDir) { logs.add(it) } ?: false
+        assertTrue("Migration v11 must succeed", success)
+
+        val bwrapBin = File(rootfsDir, "usr/bin/bwrap")
+        assertTrue("bwrap stub must exist", bwrapBin.exists())
+        assertTrue("bwrap stub must be executable", bwrapBin.canExecute())
+        assertTrue("bwrap stub must bypass sandboxing", bwrapBin.readText().contains("execv"))
+
+        val xstartup = File(rootfsDir, "etc/vnc/xstartup")
+        assertTrue("xstartup must exist", xstartup.exists())
+        assertTrue("xstartup must be executable", xstartup.canExecute())
+        assertTrue("xstartup must launch startxfce4", xstartup.readText().contains("startxfce4"))
+        assertTrue("xstartup must use dbus-launch", xstartup.readText().contains("dbus-launch"))
+        assertTrue("xstartup must disable glycin sandboxing", xstartup.readText().contains("GLYCIN_DISABLE_SANDBOX=1"))
+
+        val vncConfig = File(rootfsDir, "etc/vnc/config")
+        assertTrue("vnc config must exist", vncConfig.exists())
+        assertTrue("vnc config must specify securitytypes", vncConfig.readText().contains("securitytypes=None,VncAuth"))
+        assertTrue("vnc config must specify useblacklist=0", vncConfig.readText().contains("useblacklist=0"))
     }
 
     @Test
