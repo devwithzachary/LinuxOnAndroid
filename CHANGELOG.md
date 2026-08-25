@@ -2,49 +2,50 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
-## [1.3.0] - Unreleased
+## [1.3.0] - 2026-08-25
 
-### 📱 Device Compatibility & Architecture
-- **Expanded Android 6.0+ (API 23) Support**: Lowered minimum supported Android SDK to API 23 (Marshmallow), enabling support for legacy devices and tablets without sacrificing modern Jetpack Compose Material 3 features.
+### 🛡️ Persistent Foreground Service & Full Container Resource Monitor
+- **Background Execution & CPU WakeLock**: Runs PRoot inside an Android Foreground Service holding a partial CPU `WakeLock`, preventing Android Doze, battery savers, and Phantom Process Killer from terminating long `apt upgrade` operations, C/C++/Rust compilations, SSH sessions, or background daemons when the app is minimized.
+- **Full Container Process-Tree RAM Monitoring**: Upgraded RAM reporting in the notification shade to calculate true Resident Set Size (RSS) across all container child processes (`PRoot`, `Xtigervnc`, `xfdesktop`, `xfwm4`, `dbus-daemon`, `sshd`, compilers) via `/proc/*/statm`.
+- **Informative Notification Permission Prompts**: Replaced unprompted startup permission popup with an explicit card in the Setup Wizard on Android 13+ and an informative in-app rationale dialog for existing users.
+- **Swipe & Recents Persistence (`stopWithTask="false"`)**: Container sessions and background daemons persist across task dismissal and app minimization with `onTaskRemoved` lifecycle handling.
+- **Dedicated Background Execution Settings**: Configurable in its own dedicated card and filter category under Settings > Background Execution with instant start/stop lifecycle management and real-time protection summary.
+- **Keep Screen On While Terminal Is Active (PR #34 / Issue #25)**: Added a screen keep-alive tied to the terminal view, so the display no longer times out mid-session while watching long builds, log output, or interactive SSH work. Configurable under Settings > Background Execution and enabled by default.
 
-### 🔤 Terminal Font Engine & Character Spacing (Issue #31)
-- **Bundled Monospace Font Assets**: Embedded authentic **JetBrains Mono** and **Ubuntu Mono** font families directly into APK resources, guaranteeing fixed-pitch character metrics across all Android devices.
+### 🚀 Instant Startup Performance & Asynchronous Storage
+- **Asynchronous Storage & Filesystem Pre-Flight Checks**: Replaced blocking recursive Java `File.listFiles()` rootfs disk scans with fast native `du -sk` (160ms vs 10+s) and non-blocking background coroutine calculation, eliminating cold startup lag.
+- **Cached RootFS Storage**: Displays previously known container disk size instantly on app launch from persistent cache with zero startup delay.
+- **Dynamic Real-Time Splash Screen**: Replaced static badge with detected architecture chip (`PRoot Container • ARM64/x86_64`) and real-time step-by-step progress status messages during environment pre-flight checks.
+
+### 🖥️ XFCE 4 Desktop & TigerVNC GUI Environment
+- **Direct Component Session Launch**: Resolved systemd user session deadlock by launching core desktop components (`xfsettingsd`, `xfwm4 --compositor=off`, `xfce4-panel`, `Thunar`, `xfdesktop`) directly under `dbus-launch`, bypassing systemd timeouts in rootless PRoot.
+- **Bubblewrap Sandbox Bypass for PRoot**: Added user-space Bubblewrap bypass shim (`/usr/bin/bwrap`) enabling `glycin-loaders`, `libgdk-pixbuf`, and GTK3/GTK4 to load PNG, SVG, JPEG, and desktop icons without requiring Linux user namespace privileges.
+- **TigerVNC Rate-Limit Prevention & Universal Configuration**: Added `-UseBlacklist=0` to prevent brute-force lockouts with RealVNC Viewer, generated 8-byte obfuscated VNC password files (`vncpasswd -f`), and automated `xstartup` generation across all user directories.
+- **Passwordless 1-Tap VNC Launch**: Configured TigerVNC launch command with `-SecurityTypes None,VncAuth --I-KNOW-THIS-IS-INSECURE` and automatic stale lock recovery (`/tmp/.X11-unix`, `/tmp/.ICE-unix`), allowing instant 1-tap connections from any Android VNC client on port 5901.
+
+### 🔤 Terminal Monospace Font Engine & Character Spacing (Issue #31 / PR #33)
+- **Bundled Monospace Font Assets**: Embedded authentic **JetBrains Mono** and **Ubuntu Mono** font families directly into APK resources along with their respective open-source license texts (SIL OFL 1.1 and Ubuntu Font License), guaranteeing fixed-pitch character metrics across all Android devices.
 - **Samsung One UI & Custom System Font Compatibility**: Fixed issue where custom system fonts (e.g. SamsungOne) replaced system monospace font mappings with proportional typefaces and caused large uneven character gaps.
 - **Native Bold Font Rendering**: Replaced synthetic fake-bold text scaling with authentic bold font variants (`jetbrains_mono_bold`, `ubuntu_mono_bold`) for crystal-clear terminal text at any font size.
 - **Curated Monospace Font Picker**: Streamlined Settings to dedicated developer monospace typefaces (JetBrains Mono, Ubuntu Mono, Monospace, CyberGlyphs).
 - **Password Manager & Autocorrect Fix**: Configured developer URI input mode (`KeyboardType.Uri`) with `autoCorrectEnabled = false`, preventing 1Password, Bitwarden, KeePass, and Google Password Manager from triggering unwanted autofill popups while strictly suppressing software keyboard autocorrect (e.g. `ls` -> `L's`) on Gboard and Samsung Keyboard.
 - **Permanent CTRL & ALT Modifier Keys**: Pinned persistent **CTRL** and **ALT** modifier toggle buttons at the start of the terminal hotkey bar with visual active latching, allowing users to intuitively send control and alt key combinations (e.g., tap CTRL then L for `Ctrl+L` clear screen, or ALT then B for backward word) with automatic unlatching upon keypress.
 
-### 🐧 Linux Environment & Shell Variables
+### 🐧 Linux Environment & Shell Variables (Issue #19)
 - **System-Wide `UBUNTU_CODENAME` & `VERSION_CODENAME`**: Configured and exported `UBUNTU_CODENAME` and `VERSION_CODENAME` across `/etc/os-release`, `/etc/environment`, `/etc/lsb-release`, and `/etc/profile.d/00-linuxonandroid-env.sh`, ensuring full compatibility with Docker installation scripts and 3rd-party apt repo sources.
 - **PRoot Environment Export**: Injected `UBUNTU_CODENAME` and `VERSION_CODENAME` directly into the PRoot runtime environment for all container sessions and shell invocations.
 
 ### 🌐 Internationalization & Localization (PR #27)
 - **German Language Support (Deutsch)**: Added complete German localization across all screens, setup wizard, settings, dialogs, and software hub (contributed by @bkodenkt via [PR #27](https://github.com/devwithzachary/LinuxOnAndroid/pull/27)).
 
+### 🌟 Project Credits & Contributor Recognition
+- **Community Credits Section**: Added dedicated Credits & Contributors card in the About screen celebrating code/translation contributors (PR #27 by @bkodenkt, PR #33 and PR #34 by @sleepy-snowflake), bug hunters & feature pioneers (issues #7, #8, #9, #10, #11, #12, #13, #14, #16, #19, #21, #25, #31), and Patreon backers with interactive GitHub profile and issue links.
+
 ### 💬 Community & Discord
 - **Official Discord Community**: Added direct 1-tap invitation link to the LinuxOnAndroid Discord community in the About screen and project documentation.
 
-### 🌟 Project Credits & Contributor Recognition
-- **Community Credits Section**: Added dedicated Credits & Contributors card in the About screen celebrating code/translation contributors (PR #27, PR #33, PR #34 by @sleepy-snowflake), bug hunters & feature pioneers (issues #7, #8, #9, #10, #11, #12, #13, #14, #16, #19, #21, #25, #31), and Patreon backers with interactive GitHub profile and issue links.
-
-### 🚀 Dynamic Splash Screen & Instant Startup Performance
-- **Asynchronous Storage & Filesystem Pre-Flight Checks**: Replaced blocking recursive Java `File.listFiles()` rootfs disk scans with fast native `du -sk` (160ms vs 10+s) and non-blocking background coroutine calculation.
-- **Cached RootFS Storage**: Displays previously known container disk size instantly on app launch from persistent cache with zero startup delay.
-- **Real-Time Loading Status**: Replaced cryptic "PRoot Environment v1.0" badge with dynamic detected architecture chip (`PRoot Container • ARM64/x86_64`) and real-time step-by-step progress status messages during environment pre-flight checks.
-
-### 🖥️ XFCE 4 Desktop & TigerVNC GUI Environment
-- **Bubblewrap Sandbox Bypass for PRoot**: Added user-space Bubblewrap bypass shim (`/usr/bin/bwrap`) enabling `glycin-loaders`, `libgdk-pixbuf`, and GTK3/GTK4 to load PNG, SVG, JPEG, and desktop icons without requiring Linux user namespace privileges.
-- **Universal XFCE & TigerVNC Startup**: Fully automated `xstartup` generation across `/etc/vnc/xstartup`, `/etc/X11/Xtigervnc-session`, and all user directories (`~/.vnc/xstartup`), ensuring `dbus-launch` session buses, software GL rasterization, and icon caches initialize properly.
-- **Passwordless 1-Tap VNC Launch**: Configured TigerVNC launch command with `-SecurityTypes None --I-KNOW-THIS-IS-INSECURE` and automatic stale lock recovery (`/tmp/.X11-unix`, `/tmp/.ICE-unix`), allowing instant 1-tap connections from any Android VNC client on port 5901.
-
-### 🛡️ Persistent Foreground Service & Resource Monitor
-- **Background Execution & WakeLock**: Runs PRoot inside an Android Foreground Service holding a partial CPU `WakeLock`, preventing Android Doze and Phantom Process Killer from terminating long `apt upgrade` operations, C/C++/Rust compilations, SSH sessions, or background servers when the app is minimized.
-- **Swipe & Recents Persistence (`stopWithTask="false"`)**: Container sessions and background daemons persist across task dismissal and app minimization with `onTaskRemoved` lifecycle handling.
-- **Android 13+ Notification Permission (`POST_NOTIFICATIONS`)**: Added automatic runtime permission prompt on modern Android versions (API 33+) ensuring persistent service notifications and live resource status are visible in the status bar.
-- **Full Container Process-Tree RAM Monitoring**: Upgraded RAM reporting in the notification shade to calculate true Resident Set Size (RSS) across all container child processes (`PRoot`, `Xtigervnc`, `xfdesktop`, `xfwm4`, `dbus`, `sshd`, compilers) via `/proc/*/statm`.
-- **Dedicated Background Execution Settings**: Configurable in its own dedicated card and filter category under Settings > Background Execution with instant start/stop lifecycle management and real-time protection summary.
-- **Keep Screen On While Terminal Is Active (PR #34 / Issue #25)**: Added a screen keep-alive tied to the terminal view, so the display no longer times out mid-session while watching long builds, log output, or interactive SSH work. Configurable under Settings > Background Execution and enabled by default.
+### 📱 Device Compatibility & Architecture
+- **Expanded Android 6.0+ (API 23) Support**: Lowered minimum supported Android SDK to API 23 (Marshmallow), enabling support for legacy devices and tablets without sacrificing modern Jetpack Compose Material 3 features.
 
 
 ## [1.2.0] - 2026-08-14

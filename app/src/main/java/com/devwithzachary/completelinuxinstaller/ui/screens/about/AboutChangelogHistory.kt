@@ -24,22 +24,23 @@ data class ReleaseChangelog(
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
         version = "v1.3.0",
-        date = "In Development",
+        date = "August 25, 2026",
         initialExpanded = true,
         highlights = listOf(
-            "Persistent Foreground Service & WakeLock: Runs PRoot inside an Android Foreground Service with CPU WakeLock, preventing Doze and Phantom Process Killer from terminating long compiles, SSH, or terminal sessions.",
-            "Live Service & Resource Notification: Displays live container server status (SSH, VNC, NGINX) and RAM usage with quick 'Open Terminal' and 'Stop Session' notification actions, backed by automatic Android 13+ permission prompts.",
-            "Dedicated Background Execution Settings: Easily toggle WakeLock and background persistence in its own dedicated card and filter tab under Settings.",
-            "Dynamic Splash Screen: Replaced static badge with detected architecture info and real-time environment loading status messages.",
-            "German Localization (PR #27): Added full German language support across all screens, wizards, and dialogs (contributed by @bkodenkt).",
-            "Community Credits & Contributors: Added dedicated Credits section to the About screen highlighting code/PR contributors, issue reporters, and Patreon sponsors.",
-            "Official Discord Community: Added direct 1-tap invite link to the official LinuxOnAndroid Discord community in the About screen.",
-            "Terminal Monospace Font Engine: Bundled authentic JetBrains Mono and Ubuntu Mono font assets directly in APK, fixing character gap issues on Samsung One UI and custom OEM system fonts.",
+            "Persistent Foreground Service & CPU WakeLock: Runs PRoot inside an Android Foreground Service with CPU WakeLock, preventing Doze and Phantom Process Killer from terminating long compiles, SSH, or terminal sessions when minimized.",
+            "Full Container Process-Tree RAM Monitoring: Notification shade calculates true Resident Set Size (RSS) memory across all container child processes (PRoot, Xtigervnc, XFCE, D-Bus, sshd, compilers) via /proc/*/statm.",
+            "Instant Startup & Asynchronous RootFS Storage Scanning: Replaced blocking recursive Java File.listFiles() disk scans with fast native du -sk (160ms vs 10+s) and non-blocking background calculation, eliminating splash screen lag.",
+            "Notification Permission Rationale & Wizard Card: Replaced unprompted startup permission popup with an explicit card in the Setup Wizard on Android 13+ and an informative in-app rationale dialog for existing users.",
+            "Keep Screen On While Terminal Is Active (PR #34 / Issue #25): Added display keep-alive setting tied to the terminal view, preventing the phone screen from sleeping mid-session during long builds or tailing logs.",
+            "XFCE 4 Desktop & TigerVNC Subsystem: Fixed graphical desktop session startup with direct component launch, user-space Bubblewrap sandbox bypass for GTK image loaders, automatic password generation (vncpasswd -f), and -UseBlacklist=0 rate-limit prevention for RealVNC Viewer.",
+            "Terminal Monospace Font Engine (Issue #31 / PR #33): Bundled authentic JetBrains Mono and Ubuntu Mono font assets directly in APK with license text (OFL 1.1 / Ubuntu Font License), fixing character gap issues on Samsung One UI and custom OEM system fonts.",
             "Password Manager & Autocorrect Fix: Configured developer URI input mode without password classification, preventing annoying 1Password/Bitwarden autofill popups while strictly disabling IME autocorrect (e.g. 'ls' -> 'L\'s').",
             "Permanent CTRL & ALT Modifier Keys: Pinned dedicated CTRL and ALT toggle keys at the start of the hotkey ribbon that latch for the next keypress (e.g. CTRL + L for clear screen), simplifying terminal shortcuts.",
-            "XFCE 4 Desktop & TigerVNC Subsystem: Fixed graphical desktop session startup with user-space Bubblewrap sandbox bypass, automated TigerVNC xstartup across users, and passwordless 1-tap VNC launch on port 5901.",
+            "German Localization (PR #27): Added full German language support across all screens, setup wizard, settings, dialogs, and software hub (contributed by @bkodenkt).",
+            "Community Credits & Contributors Section: Added dedicated Credits section to the About screen celebrating code/translation contributors (PRs #27, #33, #34 by @bkodenkt and @sleepy-snowflake), bug hunters & feature pioneers (issues #7, #8, #9, #10, #11, #12, #13, #14, #16, #19, #21, #25, #31), and Patreon sponsors.",
+            "Official Discord Community: Added direct 1-tap invite link to the official LinuxOnAndroid Discord community in the About screen.",
             "Expanded Android 6.0+ (API 23) Support: Lowered minimum supported SDK to Android 6.0 (Marshmallow), broadening device support to 2015+ hardware without sacrificing modern Jetpack Compose Material 3 features.",
-            "UBUNTU_CODENAME & VERSION_CODENAME Exports: Configured system-wide codename environment variables in /etc/os-release, /etc/environment, /etc/lsb-release, and /etc/profile.d/, simplifying Docker installations and third-party repository setup."
+            "UBUNTU_CODENAME & VERSION_CODENAME Exports (Issue #19): Configured system-wide codename environment variables in /etc/os-release, /etc/environment, /etc/lsb-release, and /etc/profile.d/, simplifying Docker installations and third-party repository setup."
         )
     ),
     ReleaseChangelog(
