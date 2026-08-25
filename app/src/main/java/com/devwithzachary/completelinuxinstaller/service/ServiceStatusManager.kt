@@ -81,6 +81,37 @@ object ServiceStatusManager {
         return (usedBytes / (1024 * 1024)).coerceAtLeast(1L)
     }
 
+    fun getTotalContainerMemoryMb(): Long {
+        return try {
+            val procDir = File("/proc")
+            val pageSize = try {
+                android.system.Os.sysconf(android.system.OsConstants._SC_PAGESIZE)
+            } catch (_: Throwable) {
+                4096L
+            }
+            var totalRssPages = 0L
+            val pids = procDir.listFiles { file -> file.isDirectory && file.name.all { it.isDigit() } }
+            pids?.forEach { pidDir ->
+                try {
+                    val statmFile = File(pidDir, "statm")
+                    if (statmFile.canRead()) {
+                        val line = statmFile.readText().trim()
+                        val tokens = line.split("\\s+".toRegex())
+                        if (tokens.size >= 2) {
+                            val rssPages = tokens[1].toLongOrNull() ?: 0L
+                            totalRssPages += rssPages
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+            val totalBytes = totalRssPages * pageSize
+            val totalMb = totalBytes / (1024 * 1024)
+            if (totalMb > 0) totalMb else getAppMemoryMb()
+        } catch (_: Exception) {
+            getAppMemoryMb()
+        }
+    }
+
     fun checkStatus(
         isTerminalActive: Boolean,
         rootfsDir: File?,
@@ -92,7 +123,7 @@ object ServiceStatusManager {
             sshPort = sshPort,
             isVncActive = isVncRunning(rootfsDir),
             isNginxActive = isNginxRunning(rootfsDir),
-            memoryUsedMb = getAppMemoryMb()
+            memoryUsedMb = getTotalContainerMemoryMb()
         )
     }
 }

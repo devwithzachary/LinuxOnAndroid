@@ -84,4 +84,10 @@ class ServiceStatusManagerTest {
         val memory = ServiceStatusManager.getAppMemoryMb()
         assertTrue(memory >= 1L)
     }
+
+    @Test
+    fun testGetTotalContainerMemoryMb_isPositive() {
+        val memory = ServiceStatusManager.getTotalContainerMemoryMb()
+        assertTrue(memory >= 1L)
+    }
 }
