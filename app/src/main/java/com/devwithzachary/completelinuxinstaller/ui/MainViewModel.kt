@@ -7,6 +7,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.devwithzachary.completelinuxinstaller.engine.DownloadState
+import com.devwithzachary.completelinuxinstaller.engine.DiagnosticsManager
 import com.devwithzachary.completelinuxinstaller.engine.InstallStepState
 import com.devwithzachary.completelinuxinstaller.engine.PRootEngine
 import com.devwithzachary.completelinuxinstaller.engine.RootfsManager
@@ -68,6 +69,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val rootfsManager = RootfsManager(application, pRootEngine)
     val softwareInstaller = SoftwareInstaller(pRootEngine)
     val terminalBridge = TerminalBridge(pRootEngine)
+    val diagnosticsManager = DiagnosticsManager(application, pRootEngine, rootfsManager)
 
     private val prefs = application.getSharedPreferences("terminal_theme_prefs", Context.MODE_PRIVATE)
 
@@ -177,6 +179,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissUpgradeState() {
         _upgradeState.value = UpgradeState.Idle
+    }
+
+    suspend fun generateDebugReport(): String {
+        val info = diagnosticsManager.collect(sessionRunning = terminalBridge.isRunning.value)
+        return DiagnosticsManager.buildReport(info)
     }
 
     fun setSshPort(port: Int) {

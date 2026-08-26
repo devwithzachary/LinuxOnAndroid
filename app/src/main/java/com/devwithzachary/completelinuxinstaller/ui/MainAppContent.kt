@@ -240,6 +240,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                             onDeleteUser = { user -> viewModel.deleteUser(user) },
                             onExportContainer = { cr, uri -> viewModel.exportContainer(cr, uri) },
                             onImportContainer = { cr, uri -> viewModel.importContainer(cr, uri) },
+                            onGenerateDebugReport = { viewModel.generateDebugReport() },
                             onDismissBackupStatus = { viewModel.dismissBackupStatus() }
                         )
                     }
