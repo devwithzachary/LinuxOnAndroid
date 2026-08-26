@@ -14,6 +14,9 @@
     <string name="splash_init_verifying_binaries">Verifying CPU architecture &amp; PRoot binaries…</string>
     <string name="splash_init_checking_filesystem">Checking Linux rootfs filesystem &amp; storage…</string>
     <string name="splash_init_preparing">Preparing container environment…</string>
+    <string name="splash_init_slow_warning">Startup is taking longer than expected (%1$d s). The rootfs may be busy or damaged.</string>
+    <string name="splash_retry">Retry</string>
+    <string name="splash_continue_anyway">Continue anyway</string>
 
     <!-- Foreground Service & Resource Monitor -->
     <string name="notification_channel_name">Linux Container &amp; Service Monitor</string>
