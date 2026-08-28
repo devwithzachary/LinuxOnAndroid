@@ -178,20 +178,23 @@ fun SoftwareCard(
                     }
                 } else if (pkg.status == InstallStatus.NOT_INSTALLED || pkg.status == InstallStatus.FAILED) {
                     Spacer(modifier = Modifier.weight(2f))
-                    Button(
-                        onClick = onInstallClick,
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = stringResource(R.string.btn_one_click_install),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            fontSize = 12.sp
-                        )
+                    BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                        val isNarrow = maxWidth < 130.dp
+                        Button(
+                            onClick = onInstallClick,
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isNarrow) "1-Click" else stringResource(R.string.btn_one_click_install),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                fontSize = 12.sp
+                            )
+                        }
                     }
                 } else {
                     val buttonCount = (if (pkg.hasUpgradeAvailable) 1 else 0) +

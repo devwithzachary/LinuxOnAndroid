@@ -242,7 +242,7 @@ fun DashboardScreen(
                 onKillProcess = onKillProcess
             )
 
-            // 6. Network Listener (Open TCP Ports)
+            // 6. Open Ports (TCP Listeners)
             NetworkListenerCard(ports = metrics.listeningPorts)
         }
     }

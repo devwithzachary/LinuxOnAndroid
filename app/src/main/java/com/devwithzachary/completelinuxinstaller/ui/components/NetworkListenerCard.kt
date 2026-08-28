@@ -59,7 +59,7 @@ fun NetworkListenerCard(
                         modifier = Modifier.size(20.dp)
                     )
                     Text(
-                        text = "Network Listener (Open Ports)",
+                        text = "Open Ports",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
