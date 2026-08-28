@@ -17,7 +17,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
+import com.devwithzachary.completelinuxinstaller.ui.components.ActiveProcessTableCard
+import com.devwithzachary.completelinuxinstaller.ui.components.DashboardGaugesCard
+import com.devwithzachary.completelinuxinstaller.ui.components.NetworkListenerCard
 import com.devwithzachary.completelinuxinstaller.ui.components.PatreonBanner
 import com.devwithzachary.completelinuxinstaller.ui.components.SystemStatusCard
 
@@ -25,6 +29,8 @@ import com.devwithzachary.completelinuxinstaller.ui.components.SystemStatusCard
 @Composable
 fun DashboardScreen(
     state: DashboardUiState,
+    metrics: SystemResourceMetrics = SystemResourceMetrics(),
+    onKillProcess: (Int) -> Unit = {},
     onInstallClick: () -> Unit,
     onOpenTerminalClick: () -> Unit,
     onStopSessionClick: () -> Unit,
@@ -132,7 +138,10 @@ fun DashboardScreen(
                 }
             }
         } else {
-            // Quick Launcher Actions Grid
+            // 1. System Status & Distribution Card at top
+            SystemStatusCard(state = state)
+
+            // 2. Quick Launcher Actions Grid
             Text(
                 text = stringResource(R.string.section_quick_actions),
                 style = MaterialTheme.typography.titleMedium,
@@ -170,10 +179,7 @@ fun DashboardScreen(
                 }
             }
 
-            // System Status Card
-            SystemStatusCard(state = state)
-
-            // Preset Quick Triggers (Only shown if at least one service package is installed)
+            // 3. Preset Quick Triggers (One-Touch Service Launchers)
             val hasAnyServiceInstalled = state.isVncInstalled || state.isNginxInstalled || state.isSshInstalled
 
             if (hasAnyServiceInstalled) {
@@ -226,6 +232,18 @@ fun DashboardScreen(
                     }
                 }
             }
+
+            // 4. Live RAM & Storage Resource Gauges
+            DashboardGaugesCard(metrics = metrics)
+
+            // 5. Active Process Table (ps aux with 1-tap kill)
+            ActiveProcessTableCard(
+                processes = metrics.processes,
+                onKillProcess = onKillProcess
+            )
+
+            // 6. Open Ports (TCP Listeners)
+            NetworkListenerCard(ports = metrics.listeningPorts)
         }
     }
 }

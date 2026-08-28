@@ -13,8 +13,8 @@ android {
         applicationId = "com.devwithzachary.completelinuxinstaller"
         minSdk = 23
         targetSdk = 36
-        versionCode = 10
-        versionName = "1.3.0"
+        versionCode = 11
+        versionName = "1.4.0"
     }
 
     dependenciesInfo {
@@ -110,6 +110,7 @@ dependencies {
   // Local tests
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation("org.json:json:20240303")
 
   // Navigation
   implementation(libs.androidx.navigation3.ui)

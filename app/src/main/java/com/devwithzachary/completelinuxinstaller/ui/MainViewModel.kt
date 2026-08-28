@@ -7,11 +7,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.devwithzachary.completelinuxinstaller.engine.DownloadState
+import com.devwithzachary.completelinuxinstaller.engine.DiagnosticsManager
+import com.devwithzachary.completelinuxinstaller.engine.GitHubRelease
+import com.devwithzachary.completelinuxinstaller.engine.GitHubReleaseManager
 import com.devwithzachary.completelinuxinstaller.engine.InstallStepState
 import com.devwithzachary.completelinuxinstaller.engine.PRootEngine
 import com.devwithzachary.completelinuxinstaller.engine.RootfsManager
 import com.devwithzachary.completelinuxinstaller.engine.SoftwareInstaller
+import com.devwithzachary.completelinuxinstaller.engine.SystemMonitorManager
+import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
+import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
 import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.LinuxDistribution
 import com.devwithzachary.completelinuxinstaller.model.SoftwareCategory
@@ -22,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 import com.devwithzachary.completelinuxinstaller.R
@@ -37,9 +44,14 @@ enum class InitStep(val stringResId: Int) {
     PREPARING_ENVIRONMENT(R.string.splash_init_preparing)
 }
 
+private const val INIT_SLOW_THRESHOLD_MS = 10_000L
+private const val TAG = "MainViewModel"
+
 data class DashboardUiState(
     val isInitializing: Boolean = true,
     val initStep: InitStep = InitStep.VERIFYING_BINARIES,
+    val initElapsedMs: Long = 0L,
+    val splashDismissed: Boolean = false,
     val isInstalled: Boolean = false,
     val storageUsedMb: Long = 0L,
     val distroName: String = "Ubuntu 26.04 LTS (ARM64/x86_64)",
@@ -53,7 +65,9 @@ data class DashboardUiState(
     val isUpgradeAvailable: Boolean = false,
     val dnsServers: List<String> = listOf("8.8.8.8", "1.1.1.1", "8.8.4.4"),
     val containerUsers: List<String> = emptyList()
-)
+) {
+    val isInitSlow: Boolean get() = initElapsedMs >= INIT_SLOW_THRESHOLD_MS
+}
 
 sealed class BackupState {
     data object Idle : BackupState()
@@ -68,6 +82,82 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val rootfsManager = RootfsManager(application, pRootEngine)
     val softwareInstaller = SoftwareInstaller(pRootEngine)
     val terminalBridge = TerminalBridge(pRootEngine)
+    val diagnosticsManager = DiagnosticsManager(application, pRootEngine, rootfsManager)
+    val systemMonitorManager = SystemMonitorManager(application, pRootEngine, rootfsManager)
+    val gitHubReleaseManager = GitHubReleaseManager(application)
+
+    private val _isGitHubUpdateCheckEnabled = MutableStateFlow(gitHubReleaseManager.isUpdateCheckEnabled())
+    val isGitHubUpdateCheckEnabled: StateFlow<Boolean> = _isGitHubUpdateCheckEnabled.asStateFlow()
+
+    private val _updateCheckResult = MutableStateFlow<UpdateCheckResult?>(null)
+    val updateCheckResult: StateFlow<UpdateCheckResult?> = _updateCheckResult.asStateFlow()
+
+    private val _isCheckingForUpdates = MutableStateFlow(false)
+    val isCheckingForUpdates: StateFlow<Boolean> = _isCheckingForUpdates.asStateFlow()
+
+    fun setGitHubUpdateCheckEnabled(enabled: Boolean) {
+        gitHubReleaseManager.setUpdateCheckEnabled(enabled)
+        _isGitHubUpdateCheckEnabled.value = enabled
+        if (!enabled) {
+            _updateCheckResult.value = null
+        }
+    }
+
+    fun checkForGitHubUpdates(manual: Boolean = false) {
+        viewModelScope.launch {
+            _isCheckingForUpdates.value = true
+            try {
+                val result = gitHubReleaseManager.checkForUpdates(force = manual)
+                _updateCheckResult.value = result
+            } catch (e: Exception) {
+                Log.e(TAG, "Error checking for GitHub updates", e)
+                if (manual) {
+                    _updateCheckResult.value = UpdateCheckResult.Error(e.localizedMessage ?: "Network error")
+                }
+            } finally {
+                _isCheckingForUpdates.value = false
+            }
+        }
+    }
+
+    fun dismissGitHubUpdate(dontAskAgain: Boolean = false, releaseTag: String? = null) {
+        if (dontAskAgain) {
+            setGitHubUpdateCheckEnabled(false)
+        } else if (releaseTag != null) {
+            gitHubReleaseManager.dismissRelease(releaseTag)
+        }
+        _updateCheckResult.value = null
+    }
+
+    fun clearUpdateCheckResult() {
+        _updateCheckResult.value = null
+    }
+
+    private val _systemMetrics = MutableStateFlow(SystemResourceMetrics())
+    val systemMetrics: StateFlow<SystemResourceMetrics> = _systemMetrics.asStateFlow()
+
+    fun killProcess(pid: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            systemMonitorManager.killProcess(pid)
+            refreshSystemMetrics()
+        }
+    }
+
+    suspend fun refreshSystemMetrics() {
+        val metrics = systemMonitorManager.collectMetrics(terminalBridge.isRunning.value)
+        _systemMetrics.value = metrics
+    }
+
+    private fun startSystemMonitorLoop() {
+        viewModelScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                try {
+                    refreshSystemMetrics()
+                } catch (_: Exception) {}
+                kotlinx.coroutines.delay(2500)
+            }
+        }
+    }
 
     private val prefs = application.getSharedPreferences("terminal_theme_prefs", Context.MODE_PRIVATE)
 
@@ -179,6 +269,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _upgradeState.value = UpgradeState.Idle
     }
 
+    suspend fun generateDebugReport(): String {
+        val info = diagnosticsManager.collect(sessionRunning = terminalBridge.isRunning.value)
+        return DiagnosticsManager.buildReport(info)
+    }
+
     fun setSshPort(port: Int) {
         val validPort = if (port in 1..65535) port else 2222
         prefs.edit().putInt("ssh_port", validPort).apply()
@@ -233,26 +328,84 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _defaultTerminalUser.value = username
     }
 
+    private var initJob: kotlinx.coroutines.Job? = null
+    private var initGeneration = 0
+
+    fun dismissSplash() {
+        initGeneration++
+        _dashboardState.value = _dashboardState.value.copy(
+            isInitializing = false,
+            splashDismissed = true
+        )
+    }
+
+    fun retryInit() {
+        _dashboardState.value = _dashboardState.value.copy(
+            isInitializing = true,
+            splashDismissed = false,
+            initElapsedMs = 0L
+        )
+        startInitialization()
+    }
+
+    private fun startInitialization() {
+        val gen = ++initGeneration
+        val startMs = System.currentTimeMillis()
+        initJob?.cancel()
+        initJob = viewModelScope.launch {
+            val watchdog = launch {
+                while (isActive && _dashboardState.value.isInitializing) {
+                    kotlinx.coroutines.delay(1000)
+                    val elapsed = System.currentTimeMillis() - startMs
+                    if (!_dashboardState.value.isInitializing) break
+                    _dashboardState.value = _dashboardState.value.copy(
+                        initElapsedMs = elapsed
+                    )
+                }
+            }
+            try {
+                _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.VERIFYING_BINARIES)
+                pRootEngine.ensurePRootExecutable()
+                kotlinx.coroutines.delay(200)
+
+                _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.CHECKING_FILESYSTEM)
+                refreshStatusInternal()
+                kotlinx.coroutines.delay(250)
+
+                _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.PREPARING_ENVIRONMENT)
+                kotlinx.coroutines.delay(250)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Startup initialization failed", e)
+            } finally {
+                watchdog.cancel()
+                if (gen == initGeneration) {
+                    _dashboardState.value = _dashboardState.value.copy(
+                        isInitializing = false,
+                        initElapsedMs = System.currentTimeMillis() - startMs
+                    )
+
+                    // Check for GitHub updates in background (throttled to once every 24h)
+                    viewModelScope.launch {
+                        kotlinx.coroutines.delay(1500)
+                        if (gitHubReleaseManager.isUpdateCheckEnabled()) {
+                            checkForGitHubUpdates(manual = false)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     init {
         PRootForegroundService.isTerminalActiveProvider = { terminalBridge.isRunning.value }
         PRootForegroundService.rootfsDirProvider = { pRootEngine.rootfsDir }
         PRootForegroundService.sshPortProvider = { _sshPort.value }
         PRootForegroundService.onStopSessionRequested = { stopTerminalSession() }
 
-        viewModelScope.launch {
-            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.VERIFYING_BINARIES)
-            pRootEngine.ensurePRootExecutable()
-            kotlinx.coroutines.delay(200)
-
-            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.CHECKING_FILESYSTEM)
-            refreshStatusInternal()
-            kotlinx.coroutines.delay(250)
-
-            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.PREPARING_ENVIRONMENT)
-            kotlinx.coroutines.delay(250)
-
-            _dashboardState.value = _dashboardState.value.copy(isInitializing = false)
-        }
+        startInitialization()
+        startSystemMonitorLoop()
     }
 
     private fun loadTerminalTheme(): TerminalTheme {

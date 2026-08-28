@@ -19,7 +19,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.Download
@@ -52,13 +54,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
+import com.devwithzachary.completelinuxinstaller.ui.components.DebugReportDialog
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
+import kotlinx.coroutines.launch
 
 enum class SettingsCategory(val displayName: String, val icon: ImageVector) {
     ALL("All", Icons.Default.Apps),
+    UPDATES("Updates", Icons.Default.CloudDownload),
     CONTAINER("Container", Icons.Default.Upgrade),
     BACKGROUND("Background", Icons.Default.PlayArrow),
     NETWORK("Network & DNS", Icons.Default.Dns),
@@ -184,20 +190,33 @@ fun SettingsScreen(
     onExportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
     onImportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
     onUpgradeRootfsClick: () -> Unit = {},
+    onGenerateDebugReport: suspend () -> String = { "" },
     onDismissBackupStatus: () -> Unit = {},
     isKeepAliveEnabled: Boolean = true,
     onToggleKeepAlive: () -> Unit = {},
     isKeepScreenOnEnabled: Boolean = true,
-    onSetKeepScreenOn: (Boolean) -> Unit = {}
+    onSetKeepScreenOn: (Boolean) -> Unit = {},
+    isGitHubUpdateCheckEnabled: Boolean = true,
+    onSetGitHubUpdateCheckEnabled: (Boolean) -> Unit = {},
+    isCheckingForUpdates: Boolean = false,
+    updateCheckResult: UpdateCheckResult? = null,
+    onCheckForUpdatesClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val contentResolver = context.contentResolver
+    val coroutineScope = rememberCoroutineScope()
+
+    var showDebugReportDialog by remember { mutableStateOf(false) }
+    var debugReportText by remember { mutableStateOf("") }
+    var isGeneratingDebugReport by remember { mutableStateOf(false) }
 
     var selectedCategory by remember { mutableStateOf(SettingsCategory.ALL) }
     var expandedCards by remember {
         mutableStateOf(
             mapOf(
+                "updates" to false,
                 "upgrade" to false,
+                "diagnostics" to false,
                 "background" to false,
                 "backup" to false,
                 "dns" to false,
@@ -270,7 +289,7 @@ fun SettingsScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Settings & Configuration",
+                text = "Settings",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -305,6 +324,7 @@ fun SettingsScreen(
                                 SettingsCategory.CONTAINER -> {
                                     expandedCards = expandedCards.toMutableMap().apply {
                                         put("upgrade", true)
+                                        put("diagnostics", true)
                                         put("backup", true)
                                     }
                                 }
@@ -353,6 +373,129 @@ fun SettingsScreen(
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 )
+            }
+        }
+
+        // 0. Updates & Release Channel Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.UPDATES || selectedCategory == SettingsCategory.CONTAINER) {
+            CollapsibleSettingsCard(
+                title = stringResource(R.string.github_updates_card_title),
+                subtitle = stringResource(R.string.github_updates_card_subtitle),
+                icon = Icons.Default.CloudDownload,
+                isExpanded = isCardExpanded("updates"),
+                onToggleExpand = { toggleCard("updates") },
+                badge = {
+                    if (updateCheckResult is UpdateCheckResult.UpdateAvailable) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = updateCheckResult.release.tagName,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            ) {
+                Text(
+                    text = stringResource(R.string.github_updates_setting_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onSetGitHubUpdateCheckEnabled(!isGitHubUpdateCheckEnabled) }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.github_updates_setting_title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (isGitHubUpdateCheckEnabled) "Automatic startup & background release checks active" else "Automatic notifications disabled",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isGitHubUpdateCheckEnabled,
+                        onCheckedChange = { onSetGitHubUpdateCheckEnabled(it) }
+                    )
+                }
+
+                Button(
+                    onClick = onCheckForUpdatesClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isCheckingForUpdates,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    if (isCheckingForUpdates) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        if (isCheckingForUpdates) stringResource(R.string.github_updates_status_checking)
+                        else stringResource(R.string.github_updates_btn_check)
+                    )
+                }
+
+                if (updateCheckResult is UpdateCheckResult.UpToDate) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E3A1E),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(18.dp))
+                            Text(
+                                text = stringResource(R.string.github_updates_status_up_to_date, updateCheckResult.currentVersion),
+                                color = Color(0xFF4CAF50),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                } else if (updateCheckResult is UpdateCheckResult.Error) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                            Text(
+                                text = stringResource(R.string.github_updates_status_error, updateCheckResult.message),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -446,6 +589,51 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(if (state.isUpgradeAvailable) "Upgrade RootFS to v${BuildConfig.VERSION_NAME}" else "Re-verify & Repair RootFS")
                     }
+                }
+            }
+        }
+
+        // 2. Diagnostics Debug Report Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.CONTAINER) {
+            CollapsibleSettingsCard(
+                title = "Diagnostics",
+                subtitle = "Generate a debug report for bug reports",
+                icon = Icons.Default.BugReport,
+                isExpanded = isCardExpanded("diagnostics"),
+                onToggleExpand = { toggleCard("diagnostics") }
+            ) {
+                Text(
+                    text = "Generate a technical summary of your installation (app version, device, container health, storage and memory) to paste into GitHub issues or Discord when asking for help.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isGeneratingDebugReport = true
+                            try {
+                                debugReportText = onGenerateDebugReport()
+                                showDebugReportDialog = true
+                            } finally {
+                                isGeneratingDebugReport = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isGeneratingDebugReport,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    if (isGeneratingDebugReport) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Generate Debug Report")
                 }
             }
         }
@@ -1522,6 +1710,14 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    // Debug Report Dialog
+    if (showDebugReportDialog) {
+        DebugReportDialog(
+            report = debugReportText,
+            onDismiss = { showDebugReportDialog = false }
+        )
     }
 
     // Confirmation for Container Import

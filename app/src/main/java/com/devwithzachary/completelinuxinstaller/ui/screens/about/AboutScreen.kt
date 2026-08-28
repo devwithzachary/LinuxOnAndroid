@@ -20,12 +20,19 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
 import com.devwithzachary.completelinuxinstaller.ui.components.ChangelogItem
 import com.devwithzachary.completelinuxinstaller.ui.components.InfoRow
 
 @Composable
-fun AboutScreen() {
+fun AboutScreen(
+    onCheckForUpdatesClick: () -> Unit = {},
+    isCheckingForUpdates: Boolean = false,
+    updateCheckResult: UpdateCheckResult? = null
+) {
     val uriHandler = LocalUriHandler.current
     val websiteUrl = stringResource(R.string.website_url)
     val discordUrl = stringResource(R.string.discord_url)
@@ -68,13 +75,17 @@ fun AboutScreen() {
                     text = stringResource(R.string.app_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Text(
                     text = stringResource(R.string.app_tagline),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Surface(
@@ -304,11 +315,77 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.3.0")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v${BuildConfig.VERSION_NAME}")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_container_engine), value = "PRoot 5.3 (Link2Symlink)")
                 InfoRow(label = stringResource(R.string.label_developer), value = "DevWithZachary")
+
+                HorizontalDivider()
+
+                Button(
+                    onClick = onCheckForUpdatesClick,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isCheckingForUpdates,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    if (isCheckingForUpdates) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        if (isCheckingForUpdates) stringResource(R.string.github_updates_status_checking)
+                        else stringResource(R.string.github_updates_manual_check_about),
+                        fontSize = 13.sp
+                    )
+                }
+
+                if (updateCheckResult is UpdateCheckResult.UpToDate) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E3A1E),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                            Text(
+                                text = stringResource(R.string.github_updates_status_up_to_date, updateCheckResult.currentVersion),
+                                color = Color(0xFF4CAF50),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                } else if (updateCheckResult is UpdateCheckResult.Error) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                            Text(
+                                text = stringResource(R.string.github_updates_status_error, updateCheckResult.message),
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
             }
         }
 

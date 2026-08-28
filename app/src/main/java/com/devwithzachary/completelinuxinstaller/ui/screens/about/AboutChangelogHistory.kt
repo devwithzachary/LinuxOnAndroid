@@ -23,9 +23,24 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
+        version = "v1.4.0",
+        date = "August 28, 2026",
+        initialExpanded = true,
+        highlights = listOf(
+            "GitHub Release Update Checker & Play Store Migration Guide: Automated in-app GitHub release checks notifying users of cutting-edge updates, with full step-by-step guidance on migrating from Google Play Store builds to GitHub developer-signed APKs.",
+            "Real-Time Container Dashboard & System Monitor: Live visual RAM and storage gauges, real-time process table (ps aux) with 1-tap kill confirmation, and active TCP network port listener with 1-tap browser launcher.",
+            "Terminal Native Text Selection & Copy/Paste: Long-press to select words with draggable teardrop start/end handles, 1-tap floating Copy/Select All toolbar, pinned keyboard PASTE button, and buttery smooth scrolling.",
+            "System Bars & Light Theme Contrast: Dynamic edge-to-edge status bar and navigation bar contrast fixing light-on-light text and providing seamless terminal immersion.",
+            "Diagnostics & System Debug Report Generator (PR #37): Added comprehensive diagnostics reporting in Settings, collecting device specs, Android version, container status, storage analysis, memory breakdown, and rootfs binary integrity checks with 1-tap copy/sharing.",
+            "Startup Sanity Check & Slow-Mode Escape Hatch (PR #35): Introduced startup watchdog monitoring initialization progress with slow-load warning alerts and instant 'Retry' and 'Continue anyway' recovery options if filesystem checks take longer than expected.",
+            "Setup Wizard Screen Keep-Alive (PR #36): Keeps display awake during initial container download and filesystem extraction in the Setup Wizard, preventing sleep timeouts during long downloads.",
+            "Community Credits & Contributors Recognition: Updated in-app Credits card recognizing PRs #35, #36, and #37 contributed by @sleepy-snowflake, and welcoming Patreon supporters."
+        )
+    ),
+    ReleaseChangelog(
         version = "v1.3.0",
         date = "August 25, 2026",
-        initialExpanded = true,
+        initialExpanded = false,
         highlights = listOf(
             "Persistent Foreground Service & CPU WakeLock: Runs PRoot inside an Android Foreground Service with CPU WakeLock, preventing Doze and Phantom Process Killer from terminating long compiles, SSH, or terminal sessions when minimized.",
             "Full Container Process-Tree RAM Monitoring: Notification shade calculates true Resident Set Size (RSS) memory across all container child processes (PRoot, Xtigervnc, XFCE, D-Bus, sshd, compilers) via /proc/*/statm.",

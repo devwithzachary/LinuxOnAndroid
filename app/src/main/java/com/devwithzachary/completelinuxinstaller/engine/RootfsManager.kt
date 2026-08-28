@@ -65,28 +65,16 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             }
         } catch (_: Exception) {}
 
-        // 2. Optimized NIO walkFileTree fallback (avoids millions of File object allocations)
+        // 2. Safe recursive directory size fallback (API 23+ compatible)
         try {
             var totalBytes = 0L
-            java.nio.file.Files.walkFileTree(
-                rootfsDir.toPath(),
-                object : java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
-                    override fun visitFile(
-                        file: java.nio.file.Path,
-                        attrs: java.nio.file.attribute.BasicFileAttributes
-                    ): java.nio.file.FileVisitResult {
-                        totalBytes += attrs.size()
-                        return java.nio.file.FileVisitResult.CONTINUE
-                    }
-
-                    override fun visitFileFailed(
-                        file: java.nio.file.Path,
-                        exc: java.io.IOException?
-                    ): java.nio.file.FileVisitResult {
-                        return java.nio.file.FileVisitResult.CONTINUE
+            rootfsDir.walkTopDown()
+                .onEnter { !it.name.startsWith(".git") }
+                .forEach { file ->
+                    if (file.isFile) {
+                        totalBytes += file.length()
                     }
                 }
-            )
             val mb = (totalBytes / (1024 * 1024)).coerceAtLeast(0L)
             prefs.edit().putLong("cached_storage_used_mb", mb).apply()
             return@withContext mb

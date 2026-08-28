@@ -150,7 +150,12 @@ class PRootForegroundService : Service() {
 
     private fun stopForegroundAndSelf() {
         try {
-            stopForeground(STOP_FOREGROUND_REMOVE)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
         } catch (_: Exception) {}
         stopSelf()
     }

@@ -184,6 +184,9 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
     fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String =
         emulator.getSelectedText(startRow, startCol, endRow, endCol)
 
+    fun getWordAt(row: Int, col: Int): Pair<Int, Int> =
+        emulator.getWordAt(row, col)
+
     fun sendKeyShortcut(key: String) {
         val trimmed = key.trim()
         if (trimmed.isEmpty()) return

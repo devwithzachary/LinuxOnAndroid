@@ -2,6 +2,48 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.4.0] - 2026-08-28
+
+### 🚀 GitHub Release Update Checker & Play Store Migration Guide
+- **Automated GitHub Update Checks**: Added automated release checking against the official GitHub repository releases API (`devwithzachary/LinuxOnAndroid/releases/latest`), notifying users immediately when newer versions and bug fixes are available without waiting for Google Play review delays.
+- **Play Store Migration & Cryptographic Signature Guide**: Integrated comprehensive migration instructions explaining why direct updates over Play Store builds fail (`INSTALL_FAILED_UPDATE_INCOMPATIBLE` due to Google Play App Signing key differences), with clear 3-step guidance on exporting container backups, uninstalling the store version, and migrating to the direct GitHub APK.
+- **Update Frequency & Notification Controls**: Configurable under Settings > Updates & Release Channel with automated background check toggle ("Notify About GitHub Releases"), 24-hour rate-limit throttling, "Don't ask again" option, and on-demand "Check for Updates Now" action in both Settings and About screens.
+- **Semantic Version Engine**: Built robust SemVer comparison parsing major/minor/patch numbers and release tags across GitHub releases and installed `VERSION_NAME`.
+
+### 🔍 Diagnostics & Debug Report Generator (PR #37)
+- **Diagnostics Manager & System Report**: Added comprehensive diagnostics reporting accessible via Settings > General > "Generate Debug Report", collecting device hardware, Android OS/SDK details, PRoot container version, memory usage, storage breakdown, and rootfs binary integrity checks.
+- **Interactive Debug Report Dialog**: View, copy to clipboard, or share sanitized diagnostic summaries directly to GitHub issue trackers or community support.
+- **Diagnostics Test Suite**: Added dedicated unit test coverage (`DiagnosticsManagerTest`) verifying system metrics compilation, graceful degradation when rootfs is uninstalled or storage stats are unavailable, and formatting.
+
+### ⏱️ Startup Sanity Check & Slow-Mode Splash Escape Hatch (PR #35)
+- **Startup Watchdog & Timeout Safeguard**: Added background initialization timer during cold boot. If binary verification or filesystem checks take longer than expected (6+ seconds), an informative status warning banner appears.
+- **Escape Hatch Actions**: Users can trigger an instant "Retry" or "Continue anyway" to bypass prolonged rootfs checks.
+- **Localized Warnings**: Complete English and German localization for slow-mode splash alerts.
+
+### 💡 Setup Wizard Screen Keep-Alive (PR #36)
+- **Screen WakeLock During Setup**: Prevents display timeout while the Setup Wizard is active, ensuring uninterrupted container image downloads and filesystem extraction.
+
+### 📋 Terminal Native Text Selection & Seamless Copy/Paste
+- **Native Long-Press Word & Range Selection**: Long-pressing on any word in the terminal highlights the word with draggable start/end teardrop selection handles, eliminating clunky popup dialogs.
+- **Draggable Selection Handles**: Touch and drag either handle to smoothly expand or contract the selection across rows and columns.
+- **Floating Action Bar**: Quick 1-tap actions to **Copy**, **Select All**, **Share**, or dismiss selection.
+- **Dedicated Keyboard-Pinned Paste Button**: Added a dedicated **PASTE** action button pinned on the extra keys row alongside `CTRL` and `ALT`, enabling instant 1-tap pasting from clipboard whenever the software keyboard is open.
+- **Smooth Butter-Scroll**: Vertical dragging across the terminal canvas now exclusively performs direct, responsive scrolling through history without accidental text selection interference.
+
+### 🎨 System Bars & Light Theme Contrast Fix
+- **Dynamic Light Status Bar & Navigation Contrast**: Added explicit edge-to-edge support and window insets control. System status bar icons (clock, battery, Wi-Fi, notifications) now render with crisp dark contrast in light mode instead of low-contrast white.
+- **Immersive Terminal Status Bar Integration**: The terminal's dark `#2D2D2D` top action bar now seamlessly extends behind the status bar with high-contrast white icons, dynamically adapting between light and dark screens.
+
+### 📊 Real-Time Container Dashboard & System Monitor
+- **Visual RAM & Storage Gauges**: Real-time memory consumption (container RSS vs device RAM total) and rootfs disk allocation with animated Material 3 gauge dials and color-coded status indicators.
+- **Live Active Process Table (`ps aux`)**: Real-time container child process inspector tracking PID, user (`root`/`ubuntu`), binary name, command line, and memory footprint with search/filtering.
+- **1-Tap Kill Process Action**: Instant `SIGKILL` termination action on any container child process with a safe confirmation dialog.
+- **Active Network Port Listener**: Real-time open port detection (SSH :2222, VNC :5901, NGINX :80, Node :3000, Python :8000, etc.) with 1-tap browser launch and clipboard copy.
+
+### 🌟 Project Credits & Contributor Recognition
+- **Community Credits & Patreon Backers**: Updated credits recognizing PR #35, PR #36, and PR #37 contributions by @sleepy-snowflake, and welcoming our first Patreon supporters (**Old PC Gunk (and stuff)** and **насэр Хорр**).
+
+
 ## [1.3.0] - 2026-08-25
 
 ### 🛡️ Persistent Foreground Service & Full Container Resource Monitor

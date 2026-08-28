@@ -49,26 +49,6 @@ fun SystemStatusCard(
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(stringResource(R.string.label_storage_allocated), style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = "${state.storageUsedMb} MB",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            LinearProgressIndicator(
-                progress = { (state.storageUsedMb.toFloat() / 2048f).coerceIn(0.05f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-            )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

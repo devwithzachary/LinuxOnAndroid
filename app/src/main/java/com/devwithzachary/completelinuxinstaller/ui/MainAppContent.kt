@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,9 +41,11 @@ fun MainAppContent(viewModel: MainViewModel) {
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val packages by viewModel.packages.collectAsStateWithLifecycle()
     val requestedScreen by viewModel.requestedScreen.collectAsStateWithLifecycle()
+    val systemMetrics by viewModel.systemMetrics.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
+    val splashDismissed = dashboardState.splashDismissed
     var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
 
     LaunchedEffect(requestedScreen) {
@@ -53,9 +56,9 @@ fun MainAppContent(viewModel: MainViewModel) {
     }
 
     // Sync screen navigation state when initialization completes or installation status is confirmed
-    LaunchedEffect(isInitializing, isInstalled) {
+    LaunchedEffect(isInitializing, isInstalled, splashDismissed) {
         if (!isInitializing) {
-            if (!isInstalled) {
+            if (!isInstalled && !splashDismissed) {
                 currentScreen = AppScreen.WIZARD
             } else if (currentScreen == AppScreen.SPLASH || currentScreen == AppScreen.WIZARD) {
                 currentScreen = AppScreen.DASHBOARD
@@ -64,13 +67,15 @@ fun MainAppContent(viewModel: MainViewModel) {
     }
 
     if (isInitializing || currentScreen == AppScreen.SPLASH) {
-        val statusText = stringResource(dashboardState.initStep.stringResId)
-        SplashScreen(statusText = statusText)
+        SplashRoute(viewModel, dashboardState)
     } else {
+        val isTerminal = currentScreen == AppScreen.TERMINAL
         Scaffold(
+            containerColor = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background,
+            contentWindowInsets = if (isTerminal) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
             bottomBar = {
                 val isImeVisible = WindowInsets.isImeVisible
-                if (isInstalled && currentScreen != AppScreen.WIZARD && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
+                if ((isInstalled || splashDismissed) && currentScreen != AppScreen.WIZARD && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
                     NavigationBar {
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.DASHBOARD,
@@ -132,13 +137,12 @@ fun MainAppContent(viewModel: MainViewModel) {
             }
         ) { innerPadding ->
             Surface(
-                modifier = Modifier.padding(innerPadding),
-                color = MaterialTheme.colorScheme.background
+                modifier = if (isTerminal) Modifier.fillMaxSize().padding(bottom = innerPadding.calculateBottomPadding()) else Modifier.padding(innerPadding),
+                color = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background
             ) {
                 when (currentScreen) {
                     AppScreen.SPLASH -> {
-                        val statusText = stringResource(dashboardState.initStep.stringResId)
-                        SplashScreen(statusText = statusText)
+                        SplashRoute(viewModel, dashboardState)
                     }
 
                     AppScreen.WIZARD -> {
@@ -157,6 +161,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                     AppScreen.DASHBOARD -> {
                         DashboardScreen(
                             state = dashboardState,
+                            metrics = systemMetrics,
+                            onKillProcess = { pid -> viewModel.killProcess(pid) },
                             onInstallClick = { currentScreen = AppScreen.WIZARD },
                             onOpenTerminalClick = {
                                 viewModel.startTerminalSession()
@@ -212,6 +218,9 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val fontFamily by viewModel.terminalFontFamily.collectAsState()
                         val isKeepAliveEnabled by viewModel.isKeepAliveEnabled.collectAsState()
                         val isKeepScreenOnEnabled by viewModel.isKeepScreenOnEnabled.collectAsState()
+                        val isGitHubUpdateCheckEnabled by viewModel.isGitHubUpdateCheckEnabled.collectAsStateWithLifecycle()
+                        val isCheckingForUpdates by viewModel.isCheckingForUpdates.collectAsStateWithLifecycle()
+                        val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
                         SettingsScreen(
                             state = dashboardState,
                             backupState = backupState,
@@ -240,12 +249,24 @@ fun MainAppContent(viewModel: MainViewModel) {
                             onDeleteUser = { user -> viewModel.deleteUser(user) },
                             onExportContainer = { cr, uri -> viewModel.exportContainer(cr, uri) },
                             onImportContainer = { cr, uri -> viewModel.importContainer(cr, uri) },
-                            onDismissBackupStatus = { viewModel.dismissBackupStatus() }
+                            onGenerateDebugReport = { viewModel.generateDebugReport() },
+                            onDismissBackupStatus = { viewModel.dismissBackupStatus() },
+                            isGitHubUpdateCheckEnabled = isGitHubUpdateCheckEnabled,
+                            onSetGitHubUpdateCheckEnabled = { enabled -> viewModel.setGitHubUpdateCheckEnabled(enabled) },
+                            isCheckingForUpdates = isCheckingForUpdates,
+                            updateCheckResult = updateCheckResult,
+                            onCheckForUpdatesClick = { viewModel.checkForGitHubUpdates(manual = true) }
                         )
                     }
 
                     AppScreen.ABOUT -> {
-                        AboutScreen()
+                        val isCheckingForUpdates by viewModel.isCheckingForUpdates.collectAsStateWithLifecycle()
+                        val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
+                        AboutScreen(
+                            onCheckForUpdatesClick = { viewModel.checkForGitHubUpdates(manual = true) },
+                            isCheckingForUpdates = isCheckingForUpdates,
+                            updateCheckResult = updateCheckResult
+                        )
                     }
                 }
             }
@@ -256,6 +277,18 @@ fun MainAppContent(viewModel: MainViewModel) {
             upgradeState = upgradeState,
             onDismiss = { viewModel.dismissUpgradeState() }
         )
+
+        val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
+        if (updateCheckResult is com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult.UpdateAvailable) {
+            val update = updateCheckResult as com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult.UpdateAvailable
+            com.devwithzachary.completelinuxinstaller.ui.components.GitHubUpdateDialog(
+                release = update.release,
+                currentVersion = update.currentVersion,
+                onDismiss = { viewModel.clearUpdateCheckResult() },
+                onRemindLater = { viewModel.dismissGitHubUpdate(dontAskAgain = false) },
+                onDontAskAgain = { viewModel.dismissGitHubUpdate(dontAskAgain = true, releaseTag = update.release.tagName) }
+            )
+        }
 
         if (isInstalled) {
             val context = androidx.compose.ui.platform.LocalContext.current
@@ -268,4 +301,15 @@ fun MainAppContent(viewModel: MainViewModel) {
             )
         }
     }
+}
+
+@Composable
+private fun SplashRoute(viewModel: MainViewModel, state: DashboardUiState) {
+    SplashScreen(
+        statusText = stringResource(state.initStep.stringResId),
+        initSlow = state.isInitSlow,
+        elapsedSeconds = (state.initElapsedMs / 1000L).toInt(),
+        onRetry = { viewModel.retryInit() },
+        onContinueAnyway = { viewModel.dismissSplash() }
+    )
 }

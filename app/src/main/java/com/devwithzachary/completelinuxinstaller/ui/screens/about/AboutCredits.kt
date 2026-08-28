@@ -83,7 +83,7 @@ val CODE_CONTRIBUTORS: List<Contributor> = listOf(
     Contributor(
         username = "sleepy-snowflake",
         displayName = "sleepy-snowflake",
-        roleBadge = "Screen WakeLock & Font Licenses",
+        roleBadge = "Diagnostics, WakeLock & Startup",
         isCodeContributor = true,
         contributions = listOf(
             ContributionItem(
@@ -94,6 +94,21 @@ val CODE_CONTRIBUTORS: List<Contributor> = listOf(
             ContributionItem(
                 title = "Keep screen on while terminal session is running",
                 referenceNumber = 34,
+                isPr = true
+            ),
+            ContributionItem(
+                title = "Add startup sanity check with slow-mode splash escape hatch",
+                referenceNumber = 35,
+                isPr = true
+            ),
+            ContributionItem(
+                title = "Keep screen on while setup wizard is visible",
+                referenceNumber = 36,
+                isPr = true
+            ),
+            ContributionItem(
+                title = "Add diagnostics debug report generator in settings",
+                referenceNumber = 37,
                 isPr = true
             )
         )
@@ -144,7 +159,16 @@ val ISSUE_CONTRIBUTORS: List<Contributor> = listOf(
     )
 )
 
-val PATREON_SPONSORS: List<Sponsor> = emptyList()
+val PATREON_SPONSORS: List<Sponsor> = listOf(
+    Sponsor(
+        name = "Old PC Gunk (and stuff)",
+        tier = "Supporter"
+    ),
+    Sponsor(
+        name = "насэр Хорр",
+        tier = "Supporter"
+    )
+)
 
 @Composable
 fun AboutCreditsSection(
@@ -193,7 +217,10 @@ fun AboutCreditsSection(
                             text = if (isSectionExpanded) {
                                 stringResource(R.string.about_credits_subtitle)
                             } else {
-                                "4 contributors • 1 PR • 12 issues"
+                                val totalContributors = (CODE_CONTRIBUTORS.map { it.username } + ISSUE_CONTRIBUTORS.map { it.username }).distinct().size
+                                val totalPrs = CODE_CONTRIBUTORS.flatMap { it.contributions }.count { it.isPr }
+                                val totalIssues = ISSUE_CONTRIBUTORS.flatMap { it.contributions }.count { !it.isPr }
+                                "$totalContributors contributors • $totalPrs ${if (totalPrs == 1) "PR" else "PRs"} • $totalIssues ${if (totalIssues == 1) "issue" else "issues"}"
                             },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

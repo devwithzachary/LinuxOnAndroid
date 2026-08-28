@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,6 +21,7 @@ import androidx.compose.ui.unit.sp
 fun ExtraKeysRow(
     keys: List<String>,
     onKeyClick: (String) -> Unit,
+    onPaste: () -> Unit = {},
     isCtrlActive: Boolean = false,
     onToggleCtrl: () -> Unit = {},
     isAltActive: Boolean = false,
@@ -50,6 +53,34 @@ fun ExtraKeysRow(
                 isActive = isAltActive,
                 onClick = onToggleAlt
             )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // 3. Pinned PASTE Action Key
+            Button(
+                onClick = onPaste,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF1E3A5F),
+                    contentColor = Color(0xFF90CAF9)
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 1.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ContentPaste,
+                    contentDescription = "Paste",
+                    modifier = Modifier.size(13.dp),
+                    tint = Color(0xFF90CAF9)
+                )
+                Spacer(modifier = Modifier.width(3.dp))
+                Text(
+                    text = "PASTE",
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
             Spacer(modifier = Modifier.width(6.dp))
 

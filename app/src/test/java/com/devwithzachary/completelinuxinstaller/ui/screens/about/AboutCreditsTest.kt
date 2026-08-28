@@ -22,8 +22,14 @@ class AboutCreditsTest {
         assertTrue(sleepy.isCodeContributor)
         assertTrue(sleepy.contributions.any { it.referenceNumber == 33 && it.isPr })
         assertTrue(sleepy.contributions.any { it.referenceNumber == 34 && it.isPr })
+        assertTrue(sleepy.contributions.any { it.referenceNumber == 35 && it.isPr })
+        assertTrue(sleepy.contributions.any { it.referenceNumber == 36 && it.isPr })
+        assertTrue(sleepy.contributions.any { it.referenceNumber == 37 && it.isPr })
         assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/33", sleepy.contributions.first { it.referenceNumber == 33 }.url)
         assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/34", sleepy.contributions.first { it.referenceNumber == 34 }.url)
+        assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/35", sleepy.contributions.first { it.referenceNumber == 35 }.url)
+        assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/36", sleepy.contributions.first { it.referenceNumber == 36 }.url)
+        assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/37", sleepy.contributions.first { it.referenceNumber == 37 }.url)
     }
 
     @Test
@@ -76,5 +82,19 @@ class AboutCreditsTest {
             contributions = emptyList()
         )
         assertEquals("https://github.com/octocat", contrib.githubUrl)
+    }
+
+    @Test
+    fun testPatreonSponsors_containsSupporters() {
+        val sponsors = PATREON_SPONSORS
+        assertEquals(2, sponsors.size)
+
+        val oldPcGunk = sponsors.firstOrNull { it.name == "Old PC Gunk (and stuff)" }
+        assertTrue("Old PC Gunk (and stuff) must be in Patreon sponsors", oldPcGunk != null)
+        assertEquals("Supporter", oldPcGunk!!.tier)
+
+        val naserHorr = sponsors.firstOrNull { it.name == "насэр Хорр" }
+        assertTrue("насэр Хорр must be in Patreon sponsors", naserHorr != null)
+        assertEquals("Supporter", naserHorr!!.tier)
     }
 }

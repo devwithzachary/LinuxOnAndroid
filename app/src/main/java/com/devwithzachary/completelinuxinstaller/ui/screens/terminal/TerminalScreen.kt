@@ -1,5 +1,6 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.terminal
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +24,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
 import com.devwithzachary.completelinuxinstaller.ui.components.EditHotkeysDialog
@@ -59,6 +61,26 @@ fun TerminalScreen(
         }
     }
 
+    val window = remember(view) { (view.context as? Activity)?.window }
+    val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
+
+    DisposableEffect(window, insetsController) {
+        val prevStatusBarColor = window?.statusBarColor
+        val prevLightStatusBars = insetsController?.isAppearanceLightStatusBars
+
+        window?.statusBarColor = android.graphics.Color.parseColor("#2D2D2D")
+        insetsController?.isAppearanceLightStatusBars = false
+
+        onDispose {
+            if (window != null && prevStatusBarColor != null) {
+                window.statusBarColor = prevStatusBarColor
+            }
+            if (insetsController != null && prevLightStatusBars != null) {
+                insetsController.isAppearanceLightStatusBars = prevLightStatusBars
+            }
+        }
+    }
+
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -89,6 +111,7 @@ fun TerminalScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -199,6 +222,12 @@ fun TerminalScreen(
         // Touch Navigation & Quick Command Keys Ribbon (Positioned directly above keyboard)
         ExtraKeysRow(
             keys = customHotkeys,
+            onPaste = {
+                val clipText = clipboardManager.getText()?.text
+                if (!clipText.isNullOrEmpty()) {
+                    terminalBridge.pasteText(clipText)
+                }
+            },
             isCtrlActive = isCtrlActive,
             onToggleCtrl = {
                 isCtrlActive = !isCtrlActive

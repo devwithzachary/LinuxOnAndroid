@@ -14,6 +14,9 @@
     <string name="splash_init_verifying_binaries">Verifying CPU architecture &amp; PRoot binaries…</string>
     <string name="splash_init_checking_filesystem">Checking Linux rootfs filesystem &amp; storage…</string>
     <string name="splash_init_preparing">Preparing container environment…</string>
+    <string name="splash_init_slow_warning">Startup is taking longer than expected (%1$d s). The rootfs may be busy or damaged.</string>
+    <string name="splash_retry">Retry</string>
+    <string name="splash_continue_anyway">Continue anyway</string>
 
     <!-- Foreground Service & Resource Monitor -->
     <string name="notification_channel_name">Linux Container &amp; Service Monitor</string>
@@ -156,4 +159,25 @@
     <string name="dialog_notification_permission_desc">LinuxOnAndroid uses a persistent foreground service to prevent Android Doze and battery savers from killing your terminal, SSH, and VNC sessions when minimized. Granting notification permission displays live CPU/RAM usage and service status in your notification shade.</string>
     <string name="dialog_notification_permission_grant">Grant Permission</string>
     <string name="dialog_notification_permission_not_now">Not Now</string>
+
+    <!-- GitHub Release Updates & Migration -->
+    <string name="github_updates_card_title">Updates &amp; Release Channel</string>
+    <string name="github_updates_card_subtitle">Check for new releases on GitHub</string>
+    <string name="github_updates_setting_title">Notify About GitHub Releases</string>
+    <string name="github_updates_setting_desc">Google Play Store reviews can delay updates by days or weeks. Enable to receive immediate notifications when newer versions are released on GitHub.</string>
+    <string name="github_updates_btn_check">Check for Updates Now</string>
+    <string name="github_updates_status_checking">Checking GitHub for new releases…</string>
+    <string name="github_updates_status_up_to_date">App is up to date (%1$s)</string>
+    <string name="github_updates_status_available">New release available: %1$s</string>
+    <string name="github_updates_status_error">Unable to check for updates: %1$s</string>
+    <string name="github_updates_dialog_title">New GitHub Release Available</string>
+    <string name="github_updates_dialog_version_info">Version %1$s is available on GitHub (installed: %2$s).</string>
+    <string name="github_updates_dialog_whats_new">Release Highlights &amp; Notes</string>
+    <string name="github_updates_migration_title">Migrating from Google Play Store</string>
+    <string name="github_updates_migration_warning">Google Play Store builds and GitHub direct releases use different cryptographic signing certificates. Android will prevent updating over the Play Store version directly (Signature Mismatch / INSTALL_FAILED_UPDATE_INCOMPATIBLE).\n\nTo switch to the GitHub release channel:\n1. (Optional) Export a container backup in Settings &gt; Container Backup if you have important files.\n2. Uninstall the current Google Play Store app.\n3. Download &amp; install the latest GitHub APK. Future GitHub updates will install seamlessly!</string>
+    <string name="github_updates_btn_download_apk">Download GitHub APK</string>
+    <string name="github_updates_btn_view_release">View Release Notes</string>
+    <string name="github_updates_btn_remind_later">Remind Me\nLater</string>
+    <string name="github_updates_btn_dont_ask">Stick to Play Store\n(Don\'t Ask Again)</string>
+    <string name="github_updates_manual_check_about">Check for GitHub Updates</string>
 </resources>
