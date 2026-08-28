@@ -27,6 +27,7 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "August 28, 2026",
         initialExpanded = true,
         highlights = listOf(
+            "GitHub Release Update Checker & Play Store Migration Guide: Automated in-app GitHub release checks notifying users of cutting-edge updates, with full step-by-step guidance on migrating from Google Play Store builds to GitHub developer-signed APKs.",
             "Real-Time Container Dashboard & System Monitor: Live visual RAM and storage gauges, real-time process table (ps aux) with 1-tap kill confirmation, and active TCP network port listener with 1-tap browser launcher.",
             "Terminal Native Text Selection & Copy/Paste: Long-press to select words with draggable teardrop start/end handles, 1-tap floating Copy/Select All toolbar, pinned keyboard PASTE button, and buttery smooth scrolling.",
             "System Bars & Light Theme Contrast: Dynamic edge-to-edge status bar and navigation bar contrast fixing light-on-light text and providing seamless terminal immersion.",

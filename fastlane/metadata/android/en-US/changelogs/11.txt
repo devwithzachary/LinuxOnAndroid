@@ -1,3 +1,4 @@
+• GitHub Release Update Checker: Automated checks for latest GitHub releases with step-by-step Play Store to GitHub migration guide.
 • Real-Time Container System Monitor: Live visual RAM & storage gauges, active process table (ps aux) with 1-tap kill action, and TCP open port listener with 1-tap browser launcher.
 • Native Terminal Text Selection & Copy/Paste: Long-press to select words with draggable handles, floating toolbar, pinned keyboard PASTE button, and smooth scrolling.
 • System Bars & Theme Contrast: Dynamic status and navigation bar contrast for light theme readability.

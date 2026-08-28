@@ -8,6 +8,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.devwithzachary.completelinuxinstaller.engine.DownloadState
 import com.devwithzachary.completelinuxinstaller.engine.DiagnosticsManager
+import com.devwithzachary.completelinuxinstaller.engine.GitHubRelease
+import com.devwithzachary.completelinuxinstaller.engine.GitHubReleaseManager
 import com.devwithzachary.completelinuxinstaller.engine.InstallStepState
 import com.devwithzachary.completelinuxinstaller.engine.PRootEngine
 import com.devwithzachary.completelinuxinstaller.engine.RootfsManager
@@ -15,6 +17,7 @@ import com.devwithzachary.completelinuxinstaller.engine.SoftwareInstaller
 import com.devwithzachary.completelinuxinstaller.engine.SystemMonitorManager
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
+import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
 import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.LinuxDistribution
 import com.devwithzachary.completelinuxinstaller.model.SoftwareCategory
@@ -81,6 +84,54 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val terminalBridge = TerminalBridge(pRootEngine)
     val diagnosticsManager = DiagnosticsManager(application, pRootEngine, rootfsManager)
     val systemMonitorManager = SystemMonitorManager(application, pRootEngine, rootfsManager)
+    val gitHubReleaseManager = GitHubReleaseManager(application)
+
+    private val _isGitHubUpdateCheckEnabled = MutableStateFlow(gitHubReleaseManager.isUpdateCheckEnabled())
+    val isGitHubUpdateCheckEnabled: StateFlow<Boolean> = _isGitHubUpdateCheckEnabled.asStateFlow()
+
+    private val _updateCheckResult = MutableStateFlow<UpdateCheckResult?>(null)
+    val updateCheckResult: StateFlow<UpdateCheckResult?> = _updateCheckResult.asStateFlow()
+
+    private val _isCheckingForUpdates = MutableStateFlow(false)
+    val isCheckingForUpdates: StateFlow<Boolean> = _isCheckingForUpdates.asStateFlow()
+
+    fun setGitHubUpdateCheckEnabled(enabled: Boolean) {
+        gitHubReleaseManager.setUpdateCheckEnabled(enabled)
+        _isGitHubUpdateCheckEnabled.value = enabled
+        if (!enabled) {
+            _updateCheckResult.value = null
+        }
+    }
+
+    fun checkForGitHubUpdates(manual: Boolean = false) {
+        viewModelScope.launch {
+            _isCheckingForUpdates.value = true
+            try {
+                val result = gitHubReleaseManager.checkForUpdates(force = manual)
+                _updateCheckResult.value = result
+            } catch (e: Exception) {
+                Log.e(TAG, "Error checking for GitHub updates", e)
+                if (manual) {
+                    _updateCheckResult.value = UpdateCheckResult.Error(e.localizedMessage ?: "Network error")
+                }
+            } finally {
+                _isCheckingForUpdates.value = false
+            }
+        }
+    }
+
+    fun dismissGitHubUpdate(dontAskAgain: Boolean = false, releaseTag: String? = null) {
+        if (dontAskAgain) {
+            setGitHubUpdateCheckEnabled(false)
+        } else if (releaseTag != null) {
+            gitHubReleaseManager.dismissRelease(releaseTag)
+        }
+        _updateCheckResult.value = null
+    }
+
+    fun clearUpdateCheckResult() {
+        _updateCheckResult.value = null
+    }
 
     private val _systemMetrics = MutableStateFlow(SystemResourceMetrics())
     val systemMetrics: StateFlow<SystemResourceMetrics> = _systemMetrics.asStateFlow()
@@ -334,6 +385,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         isInitializing = false,
                         initElapsedMs = System.currentTimeMillis() - startMs
                     )
+
+                    // Check for GitHub updates in background (throttled to once every 24h)
+                    viewModelScope.launch {
+                        kotlinx.coroutines.delay(1500)
+                        if (gitHubReleaseManager.isUpdateCheckEnabled()) {
+                            checkForGitHubUpdates(manual = false)
+                        }
+                    }
                 }
             }
         }

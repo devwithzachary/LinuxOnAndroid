@@ -159,4 +159,25 @@
     <string name="dialog_notification_permission_desc">LinuxOnAndroid nutzt einen Vordergrunddienst, um zu verhindern, dass Android Doze und Energiesparmodi deine Terminal-, SSH- und VNC-Sitzungen im Hintergrund beenden. Das Erteilen der Benachrichtigungsberechtigung zeigt den Live-Ressourcenstatus an.</string>
     <string name="dialog_notification_permission_grant">Berechtigung erteilen</string>
     <string name="dialog_notification_permission_not_now">Nicht jetzt</string>
+
+    <!-- GitHub Release Updates & Migration -->
+    <string name="github_updates_card_title">Updates &amp; Release-Kanal</string>
+    <string name="github_updates_card_subtitle">Auf neue GitHub-Versionen prüfen</string>
+    <string name="github_updates_setting_title">Über GitHub-Releases benachrichtigen</string>
+    <string name="github_updates_setting_desc">Google Play-Freigaben können Updates um Tage oder Wochen verzögern. Aktiviere dies, um sofort benachrichtigt zu werden, sobald eine neuere Version auf GitHub bereitsteht.</string>
+    <string name="github_updates_btn_check">Jetzt auf Updates prüfen</string>
+    <string name="github_updates_status_checking">GitHub wird auf neue Releases geprüft…</string>
+    <string name="github_updates_status_up_to_date">App ist auf dem neuesten Stand (%1$s)</string>
+    <string name="github_updates_status_available">Neues Release verfügbar: %1$s</string>
+    <string name="github_updates_status_error">Update-Prüfung fehlgeschlagen: %1$s</string>
+    <string name="github_updates_dialog_title">Neues GitHub-Release verfügbar</string>
+    <string name="github_updates_dialog_version_info">Version %1$s ist auf GitHub verfügbar (installiert: %2$s).</string>
+    <string name="github_updates_dialog_whats_new">Highlights &amp; Versionshinweise</string>
+    <string name="github_updates_migration_title">Wechsel vom Google Play Store</string>
+    <string name="github_updates_migration_warning">Google Play Store-Builds und direkte GitHub-Releases verwenden unterschiedliche kryptografische Signaturschlüssel. Android verhindert das direkte Überschreiben der Play Store-Version (Signaturkonflikt / INSTALL_FAILED_UPDATE_INCOMPATIBLE).\n\nSo wechselst du zum GitHub-Release-Kanal:\n1. (Optional) Erstelle ein Container-Backup unter Einstellungen &gt; Container-Backup, falls du wichtige Daten hast.\n2. Deinstalliere die bisherige Google Play Store-App.\n3. Lade die GitHub-APK herunter und installiere sie. Zukünftige GitHub-Updates lassen sich danach direkt aktualisieren!</string>
+    <string name="github_updates_btn_download_apk">GitHub APK herunterladen</string>
+    <string name="github_updates_btn_view_release">Versionshinweise ansehen</string>
+    <string name="github_updates_btn_remind_later">Später\nerinnern</string>
+    <string name="github_updates_btn_dont_ask">Bei Play Store bleiben\n(Nicht mehr fragen)</string>
+    <string name="github_updates_manual_check_about">Auf GitHub-Updates prüfen</string>
 </resources>

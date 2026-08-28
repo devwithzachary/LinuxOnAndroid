@@ -4,6 +4,12 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 
 ## [1.4.0] - 2026-08-28
 
+### 🚀 GitHub Release Update Checker & Play Store Migration Guide
+- **Automated GitHub Update Checks**: Added automated release checking against the official GitHub repository releases API (`devwithzachary/LinuxOnAndroid/releases/latest`), notifying users immediately when newer versions and bug fixes are available without waiting for Google Play review delays.
+- **Play Store Migration & Cryptographic Signature Guide**: Integrated comprehensive migration instructions explaining why direct updates over Play Store builds fail (`INSTALL_FAILED_UPDATE_INCOMPATIBLE` due to Google Play App Signing key differences), with clear 3-step guidance on exporting container backups, uninstalling the store version, and migrating to the direct GitHub APK.
+- **Update Frequency & Notification Controls**: Configurable under Settings > Updates & Release Channel with automated background check toggle ("Notify About GitHub Releases"), 24-hour rate-limit throttling, "Don't ask again" option, and on-demand "Check for Updates Now" action in both Settings and About screens.
+- **Semantic Version Engine**: Built robust SemVer comparison parsing major/minor/patch numbers and release tags across GitHub releases and installed `VERSION_NAME`.
+
 ### 🔍 Diagnostics & Debug Report Generator (PR #37)
 - **Diagnostics Manager & System Report**: Added comprehensive diagnostics reporting accessible via Settings > General > "Generate Debug Report", collecting device hardware, Android OS/SDK details, PRoot container version, memory usage, storage breakdown, and rootfs binary integrity checks.
 - **Interactive Debug Report Dialog**: View, copy to clipboard, or share sanitized diagnostic summaries directly to GitHub issue trackers or community support.

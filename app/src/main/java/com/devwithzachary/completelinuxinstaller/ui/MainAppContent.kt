@@ -218,6 +218,9 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val fontFamily by viewModel.terminalFontFamily.collectAsState()
                         val isKeepAliveEnabled by viewModel.isKeepAliveEnabled.collectAsState()
                         val isKeepScreenOnEnabled by viewModel.isKeepScreenOnEnabled.collectAsState()
+                        val isGitHubUpdateCheckEnabled by viewModel.isGitHubUpdateCheckEnabled.collectAsStateWithLifecycle()
+                        val isCheckingForUpdates by viewModel.isCheckingForUpdates.collectAsStateWithLifecycle()
+                        val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
                         SettingsScreen(
                             state = dashboardState,
                             backupState = backupState,
@@ -247,12 +250,23 @@ fun MainAppContent(viewModel: MainViewModel) {
                             onExportContainer = { cr, uri -> viewModel.exportContainer(cr, uri) },
                             onImportContainer = { cr, uri -> viewModel.importContainer(cr, uri) },
                             onGenerateDebugReport = { viewModel.generateDebugReport() },
-                            onDismissBackupStatus = { viewModel.dismissBackupStatus() }
+                            onDismissBackupStatus = { viewModel.dismissBackupStatus() },
+                            isGitHubUpdateCheckEnabled = isGitHubUpdateCheckEnabled,
+                            onSetGitHubUpdateCheckEnabled = { enabled -> viewModel.setGitHubUpdateCheckEnabled(enabled) },
+                            isCheckingForUpdates = isCheckingForUpdates,
+                            updateCheckResult = updateCheckResult,
+                            onCheckForUpdatesClick = { viewModel.checkForGitHubUpdates(manual = true) }
                         )
                     }
 
                     AppScreen.ABOUT -> {
-                        AboutScreen()
+                        val isCheckingForUpdates by viewModel.isCheckingForUpdates.collectAsStateWithLifecycle()
+                        val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
+                        AboutScreen(
+                            onCheckForUpdatesClick = { viewModel.checkForGitHubUpdates(manual = true) },
+                            isCheckingForUpdates = isCheckingForUpdates,
+                            updateCheckResult = updateCheckResult
+                        )
                     }
                 }
             }
@@ -263,6 +277,18 @@ fun MainAppContent(viewModel: MainViewModel) {
             upgradeState = upgradeState,
             onDismiss = { viewModel.dismissUpgradeState() }
         )
+
+        val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
+        if (updateCheckResult is com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult.UpdateAvailable) {
+            val update = updateCheckResult as com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult.UpdateAvailable
+            com.devwithzachary.completelinuxinstaller.ui.components.GitHubUpdateDialog(
+                release = update.release,
+                currentVersion = update.currentVersion,
+                onDismiss = { viewModel.clearUpdateCheckResult() },
+                onRemindLater = { viewModel.dismissGitHubUpdate(dontAskAgain = false) },
+                onDontAskAgain = { viewModel.dismissGitHubUpdate(dontAskAgain = true, releaseTag = update.release.tagName) }
+            )
+        }
 
         if (isInstalled) {
             val context = androidx.compose.ui.platform.LocalContext.current
