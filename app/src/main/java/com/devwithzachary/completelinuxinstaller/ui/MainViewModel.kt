@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 import com.devwithzachary.completelinuxinstaller.R
@@ -37,9 +38,14 @@ enum class InitStep(val stringResId: Int) {
     PREPARING_ENVIRONMENT(R.string.splash_init_preparing)
 }
 
+private const val INIT_SLOW_THRESHOLD_MS = 10_000L
+private const val TAG = "MainViewModel"
+
 data class DashboardUiState(
     val isInitializing: Boolean = true,
     val initStep: InitStep = InitStep.VERIFYING_BINARIES,
+    val initElapsedMs: Long = 0L,
+    val splashDismissed: Boolean = false,
     val isInstalled: Boolean = false,
     val storageUsedMb: Long = 0L,
     val distroName: String = "Ubuntu 26.04 LTS (ARM64/x86_64)",
@@ -53,7 +59,9 @@ data class DashboardUiState(
     val isUpgradeAvailable: Boolean = false,
     val dnsServers: List<String> = listOf("8.8.8.8", "1.1.1.1", "8.8.4.4"),
     val containerUsers: List<String> = emptyList()
-)
+) {
+    val isInitSlow: Boolean get() = initElapsedMs >= INIT_SLOW_THRESHOLD_MS
+}
 
 sealed class BackupState {
     data object Idle : BackupState()
@@ -233,26 +241,75 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _defaultTerminalUser.value = username
     }
 
+    private var initJob: kotlinx.coroutines.Job? = null
+    private var initGeneration = 0
+
+    fun dismissSplash() {
+        initGeneration++
+        _dashboardState.value = _dashboardState.value.copy(
+            isInitializing = false,
+            splashDismissed = true
+        )
+    }
+
+    fun retryInit() {
+        _dashboardState.value = _dashboardState.value.copy(
+            isInitializing = true,
+            splashDismissed = false,
+            initElapsedMs = 0L
+        )
+        startInitialization()
+    }
+
+    private fun startInitialization() {
+        val gen = ++initGeneration
+        val startMs = System.currentTimeMillis()
+        initJob?.cancel()
+        initJob = viewModelScope.launch {
+            val watchdog = launch {
+                while (isActive && _dashboardState.value.isInitializing) {
+                    kotlinx.coroutines.delay(1000)
+                    val elapsed = System.currentTimeMillis() - startMs
+                    if (!_dashboardState.value.isInitializing) break
+                    _dashboardState.value = _dashboardState.value.copy(
+                        initElapsedMs = elapsed
+                    )
+                }
+            }
+            try {
+                _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.VERIFYING_BINARIES)
+                pRootEngine.ensurePRootExecutable()
+                kotlinx.coroutines.delay(200)
+
+                _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.CHECKING_FILESYSTEM)
+                refreshStatusInternal()
+                kotlinx.coroutines.delay(250)
+
+                _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.PREPARING_ENVIRONMENT)
+                kotlinx.coroutines.delay(250)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "Startup initialization failed", e)
+            } finally {
+                watchdog.cancel()
+                if (gen == initGeneration) {
+                    _dashboardState.value = _dashboardState.value.copy(
+                        isInitializing = false,
+                        initElapsedMs = System.currentTimeMillis() - startMs
+                    )
+                }
+            }
+        }
+    }
+
     init {
         PRootForegroundService.isTerminalActiveProvider = { terminalBridge.isRunning.value }
         PRootForegroundService.rootfsDirProvider = { pRootEngine.rootfsDir }
         PRootForegroundService.sshPortProvider = { _sshPort.value }
         PRootForegroundService.onStopSessionRequested = { stopTerminalSession() }
 
-        viewModelScope.launch {
-            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.VERIFYING_BINARIES)
-            pRootEngine.ensurePRootExecutable()
-            kotlinx.coroutines.delay(200)
-
-            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.CHECKING_FILESYSTEM)
-            refreshStatusInternal()
-            kotlinx.coroutines.delay(250)
-
-            _dashboardState.value = _dashboardState.value.copy(initStep = InitStep.PREPARING_ENVIRONMENT)
-            kotlinx.coroutines.delay(250)
-
-            _dashboardState.value = _dashboardState.value.copy(isInitializing = false)
-        }
+        startInitialization()
     }
 
     private fun loadTerminalTheme(): TerminalTheme {

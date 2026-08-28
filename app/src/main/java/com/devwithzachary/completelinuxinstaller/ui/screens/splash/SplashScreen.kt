@@ -25,7 +25,11 @@ import com.devwithzachary.completelinuxinstaller.R
 
 @Composable
 fun SplashScreen(
-    statusText: String = stringResource(R.string.splash_init_verifying_binaries)
+    statusText: String = stringResource(R.string.splash_init_verifying_binaries),
+    initSlow: Boolean = false,
+    elapsedSeconds: Int = 0,
+    onRetry: () -> Unit = {},
+    onContinueAnyway: () -> Unit = {}
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
@@ -162,6 +166,36 @@ fun SplashScreen(
                 color = Color(0xFFBAC2DE),
                 modifier = Modifier.alpha(alpha)
             )
+
+            if (initSlow) {
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = Color(0xFFF38BA8).copy(alpha = 0.12f),
+                    contentColor = Color(0xFFF38BA8)
+                ) {
+                    Text(
+                        text = stringResource(R.string.splash_init_slow_warning, elapsedSeconds),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(onClick = onRetry) {
+                        Text(stringResource(R.string.splash_retry))
+                    }
+                    Button(onClick = onContinueAnyway) {
+                        Text(stringResource(R.string.splash_continue_anyway))
+                    }
+                }
+            }
         }
     }
 }

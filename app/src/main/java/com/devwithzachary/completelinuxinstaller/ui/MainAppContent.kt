@@ -43,6 +43,7 @@ fun MainAppContent(viewModel: MainViewModel) {
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
+    val splashDismissed = dashboardState.splashDismissed
     var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
 
     LaunchedEffect(requestedScreen) {
@@ -53,9 +54,9 @@ fun MainAppContent(viewModel: MainViewModel) {
     }
 
     // Sync screen navigation state when initialization completes or installation status is confirmed
-    LaunchedEffect(isInitializing, isInstalled) {
+    LaunchedEffect(isInitializing, isInstalled, splashDismissed) {
         if (!isInitializing) {
-            if (!isInstalled) {
+            if (!isInstalled && !splashDismissed) {
                 currentScreen = AppScreen.WIZARD
             } else if (currentScreen == AppScreen.SPLASH || currentScreen == AppScreen.WIZARD) {
                 currentScreen = AppScreen.DASHBOARD
@@ -64,13 +65,12 @@ fun MainAppContent(viewModel: MainViewModel) {
     }
 
     if (isInitializing || currentScreen == AppScreen.SPLASH) {
-        val statusText = stringResource(dashboardState.initStep.stringResId)
-        SplashScreen(statusText = statusText)
+        SplashRoute(viewModel, dashboardState)
     } else {
         Scaffold(
             bottomBar = {
                 val isImeVisible = WindowInsets.isImeVisible
-                if (isInstalled && currentScreen != AppScreen.WIZARD && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
+                if ((isInstalled || splashDismissed) && currentScreen != AppScreen.WIZARD && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
                     NavigationBar {
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.DASHBOARD,
@@ -137,8 +137,7 @@ fun MainAppContent(viewModel: MainViewModel) {
             ) {
                 when (currentScreen) {
                     AppScreen.SPLASH -> {
-                        val statusText = stringResource(dashboardState.initStep.stringResId)
-                        SplashScreen(statusText = statusText)
+                        SplashRoute(viewModel, dashboardState)
                     }
 
                     AppScreen.WIZARD -> {
@@ -268,4 +267,15 @@ fun MainAppContent(viewModel: MainViewModel) {
             )
         }
     }
+}
+
+@Composable
+private fun SplashRoute(viewModel: MainViewModel, state: DashboardUiState) {
+    SplashScreen(
+        statusText = stringResource(state.initStep.stringResId),
+        initSlow = state.isInitSlow,
+        elapsedSeconds = (state.initElapsedMs / 1000L).toInt(),
+        onRetry = { viewModel.retryInit() },
+        onContinueAnyway = { viewModel.dismissSplash() }
+    )
 }
