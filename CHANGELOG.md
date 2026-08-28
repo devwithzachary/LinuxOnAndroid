@@ -24,6 +24,16 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Dedicated Keyboard-Pinned Paste Button**: Added a dedicated **PASTE** action button pinned on the extra keys row alongside `CTRL` and `ALT`, enabling instant 1-tap pasting from clipboard whenever the software keyboard is open.
 - **Smooth Butter-Scroll**: Vertical dragging across the terminal canvas now exclusively performs direct, responsive scrolling through history without accidental text selection interference.
 
+### 🎨 System Bars & Light Theme Contrast Fix
+- **Dynamic Light Status Bar & Navigation Contrast**: Added explicit edge-to-edge support and window insets control. System status bar icons (clock, battery, Wi-Fi, notifications) now render with crisp dark contrast in light mode instead of low-contrast white.
+- **Immersive Terminal Status Bar Integration**: The terminal's dark `#2D2D2D` top action bar now seamlessly extends behind the status bar with high-contrast white icons, dynamically adapting between light and dark screens.
+
+### 📊 Real-Time Container Dashboard & System Monitor
+- **Visual RAM & Storage Gauges**: Real-time memory consumption (container RSS vs device RAM total) and rootfs disk allocation with animated Material 3 gauge dials and color-coded status indicators.
+- **Live Active Process Table (`ps aux`)**: Real-time container child process inspector tracking PID, user (`root`/`ubuntu`), binary name, command line, and memory footprint with search/filtering.
+- **1-Tap Kill Process Action**: Instant `SIGKILL` termination action on any container child process with a safe confirmation dialog.
+- **Active Network Port Listener**: Real-time open port detection (SSH :2222, VNC :5901, NGINX :80, Node :3000, Python :8000, etc.) with 1-tap browser launch and clipboard copy.
+
 ### 🌟 Project Credits & Contributor Recognition
 - **Community Credits**: Updated credits recognizing PR #35, PR #36, and PR #37 contributions by @sleepy-snowflake.
 

@@ -41,6 +41,7 @@ fun MainAppContent(viewModel: MainViewModel) {
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val packages by viewModel.packages.collectAsStateWithLifecycle()
     val requestedScreen by viewModel.requestedScreen.collectAsStateWithLifecycle()
+    val systemMetrics by viewModel.systemMetrics.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
@@ -160,6 +161,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                     AppScreen.DASHBOARD -> {
                         DashboardScreen(
                             state = dashboardState,
+                            metrics = systemMetrics,
+                            onKillProcess = { pid -> viewModel.killProcess(pid) },
                             onInstallClick = { currentScreen = AppScreen.WIZARD },
                             onOpenTerminalClick = {
                                 viewModel.startTerminalSession()

@@ -27,7 +27,9 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "August 28, 2026",
         initialExpanded = true,
         highlights = listOf(
+            "Real-Time Container Dashboard & System Monitor: Live visual RAM and storage gauges, real-time process table (ps aux) with 1-tap kill confirmation, and active TCP network port listener with 1-tap browser launcher.",
             "Terminal Native Text Selection & Copy/Paste: Long-press to select words with draggable teardrop start/end handles, 1-tap floating Copy/Select All toolbar, pinned keyboard PASTE button, and buttery smooth scrolling.",
+            "System Bars & Light Theme Contrast: Dynamic edge-to-edge status bar and navigation bar contrast fixing light-on-light text and providing seamless terminal immersion.",
             "Diagnostics & System Debug Report Generator (PR #37): Added comprehensive diagnostics reporting in Settings, collecting device specs, Android version, container status, storage analysis, memory breakdown, and rootfs binary integrity checks with 1-tap copy/sharing.",
             "Startup Sanity Check & Slow-Mode Escape Hatch (PR #35): Introduced startup watchdog monitoring initialization progress with slow-load warning alerts and instant 'Retry' and 'Continue anyway' recovery options if filesystem checks take longer than expected.",
             "Setup Wizard Screen Keep-Alive (PR #36): Keeps display awake during initial container download and filesystem extraction in the Setup Wizard, preventing sleep timeouts during long downloads.",

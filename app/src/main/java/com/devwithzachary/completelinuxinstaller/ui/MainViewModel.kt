@@ -12,6 +12,8 @@ import com.devwithzachary.completelinuxinstaller.engine.InstallStepState
 import com.devwithzachary.completelinuxinstaller.engine.PRootEngine
 import com.devwithzachary.completelinuxinstaller.engine.RootfsManager
 import com.devwithzachary.completelinuxinstaller.engine.SoftwareInstaller
+import com.devwithzachary.completelinuxinstaller.engine.SystemMonitorManager
+import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
 import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.LinuxDistribution
@@ -78,6 +80,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val softwareInstaller = SoftwareInstaller(pRootEngine)
     val terminalBridge = TerminalBridge(pRootEngine)
     val diagnosticsManager = DiagnosticsManager(application, pRootEngine, rootfsManager)
+    val systemMonitorManager = SystemMonitorManager(application, pRootEngine, rootfsManager)
+
+    private val _systemMetrics = MutableStateFlow(SystemResourceMetrics())
+    val systemMetrics: StateFlow<SystemResourceMetrics> = _systemMetrics.asStateFlow()
+
+    fun killProcess(pid: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            systemMonitorManager.killProcess(pid)
+            refreshSystemMetrics()
+        }
+    }
+
+    suspend fun refreshSystemMetrics() {
+        val metrics = systemMonitorManager.collectMetrics(terminalBridge.isRunning.value)
+        _systemMetrics.value = metrics
+    }
+
+    private fun startSystemMonitorLoop() {
+        viewModelScope.launch {
+            while (isActive) {
+                try {
+                    refreshSystemMetrics()
+                } catch (_: Exception) {}
+                kotlinx.coroutines.delay(2500)
+            }
+        }
+    }
 
     private val prefs = application.getSharedPreferences("terminal_theme_prefs", Context.MODE_PRIVATE)
 
@@ -317,6 +346,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         PRootForegroundService.onStopSessionRequested = { stopTerminalSession() }
 
         startInitialization()
+        startSystemMonitorLoop()
     }
 
     private fun loadTerminalTheme(): TerminalTheme {
