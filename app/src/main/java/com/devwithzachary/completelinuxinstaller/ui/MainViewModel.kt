@@ -98,7 +98,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun startSystemMonitorLoop() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             while (isActive) {
                 try {
                     refreshSystemMetrics()

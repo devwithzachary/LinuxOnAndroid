@@ -90,7 +90,7 @@ fun DashboardGaugesCard(
                 )
 
                 // 2. Storage Allocation Gauge Card
-                val freeGb = if (metrics.storageTotalBytes > 0) String.format("%.1f", metrics.storageAvailableBytes / (1024.0 * 1024.0 * 1024.0)) else "0.0"
+                val freeGb = if (metrics.storageTotalBytes > 0) String.format(java.util.Locale.US, "%.1f", metrics.storageAvailableBytes / (1024.0 * 1024.0 * 1024.0)) else "0.0"
                 ResourceGaugeItem(
                     icon = Icons.Default.Storage,
                     title = "RootFS Disk",
