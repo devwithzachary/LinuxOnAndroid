@@ -1,5 +1,6 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.splash
 
+import android.app.Activity
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -7,7 +8,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -15,12 +18,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import com.devwithzachary.completelinuxinstaller.R
 
 @Composable
@@ -31,6 +36,26 @@ fun SplashScreen(
     onRetry: () -> Unit = {},
     onContinueAnyway: () -> Unit = {}
 ) {
+    val view = LocalView.current
+    val window = remember(view) { (view.context as? Activity)?.window }
+    val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
+
+    DisposableEffect(window, insetsController) {
+        val prevStatusBarColor = window?.statusBarColor
+        val prevLightStatusBars = insetsController?.isAppearanceLightStatusBars
+
+        window?.statusBarColor = android.graphics.Color.parseColor("#1E1E2E")
+        insetsController?.isAppearanceLightStatusBars = false
+
+        onDispose {
+            if (window != null && prevStatusBarColor != null) {
+                window.statusBarColor = prevStatusBarColor
+            }
+            if (insetsController != null && prevLightStatusBars != null) {
+                insetsController.isAppearanceLightStatusBars = prevLightStatusBars
+            }
+        }
+    }
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 0.95f,

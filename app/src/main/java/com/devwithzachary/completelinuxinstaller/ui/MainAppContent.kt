@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,7 +68,10 @@ fun MainAppContent(viewModel: MainViewModel) {
     if (isInitializing || currentScreen == AppScreen.SPLASH) {
         SplashRoute(viewModel, dashboardState)
     } else {
+        val isTerminal = currentScreen == AppScreen.TERMINAL
         Scaffold(
+            containerColor = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background,
+            contentWindowInsets = if (isTerminal) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
             bottomBar = {
                 val isImeVisible = WindowInsets.isImeVisible
                 if ((isInstalled || splashDismissed) && currentScreen != AppScreen.WIZARD && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
@@ -132,8 +136,8 @@ fun MainAppContent(viewModel: MainViewModel) {
             }
         ) { innerPadding ->
             Surface(
-                modifier = Modifier.padding(innerPadding),
-                color = MaterialTheme.colorScheme.background
+                modifier = if (isTerminal) Modifier.fillMaxSize().padding(bottom = innerPadding.calculateBottomPadding()) else Modifier.padding(innerPadding),
+                color = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background
             ) {
                 when (currentScreen) {
                     AppScreen.SPLASH -> {
