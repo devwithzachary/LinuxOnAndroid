@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
@@ -55,7 +56,9 @@ import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
+import com.devwithzachary.completelinuxinstaller.ui.components.DebugReportDialog
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
+import kotlinx.coroutines.launch
 
 enum class SettingsCategory(val displayName: String, val icon: ImageVector) {
     ALL("All", Icons.Default.Apps),
@@ -184,6 +187,7 @@ fun SettingsScreen(
     onExportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
     onImportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
     onUpgradeRootfsClick: () -> Unit = {},
+    onGenerateDebugReport: suspend () -> String = { "" },
     onDismissBackupStatus: () -> Unit = {},
     isKeepAliveEnabled: Boolean = true,
     onToggleKeepAlive: () -> Unit = {},
@@ -192,12 +196,18 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val contentResolver = context.contentResolver
+    val coroutineScope = rememberCoroutineScope()
+
+    var showDebugReportDialog by remember { mutableStateOf(false) }
+    var debugReportText by remember { mutableStateOf("") }
+    var isGeneratingDebugReport by remember { mutableStateOf(false) }
 
     var selectedCategory by remember { mutableStateOf(SettingsCategory.ALL) }
     var expandedCards by remember {
         mutableStateOf(
             mapOf(
                 "upgrade" to false,
+                "diagnostics" to false,
                 "background" to false,
                 "backup" to false,
                 "dns" to false,
@@ -305,6 +315,7 @@ fun SettingsScreen(
                                 SettingsCategory.CONTAINER -> {
                                     expandedCards = expandedCards.toMutableMap().apply {
                                         put("upgrade", true)
+                                        put("diagnostics", true)
                                         put("backup", true)
                                     }
                                 }
@@ -446,6 +457,51 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(if (state.isUpgradeAvailable) "Upgrade RootFS to v${BuildConfig.VERSION_NAME}" else "Re-verify & Repair RootFS")
                     }
+                }
+            }
+        }
+
+        // 2. Diagnostics Debug Report Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.CONTAINER) {
+            CollapsibleSettingsCard(
+                title = "Diagnostics",
+                subtitle = "Generate a debug report for bug reports",
+                icon = Icons.Default.BugReport,
+                isExpanded = isCardExpanded("diagnostics"),
+                onToggleExpand = { toggleCard("diagnostics") }
+            ) {
+                Text(
+                    text = "Generate a technical summary of your installation (app version, device, container health, storage and memory) to paste into GitHub issues or Discord when asking for help.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isGeneratingDebugReport = true
+                            try {
+                                debugReportText = onGenerateDebugReport()
+                                showDebugReportDialog = true
+                            } finally {
+                                isGeneratingDebugReport = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isGeneratingDebugReport,
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    if (isGeneratingDebugReport) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Generate Debug Report")
                 }
             }
         }
@@ -1522,6 +1578,14 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    // Debug Report Dialog
+    if (showDebugReportDialog) {
+        DebugReportDialog(
+            report = debugReportText,
+            onDismiss = { showDebugReportDialog = false }
+        )
     }
 
     // Confirmation for Container Import
