@@ -83,4 +83,18 @@ class AboutCreditsTest {
         )
         assertEquals("https://github.com/octocat", contrib.githubUrl)
     }
+
+    @Test
+    fun testPatreonSponsors_containsSupporters() {
+        val sponsors = PATREON_SPONSORS
+        assertEquals(2, sponsors.size)
+
+        val oldPcGunk = sponsors.firstOrNull { it.name == "Old PC Gunk (and stuff)" }
+        assertTrue("Old PC Gunk (and stuff) must be in Patreon sponsors", oldPcGunk != null)
+        assertEquals("Supporter", oldPcGunk!!.tier)
+
+        val naserHorr = sponsors.firstOrNull { it.name == "насэр Хорр" }
+        assertTrue("насэр Хорр must be in Patreon sponsors", naserHorr != null)
+        assertEquals("Supporter", naserHorr!!.tier)
+    }
 }

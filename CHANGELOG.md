@@ -35,7 +35,7 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Active Network Port Listener**: Real-time open port detection (SSH :2222, VNC :5901, NGINX :80, Node :3000, Python :8000, etc.) with 1-tap browser launch and clipboard copy.
 
 ### 🌟 Project Credits & Contributor Recognition
-- **Community Credits**: Updated credits recognizing PR #35, PR #36, and PR #37 contributions by @sleepy-snowflake.
+- **Community Credits & Patreon Backers**: Updated credits recognizing PR #35, PR #36, and PR #37 contributions by @sleepy-snowflake, and welcoming our first Patreon supporters (**Old PC Gunk (and stuff)** and **насэр Хорр**).
 
 
 ## [1.3.0] - 2026-08-25

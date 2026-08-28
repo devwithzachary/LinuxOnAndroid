@@ -4,4 +4,4 @@
 • Diagnostics & System Debug Report: Generate, copy, and share full system diagnostics, storage, memory, and container integrity reports in Settings.
 • Startup Sanity Check: Watchdog detects slow initialization with 1-tap Retry and Continue Anyway options.
 • Setup Wizard Keep-Alive: Keeps screen awake during container download and installation.
-• Contributor Recognition: Updated credits celebrating community contributions.
+• Contributor Recognition: Updated credits celebrating community contributions & Patreon supporters.

@@ -159,7 +159,16 @@ val ISSUE_CONTRIBUTORS: List<Contributor> = listOf(
     )
 )
 
-val PATREON_SPONSORS: List<Sponsor> = emptyList()
+val PATREON_SPONSORS: List<Sponsor> = listOf(
+    Sponsor(
+        name = "Old PC Gunk (and stuff)",
+        tier = "Supporter"
+    ),
+    Sponsor(
+        name = "насэр Хорр",
+        tier = "Supporter"
+    )
+)
 
 @Composable
 fun AboutCreditsSection(
