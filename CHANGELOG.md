@@ -2,6 +2,25 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.4.0] - 2026-08-28
+
+### 🔍 Diagnostics & Debug Report Generator (PR #37)
+- **Diagnostics Manager & System Report**: Added comprehensive diagnostics reporting accessible via Settings > General > "Generate Debug Report", collecting device hardware, Android OS/SDK details, PRoot container version, memory usage, storage breakdown, and rootfs binary integrity checks.
+- **Interactive Debug Report Dialog**: View, copy to clipboard, or share sanitized diagnostic summaries directly to GitHub issue trackers or community support.
+- **Diagnostics Test Suite**: Added dedicated unit test coverage (`DiagnosticsManagerTest`) verifying system metrics compilation, graceful degradation when rootfs is uninstalled or storage stats are unavailable, and formatting.
+
+### ⏱️ Startup Sanity Check & Slow-Mode Splash Escape Hatch (PR #35)
+- **Startup Watchdog & Timeout Safeguard**: Added background initialization timer during cold boot. If binary verification or filesystem checks take longer than expected (6+ seconds), an informative status warning banner appears.
+- **Escape Hatch Actions**: Users can trigger an instant "Retry" or "Continue anyway" to bypass prolonged rootfs checks.
+- **Localized Warnings**: Complete English and German localization for slow-mode splash alerts.
+
+### 💡 Setup Wizard Screen Keep-Alive (PR #36)
+- **Screen WakeLock During Setup**: Prevents display timeout while the Setup Wizard is active, ensuring uninterrupted container image downloads and filesystem extraction.
+
+### 🌟 Project Credits & Contributor Recognition
+- **Community Credits**: Updated credits recognizing PR #35, PR #36, and PR #37 contributions by @sleepy-snowflake.
+
+
 ## [1.3.0] - 2026-08-25
 
 ### 🛡️ Persistent Foreground Service & Full Container Resource Monitor

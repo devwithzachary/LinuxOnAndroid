@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.ui.components.ChangelogItem
 import com.devwithzachary.completelinuxinstaller.ui.components.InfoRow
@@ -304,7 +305,7 @@ fun AboutScreen() {
                     )
                 }
 
-                InfoRow(label = stringResource(R.string.label_app_version), value = "v1.3.0")
+                InfoRow(label = stringResource(R.string.label_app_version), value = "v${BuildConfig.VERSION_NAME}")
                 InfoRow(label = stringResource(R.string.label_build_target), value = "Release (ARM64-v8a)")
                 InfoRow(label = stringResource(R.string.label_linux_distro), value = "Ubuntu 26.04 LTS (Noble)")
                 InfoRow(label = stringResource(R.string.label_container_engine), value = "PRoot 5.3 (Link2Symlink)")

@@ -22,8 +22,14 @@ class AboutCreditsTest {
         assertTrue(sleepy.isCodeContributor)
         assertTrue(sleepy.contributions.any { it.referenceNumber == 33 && it.isPr })
         assertTrue(sleepy.contributions.any { it.referenceNumber == 34 && it.isPr })
+        assertTrue(sleepy.contributions.any { it.referenceNumber == 35 && it.isPr })
+        assertTrue(sleepy.contributions.any { it.referenceNumber == 36 && it.isPr })
+        assertTrue(sleepy.contributions.any { it.referenceNumber == 37 && it.isPr })
         assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/33", sleepy.contributions.first { it.referenceNumber == 33 }.url)
         assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/34", sleepy.contributions.first { it.referenceNumber == 34 }.url)
+        assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/35", sleepy.contributions.first { it.referenceNumber == 35 }.url)
+        assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/36", sleepy.contributions.first { it.referenceNumber == 36 }.url)
+        assertEquals("https://github.com/devwithzachary/LinuxOnAndroid/pull/37", sleepy.contributions.first { it.referenceNumber == 37 }.url)
     }
 
     @Test
