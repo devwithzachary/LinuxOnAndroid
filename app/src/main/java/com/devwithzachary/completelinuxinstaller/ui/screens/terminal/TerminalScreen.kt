@@ -199,6 +199,12 @@ fun TerminalScreen(
         // Touch Navigation & Quick Command Keys Ribbon (Positioned directly above keyboard)
         ExtraKeysRow(
             keys = customHotkeys,
+            onPaste = {
+                val clipText = clipboardManager.getText()?.text
+                if (!clipText.isNullOrEmpty()) {
+                    terminalBridge.pasteText(clipText)
+                }
+            },
             isCtrlActive = isCtrlActive,
             onToggleCtrl = {
                 isCtrlActive = !isCtrlActive

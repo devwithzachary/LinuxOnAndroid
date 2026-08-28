@@ -1,24 +1,20 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.terminal
 
+import android.content.Intent
 import android.graphics.Paint
-import android.graphics.Typeface
+import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,20 +22,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
@@ -61,19 +61,16 @@ fun FullTerminalView(
     fontFamilyName: String = TerminalFonts.DEFAULT_FONT
 ) {
     val density = LocalDensity.current
+    val context = LocalContext.current
     val fontSizePx = with(density) { fontSizeSp.sp.toPx() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val clipboardManager = LocalClipboardManager.current
-
-    var showContextMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
+    val hapticFeedback = LocalHapticFeedback.current
 
     var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) } // (row, col)
     var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // (row, col)
-    var showSelectPortionDialog by remember { mutableStateOf(false) }
     var accumulatedScrollY by remember { mutableFloatStateOf(0f) }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
     val selectedTypeface = remember(fontFamilyName, context) {
         TerminalFonts.getTypeface(context, fontFamilyName, bold = false)
     }
@@ -115,115 +112,73 @@ fun FullTerminalView(
             terminalBridge.updateTerminalSize(cols, rows)
         }
 
-        var isSelecting by remember { mutableStateOf(false) }
+        val selStart = selectionStart
+        val selEnd = selectionEnd
+        val hasSelection = selStart != null && selEnd != null
+
+        // Normalized linear selection bounds: (fromR, fromC) <= (toR, toC)
+        val (fromR, fromC, toR, toC) = remember(selStart, selEnd, cols) {
+            if (selStart != null && selEnd != null) {
+                val startLinear = selStart.first * cols + selStart.second
+                val endLinear = selEnd.first * cols + selEnd.second
+                if (startLinear <= endLinear) {
+                    listOf(selStart.first, selStart.second, selEnd.first, selEnd.second)
+                } else {
+                    listOf(selEnd.first, selEnd.second, selStart.first, selStart.second)
+                }
+            } else {
+                listOf(0, 0, 0, 0)
+            }
+        }
 
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(cols, rows) {
+                    // Direct smooth scrolling with vertical dragging
                     detectDragGestures(
-                        onDragStart = { _ ->
+                        onDragStart = {
                             accumulatedScrollY = 0f
-                            isSelecting = false
                         },
                         onDrag = { change, dragAmount ->
-                            // Check if gesture is primarily horizontal text selection vs vertical scrolling
-                            val absX = kotlin.math.abs(dragAmount.x)
-                            val absY = kotlin.math.abs(dragAmount.y)
-
-                            if (!isSelecting && absX > absY * 1.5f && selectionStart == null) {
-                                isSelecting = true
-                                val offset = change.position
-                                val c = (offset.x / charWidth).toInt().coerceIn(0, cols - 1)
-                                val r = (offset.y / charHeight).toInt().coerceIn(0, rows - 1)
-                                selectionStart = Pair(r, c)
-                                selectionEnd = Pair(r, c)
-                            }
-
-                            if (isSelecting || selectionStart != null) {
-                                val offset = change.position
-                                val c = (offset.x / charWidth).toInt().coerceIn(0, cols - 1)
-                                val r = (offset.y / charHeight).toInt().coerceIn(0, rows - 1)
-                                selectionEnd = Pair(r, c)
-                            } else {
-                                // Pure Vertical Scroll Mode - No selection highlighting interference
-                                accumulatedScrollY += dragAmount.y
-                                val threshold = charHeight * 0.8f
-                                if (accumulatedScrollY > threshold) {
-                                    val lines = (accumulatedScrollY / charHeight).toInt()
-                                    terminalBridge.scrollUp(lines)
-                                    accumulatedScrollY %= charHeight
-                                } else if (accumulatedScrollY < -threshold) {
-                                    val lines = (-accumulatedScrollY / charHeight).toInt()
-                                    terminalBridge.scrollDown(lines)
-                                    accumulatedScrollY %= charHeight
-                                }
+                            change.consume()
+                            accumulatedScrollY += dragAmount.y
+                            val threshold = charHeight * 0.75f
+                            if (accumulatedScrollY > threshold) {
+                                val lines = (accumulatedScrollY / charHeight).toInt().coerceAtLeast(1)
+                                terminalBridge.scrollUp(lines)
+                                accumulatedScrollY %= charHeight
+                            } else if (accumulatedScrollY < -threshold) {
+                                val lines = (-accumulatedScrollY / charHeight).toInt().coerceAtLeast(1)
+                                terminalBridge.scrollDown(lines)
+                                accumulatedScrollY %= charHeight
                             }
                         }
                     )
                 }
-                .pointerInput(Unit) {
+                .pointerInput(cols, rows) {
                     detectTapGestures(
                         onTap = {
-                            selectionStart = null
-                            selectionEnd = null
+                            if (selectionStart != null || selectionEnd != null) {
+                                selectionStart = null
+                                selectionEnd = null
+                            }
                             focusRequester.requestFocus()
                             keyboardController?.show()
                             onTapTerminal()
                         },
                         onLongPress = { offset ->
-                            menuOffset = DpOffset(offset.x.toDp(), offset.y.toDp())
-                            showContextMenu = true
+                            hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                            val c = (offset.x / charWidth).toInt().coerceIn(0, cols - 1)
+                            val r = (offset.y / charHeight).toInt().coerceIn(0, rows - 1)
+                            val wordRange = terminalBridge.getWordAt(r, c)
+                            selectionStart = Pair(r, wordRange.first)
+                            selectionEnd = Pair(r, wordRange.second)
                         }
                     )
                 }
         ) {
-            // Context Menu for Long-Press (Copy / Paste / Select Portion)
-            DropdownMenu(
-                expanded = showContextMenu,
-                onDismissRequest = { showContextMenu = false },
-                offset = menuOffset
-            ) {
-                DropdownMenuItem(
-                    text = { Text("📋 Paste") },
-                    onClick = {
-                        showContextMenu = false
-                        val clipText = clipboardManager.getText()?.text
-                        if (!clipText.isNullOrEmpty()) {
-                            terminalBridge.pasteText(clipText)
-                        }
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("✂️ Select Portion...") },
-                    onClick = {
-                        showContextMenu = false
-                        showSelectPortionDialog = true
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("📄 Copy Screen Text") },
-                    onClick = {
-                        showContextMenu = false
-                        val text = terminalBridge.getScreenText()
-                        if (text.isNotEmpty()) {
-                            clipboardManager.setText(AnnotatedString(text))
-                        }
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("📜 Copy All Output") },
-                    onClick = {
-                        showContextMenu = false
-                        val text = terminalBridge.getAllTerminalText()
-                        if (text.isNotEmpty()) {
-                            clipboardManager.setText(AnnotatedString(text))
-                        }
-                    }
-                )
-            }
-
-            // Invisible BasicTextField to capture all software and physical keyboard inputs directly into PTY
+            // Invisible BasicTextField to capture all soft/physical keyboard inputs directly into PTY
             BasicTextField(
                 value = textFieldValue,
                 onValueChange = { newValue ->
@@ -290,7 +245,7 @@ fun FullTerminalView(
                     .size(1.dp)
                     .alpha(0.01f)
                     .focusRequester(focusRequester)
-                .onPreviewKeyEvent { event ->
+                    .onPreviewKeyEvent { event ->
                     if (event.type == KeyEventType.KeyDown) {
                         val isCtrlOrMeta = event.isCtrlPressed || event.isMetaPressed
                         if (isCtrlActive || isAltActive) {
@@ -303,84 +258,84 @@ fun FullTerminalView(
                         }
                         when {
                             isCtrlOrMeta && event.key == Key.V -> {
-                                    val clipText = clipboardManager.getText()?.text
-                                    if (!clipText.isNullOrEmpty()) {
-                                        terminalBridge.pasteText(clipText)
-                                    }
-                                    true
+                                val clipText = clipboardManager.getText()?.text
+                                if (!clipText.isNullOrEmpty()) {
+                                    terminalBridge.pasteText(clipText)
                                 }
-
-                                isCtrlOrMeta && event.isShiftPressed && event.key == Key.C -> {
-                                    val text = terminalBridge.getScreenText()
-                                    if (text.isNotEmpty()) {
-                                        clipboardManager.setText(AnnotatedString(text))
-                                    }
-                                    true
-                                }
-
-                                event.key == Key.PageUp -> {
-                                    terminalBridge.scrollUp(rows / 2)
-                                    true
-                                }
-
-                                event.key == Key.PageDown -> {
-                                    terminalBridge.scrollDown(rows / 2)
-                                    true
-                                }
-
-                                event.key == Key.Enter -> {
-                                    terminalBridge.sendInput("\r")
-                                    textFieldValue = TextFieldValue("", TextRange.Zero)
-                                    lastText = ""
-                                    true
-                                }
-
-                                event.key == Key.Backspace -> {
-                                    terminalBridge.sendInput("\u007F")
-                                    if (lastText.isNotEmpty()) {
-                                        val updatedText = lastText.dropLast(1)
-                                        lastText = updatedText
-                                        textFieldValue = TextFieldValue(updatedText, TextRange(updatedText.length))
-                                    }
-                                    true
-                                }
-
-                                event.key == Key.Tab -> {
-                                    terminalBridge.sendTab()
-                                    true
-                                }
-
-                                event.key == Key.Escape -> {
-                                    terminalBridge.sendEsc()
-                                    true
-                                }
-
-                                event.key == Key.DirectionUp -> {
-                                    terminalBridge.sendArrowUp()
-                                    true
-                                }
-
-                                event.key == Key.DirectionDown -> {
-                                    terminalBridge.sendArrowDown()
-                                    true
-                                }
-
-                                event.key == Key.DirectionLeft -> {
-                                    terminalBridge.sendArrowLeft()
-                                    true
-                                }
-
-                                event.key == Key.DirectionRight -> {
-                                    terminalBridge.sendArrowRight()
-                                    true
-                                }
-
-                                else -> false
+                                true
                             }
-                        } else {
-                            false
+
+                            isCtrlOrMeta && event.isShiftPressed && event.key == Key.C -> {
+                                val text = terminalBridge.getScreenText()
+                                if (text.isNotEmpty()) {
+                                    clipboardManager.setText(AnnotatedString(text))
+                                }
+                                true
+                            }
+
+                            event.key == Key.PageUp -> {
+                                terminalBridge.scrollUp(rows / 2)
+                                true
+                            }
+
+                            event.key == Key.PageDown -> {
+                                terminalBridge.scrollDown(rows / 2)
+                                true
+                            }
+
+                            event.key == Key.Enter -> {
+                                terminalBridge.sendInput("\r")
+                                textFieldValue = TextFieldValue("", TextRange.Zero)
+                                lastText = ""
+                                true
+                            }
+
+                            event.key == Key.Backspace -> {
+                                terminalBridge.sendInput("\u007F")
+                                if (lastText.isNotEmpty()) {
+                                    val updatedText = lastText.dropLast(1)
+                                    lastText = updatedText
+                                    textFieldValue = TextFieldValue(updatedText, TextRange(updatedText.length))
+                                }
+                                true
+                            }
+
+                            event.key == Key.Tab -> {
+                                terminalBridge.sendTab()
+                                true
+                            }
+
+                            event.key == Key.Escape -> {
+                                terminalBridge.sendEsc()
+                                true
+                            }
+
+                            event.key == Key.DirectionUp -> {
+                                terminalBridge.sendArrowUp()
+                                true
+                            }
+
+                            event.key == Key.DirectionDown -> {
+                                terminalBridge.sendArrowDown()
+                                true
+                            }
+
+                            event.key == Key.DirectionLeft -> {
+                                terminalBridge.sendArrowLeft()
+                                true
+                            }
+
+                            event.key == Key.DirectionRight -> {
+                                terminalBridge.sendArrowRight()
+                                true
+                            }
+
+                            else -> false
                         }
-                    },
+                    } else {
+                        false
+                    }
+                },
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
                     autoCorrectEnabled = false,
@@ -406,6 +361,7 @@ fun FullTerminalView(
                 )
             )
 
+            // Terminal Screen & Text Selection Canvas
             Canvas(modifier = Modifier.fillMaxSize()) {
                 @Suppress("UNUSED_VARIABLE")
                 val renderTick = refreshTrigger
@@ -422,14 +378,6 @@ fun FullTerminalView(
                 val renderRows = min(rows, emulator.rows)
                 val nativeCanvas = drawContext.canvas.nativeCanvas
 
-                // Selection calculation
-                val selStart = selectionStart
-                val selEnd = selectionEnd
-                val minR = if (selStart != null && selEnd != null) minOf(selStart.first, selEnd.first) else -1
-                val maxR = if (selStart != null && selEnd != null) maxOf(selStart.first, selEnd.first) else -1
-                val minC = if (selStart != null && selEnd != null) minOf(selStart.second, selEnd.second) else -1
-                val maxC = if (selStart != null && selEnd != null) maxOf(selStart.second, selEnd.second) else -1
-
                 for (r in 0 until renderRows) {
                     val rowY = r * charHeight
                     val rowChars = emulator.getRenderRow(r)
@@ -439,8 +387,14 @@ fun FullTerminalView(
                         val cell: TerminalChar = rowChars[c]
                         val cellX = c * charWidth
 
-                        val isSelected = minR != -1 && r in minR..maxR &&
-                                (r > minR || c >= minC) && (r < maxR || c <= maxC)
+                        // Linear multi-line selection check
+                        val isSelected = hasSelection && when {
+                            r < fromR || r > toR -> false
+                            fromR == toR -> c in fromC..toC
+                            r == fromR -> c >= fromC
+                            r == toR -> c <= toC
+                            else -> true
+                        }
 
                         if (isSelected) {
                             paint.color = theme.selectionColor.toArgb()
@@ -478,37 +432,95 @@ fun FullTerminalView(
                 }
             }
 
-            // Floating Selection Bar when Drag-Selecting Text
-            if (selectionStart != null && selectionEnd != null) {
+            // Draggable Text Selection Handles
+            if (hasSelection) {
+                var dragStartAnchor by remember { mutableStateOf(Offset.Zero) }
+                var dragEndAnchor by remember { mutableStateOf(Offset.Zero) }
+
+                // Start Selection Handle (top-left of selection)
+                val startHandlePos = Offset(fromC * charWidth, (fromR + 1) * charHeight)
+                TerminalSelectionHandle(
+                    position = startHandlePos,
+                    isStart = true,
+                    onDragStart = {
+                        dragStartAnchor = Offset(fromC * charWidth + charWidth * 0.5f, fromR * charHeight + charHeight * 0.5f)
+                    },
+                    onDrag = { dragDelta ->
+                        val curPixelX = dragStartAnchor.x + dragDelta.x
+                        val curPixelY = dragStartAnchor.y + dragDelta.y
+                        val newR = (curPixelY / charHeight).toInt().coerceIn(0, rows - 1)
+                        val newC = (curPixelX / charWidth).toInt().coerceIn(0, cols - 1)
+                        if (selectionStart?.first != newR || selectionStart?.second != newC) {
+                            try { hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                            selectionStart = Pair(newR, newC)
+                        }
+                    },
+                    onDragEnd = {}
+                )
+
+                // End Selection Handle (bottom-right of selection)
+                val endHandlePos = Offset((toC + 1) * charWidth, (toR + 1) * charHeight)
+                TerminalSelectionHandle(
+                    position = endHandlePos,
+                    isStart = false,
+                    onDragStart = {
+                        dragEndAnchor = Offset(toC * charWidth + charWidth * 0.5f, toR * charHeight + charHeight * 0.5f)
+                    },
+                    onDrag = { dragDelta ->
+                        val curPixelX = dragEndAnchor.x + dragDelta.x
+                        val curPixelY = dragEndAnchor.y + dragDelta.y
+                        val newR = (curPixelY / charHeight).toInt().coerceIn(0, rows - 1)
+                        val newC = (curPixelX / charWidth).toInt().coerceIn(0, cols - 1)
+                        if (selectionEnd?.first != newR || selectionEnd?.second != newC) {
+                            try { hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                            selectionEnd = Pair(newR, newC)
+                        }
+                    },
+                    onDragEnd = {}
+                )
+            }
+
+            // Floating Selection Toolbar
+            AnimatedVisibility(
+                visible = hasSelection,
+                enter = fadeIn() + slideInVertically { -it / 2 },
+                exit = fadeOut() + slideOutVertically { -it / 2 },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp)
+            ) {
                 Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 12.dp),
                     shape = RoundedCornerShape(24.dp),
                     color = Color(0xFF2D2D2D),
-                    shadowElevation = 8.dp
+                    shadowElevation = 8.dp,
+                    tonalElevation = 6.dp
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Button(
+                        // Copy Selected Text
+                        FilledTonalButton(
                             onClick = {
-                                val start = selectionStart
-                                val end = selectionEnd
-                                if (start != null && end != null) {
-                                    val text =
-                                        terminalBridge.getSelectedText(start.first, start.second, end.first, end.second)
+                                val s = selectionStart
+                                val e = selectionEnd
+                                if (s != null && e != null) {
+                                    val text = terminalBridge.getSelectedText(s.first, s.second, e.first, e.second)
                                     if (text.isNotEmpty()) {
                                         clipboardManager.setText(AnnotatedString(text))
                                     }
                                 }
                                 selectionStart = null
                                 selectionEnd = null
+                                focusRequester.requestFocus()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007ACC)),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(
                                 Icons.Default.ContentCopy,
@@ -516,9 +528,56 @@ fun FullTerminalView(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Copy Selection", fontSize = 12.sp)
+                            Text("Copy", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
+                        // Select All Screen Text
+                        TextButton(
+                            onClick = {
+                                selectionStart = Pair(0, 0)
+                                selectionEnd = Pair(rows - 1, cols - 1)
+                            },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.SelectAll,
+                                contentDescription = "Select All",
+                                modifier = Modifier.size(16.dp),
+                                tint = Color(0xFF90CAF9)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Select All", fontSize = 12.sp, color = Color(0xFF90CAF9))
+                        }
+
+                        // Share Selected Text
+                        IconButton(
+                            onClick = {
+                                val s = selectionStart
+                                val e = selectionEnd
+                                if (s != null && e != null) {
+                                    val text = terminalBridge.getSelectedText(s.first, s.second, e.first, e.second)
+                                    if (text.isNotEmpty()) {
+                                        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                                            putExtra(Intent.EXTRA_TEXT, text)
+                                            type = "text/plain"
+                                        }
+                                        val shareIntent = Intent.createChooser(sendIntent, "Share Terminal Text")
+                                        context.startActivity(shareIntent)
+                                    }
+                                }
+                            },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Share,
+                                contentDescription = "Share Selection",
+                                tint = Color.LightGray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        // Dismiss / Clear Selection
                         IconButton(
                             onClick = {
                                 selectionStart = null
@@ -526,7 +585,12 @@ fun FullTerminalView(
                             },
                             modifier = Modifier.size(32.dp)
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear Selection", tint = Color.LightGray)
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Clear Selection",
+                                tint = Color.LightGray,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                 }
@@ -566,57 +630,90 @@ fun FullTerminalView(
             }
         }
     }
-
-    // Modal Dialog for Select Portion mode
-    if (showSelectPortionDialog) {
-        val fullTerminalText = remember { terminalBridge.getAllTerminalText() }
-        AlertDialog(
-            onDismissRequest = { showSelectPortionDialog = false },
-            title = {
-                Text(
-                    "Select & Copy Output Portion",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-            },
-            text = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 350.dp)
-                        .background(Color(0xFF141414), shape = RoundedCornerShape(8.dp))
-                        .padding(12.dp)
-                ) {
-                    SelectionContainer {
-                        Text(
-                            text = fullTerminalText.ifEmpty { "Terminal output is empty" },
-                            color = Color(0xFFE0E0E0),
-                            fontFamily = TerminalFonts.JetBrainsMonoFontFamily,
-                            fontSize = 12.sp,
-                            modifier = Modifier.verticalScroll(rememberScrollState())
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        clipboardManager.setText(AnnotatedString(fullTerminalText))
-                        showSelectPortionDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF007ACC))
-                ) {
-                    Text("Copy All")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSelectPortionDialog = false }) {
-                    Text("Done", color = Color(0xFF81D4FA))
-                }
-            },
-            containerColor = Color(0xFF2D2D2D)
-        )
-    }
 }
 
+/**
+ * Draggable touch handle placed at the beginning or end of selected terminal text.
+ */
+@Composable
+private fun TerminalSelectionHandle(
+    position: Offset,
+    isStart: Boolean,
+    onDragStart: () -> Unit,
+    onDrag: (dragDelta: Offset) -> Unit,
+    onDragEnd: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val handleTouchSize = 44.dp
+    val handleTouchSizePx = with(LocalDensity.current) { handleTouchSize.toPx() }
+    val primaryColor = MaterialTheme.colorScheme.primary
+
+    val currentOnDragStart by rememberUpdatedState(onDragStart)
+    val currentOnDrag by rememberUpdatedState(onDrag)
+    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+
+    var dragAccumulated by remember { mutableStateOf(Offset.Zero) }
+
+    Box(
+        modifier = modifier
+            .offset(
+                x = with(LocalDensity.current) { (position.x - (if (isStart) handleTouchSizePx * 0.75f else handleTouchSizePx * 0.25f)).toDp() },
+                y = with(LocalDensity.current) { position.y.toDp() }
+            )
+            .size(handleTouchSize)
+            .pointerInput(isStart) {
+                detectDragGestures(
+                    onDragStart = {
+                        dragAccumulated = Offset.Zero
+                        currentOnDragStart()
+                    },
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        dragAccumulated += dragAmount
+                        currentOnDrag(dragAccumulated)
+                    },
+                    onDragEnd = {
+                        currentOnDragEnd()
+                    },
+                    onDragCancel = {
+                        currentOnDragEnd()
+                    }
+                )
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val radius = w * 0.32f
+            val anchorX = if (isStart) w * 0.75f else w * 0.25f
+            val anchorY = 0f
+            val circleCenterX = w * 0.5f
+            val circleCenterY = h * 0.55f
+
+            val path = Path().apply {
+                if (isStart) {
+                    moveTo(anchorX, anchorY)
+                    lineTo(anchorX, circleCenterY)
+                    arcTo(
+                        rect = Rect(circleCenterX - radius, circleCenterY - radius, circleCenterX + radius, circleCenterY + radius),
+                        startAngleDegrees = 0f,
+                        sweepAngleDegrees = 270f,
+                        forceMoveTo = false
+                    )
+                    close()
+                } else {
+                    moveTo(anchorX, anchorY)
+                    lineTo(anchorX, circleCenterY)
+                    arcTo(
+                        rect = Rect(circleCenterX - radius, circleCenterY - radius, circleCenterX + radius, circleCenterY + radius),
+                        startAngleDegrees = 180f,
+                        sweepAngleDegrees = -270f,
+                        forceMoveTo = false
+                    )
+                    close()
+                }
+            }
+            drawPath(path, color = primaryColor)
+        }
+    }
+}

@@ -507,25 +507,72 @@ class TerminalEmulator(
         return sb.toString().trimEnd()
     }
 
+    fun getWordAt(row: Int, col: Int): Pair<Int, Int> {
+        if (rows == 0 || cols == 0) return Pair(0, 0)
+        val r = row.coerceIn(0, rows - 1)
+        val c = col.coerceIn(0, cols - 1)
+        val rowChars = getRenderRow(r)
+        val ch = rowChars.getOrNull(c)?.ch ?: ' '
+
+        fun isWordChar(char: Char): Boolean =
+            char.isLetterOrDigit() || char == '_' || char == '-' || char == '.' || char == '/' || char == '~' || char == ':' || char == '@' || char == '$'
+
+        if (ch == ' ') {
+            return Pair(c, c)
+        }
+
+        val isWord = isWordChar(ch)
+        var startC = c
+        while (startC > 0) {
+            val prevChar = rowChars.getOrNull(startC - 1)?.ch ?: ' '
+            if (isWord && isWordChar(prevChar)) {
+                startC--
+            } else if (!isWord && prevChar != ' ' && !isWordChar(prevChar)) {
+                startC--
+            } else {
+                break
+            }
+        }
+
+        var endC = c
+        while (endC < cols - 1) {
+            val nextChar = rowChars.getOrNull(endC + 1)?.ch ?: ' '
+            if (isWord && isWordChar(nextChar)) {
+                endC++
+            } else if (!isWord && nextChar != ' ' && !isWordChar(nextChar)) {
+                endC++
+            } else {
+                break
+            }
+        }
+
+        return Pair(startC, endC)
+    }
+
     fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String {
         if (rows == 0 || cols == 0) return ""
-        val minR = minOf(startRow, endRow).coerceIn(0, rows - 1)
-        val maxR = maxOf(startRow, endRow).coerceIn(0, rows - 1)
-        val minC = minOf(startCol, endCol).coerceIn(0, cols - 1)
-        val maxC = maxOf(startCol, endCol).coerceIn(0, cols - 1)
+        val sR = startRow.coerceIn(0, rows - 1)
+        val sC = startCol.coerceIn(0, cols - 1)
+        val eR = endRow.coerceIn(0, rows - 1)
+        val eC = endCol.coerceIn(0, cols - 1)
+
+        val startLinear = sR * cols + sC
+        val endLinear = eR * cols + eC
+        val (fromR, fromC) = if (startLinear <= endLinear) Pair(sR, sC) else Pair(eR, eC)
+        val (toR, toC) = if (startLinear <= endLinear) Pair(eR, eC) else Pair(sR, sC)
 
         val sb = StringBuilder()
-        for (r in minR..maxR) {
-            val line = grid[r]
-            val c1 = if (r == minR) minC else 0
-            val c2 = if (r == maxR) maxC else cols - 1
+        for (r in fromR..toR) {
+            val rowChars = getRenderRow(r)
+            val c1 = if (r == fromR) fromC else 0
+            val c2 = if (r == toR) toC else cols - 1
 
             val lineChars = CharArray(maxOf(0, c2 - c1 + 1))
             for (c in c1..c2) {
-                lineChars[c - c1] = line[c].ch
+                lineChars[c - c1] = rowChars.getOrNull(c)?.ch ?: ' '
             }
             val lineStr = String(lineChars)
-            if (r < maxR) {
+            if (r < toR) {
                 sb.append(lineStr.trimEnd()).append("\n")
             } else {
                 sb.append(lineStr)

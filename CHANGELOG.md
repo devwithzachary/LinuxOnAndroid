@@ -17,6 +17,13 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ### 💡 Setup Wizard Screen Keep-Alive (PR #36)
 - **Screen WakeLock During Setup**: Prevents display timeout while the Setup Wizard is active, ensuring uninterrupted container image downloads and filesystem extraction.
 
+### 📋 Terminal Native Text Selection & Seamless Copy/Paste
+- **Native Long-Press Word & Range Selection**: Long-pressing on any word in the terminal highlights the word with draggable start/end teardrop selection handles, eliminating clunky popup dialogs.
+- **Draggable Selection Handles**: Touch and drag either handle to smoothly expand or contract the selection across rows and columns.
+- **Floating Action Bar**: Quick 1-tap actions to **Copy**, **Select All**, **Share**, or dismiss selection.
+- **Dedicated Keyboard-Pinned Paste Button**: Added a dedicated **PASTE** action button pinned on the extra keys row alongside `CTRL` and `ALT`, enabling instant 1-tap pasting from clipboard whenever the software keyboard is open.
+- **Smooth Butter-Scroll**: Vertical dragging across the terminal canvas now exclusively performs direct, responsive scrolling through history without accidental text selection interference.
+
 ### 🌟 Project Credits & Contributor Recognition
 - **Community Credits**: Updated credits recognizing PR #35, PR #36, and PR #37 contributions by @sleepy-snowflake.
 

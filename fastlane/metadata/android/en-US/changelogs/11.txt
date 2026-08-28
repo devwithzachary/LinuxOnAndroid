@@ -1,3 +1,4 @@
+• Native Terminal Text Selection & Copy/Paste: Long-press to select words with draggable handles, floating toolbar, pinned keyboard PASTE button, and smooth scrolling.
 • Diagnostics & System Debug Report: Generate, copy, and share full system diagnostics, storage, memory, and container integrity reports in Settings.
 • Startup Sanity Check: Watchdog detects slow initialization with 1-tap Retry and Continue Anyway options.
 • Setup Wizard Keep-Alive: Keeps screen awake during container download and installation.

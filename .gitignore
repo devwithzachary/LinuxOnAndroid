@@ -51,5 +51,10 @@ Thumbs.db
 *.log
 captures/
 
-# Antigravity & AI workspace temp files
+# Antigravity & AI workspace local rules and customizations
 .antigravity/
+.agents/
+.gemini/
+AGENTS.md
+GEMINI.md
+
