@@ -202,7 +202,7 @@ data class SoftwarePackage(
                 "INITD_VERSION=$INITD_VERSION && \\",
                 "if [ \"\$INITD_ARCH\" = \"aarch64\" ] || [ \"\$INITD_ARCH\" = \"arm64\" ]; then INITD_ARCH=arm64; INITD_SHA=$INITD_SHA256_ARM64; elif [ \"\$INITD_ARCH\" = \"x86_64\" ]; then INITD_ARCH=amd64; INITD_SHA=$INITD_SHA256_AMD64; else echo \"ERROR: initd requires arm64 or x86_64 (detected: \$INITD_ARCH).\" >&2; exit 1; fi && \\",
                 "rm -rf /tmp/initd-pkg /tmp/initd-pkg.zip && mkdir -p /tmp/initd-pkg /usr/local/lib/initd /var/log && \\",
-                "curl -fSL --retry 3 --connect-timeout 20 -o /tmp/initd-pkg.zip \"https://github.com/EdwardLab/initd/releases/download/\${INITD_VERSION}/initd-v\${INITD_VERSION}-linux-\${INITD_ARCH}.zip\" && \\",
+                "curl -fSL --retry 3 --connect-timeout 20 -o /tmp/initd-pkg.zip \"https://github.com/EdwardLab/initd/releases/download/$INITD_VERSION/initd-v$INITD_VERSION-linux-\${INITD_ARCH}.zip\" && \\",
                 "echo \"\$INITD_SHA  /tmp/initd-pkg.zip\" | sha256sum -c - && \\",
                 "python3 -m zipfile -e /tmp/initd-pkg.zip /tmp/initd-pkg && \\",
                 "[ -f /tmp/initd-pkg/initd ] && [ -f /tmp/initd-pkg/systemctl ] && \\",
@@ -219,7 +219,7 @@ data class SoftwarePackage(
                 "HOOKEOF",
                 "chmod 644 /etc/profile.d/00-initd-autostart.sh && \\",
                 "rm -rf /tmp/initd-pkg /tmp/initd-pkg.zip && \\",
-                "echo \"initd v\$INITD_VERSION (\$INITD_ARCH) installed successfully.\""
+                "echo \"initd v$INITD_VERSION (\$INITD_ARCH) installed successfully.\""
             ).joinToString("\n")
         }
 
