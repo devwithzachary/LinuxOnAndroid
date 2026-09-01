@@ -17,20 +17,14 @@ data class LinuxDistribution(
 ) {
     companion object {
         fun defaultForArch(archName: String): LinuxDistribution {
-            val arch = when {
-                archName.contains("aarch64") || archName.contains("arm64") -> SystemArchitecture.ARM64
-                archName.contains("x86_64") || archName.contains("amd64") -> SystemArchitecture.X86_64
-                else -> SystemArchitecture.ARMV7
-            }
-            val url = when (arch) {
-                SystemArchitecture.ARM64 -> "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-arm64.tar.gz"
-                SystemArchitecture.X86_64 -> "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-amd64.tar.gz"
-                SystemArchitecture.ARMV7 -> "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-armhf.tar.gz"
-            }
-            return LinuxDistribution(
-                architecture = arch,
-                downloadUrl = url
-            )
+            val arch = DistroCatalog.getForSystemArch(archName)
+            return DistroCatalog.UBUNTU_26_04.toLinuxDistribution(arch)
+        }
+
+        fun forDistroAndArch(distroId: String, archName: String): LinuxDistribution {
+            val arch = DistroCatalog.getForSystemArch(archName)
+            val distroDef = DistroCatalog.getById(distroId)
+            return distroDef.toLinuxDistribution(arch)
         }
     }
 }

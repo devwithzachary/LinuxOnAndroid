@@ -166,11 +166,15 @@ fun AboutScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
                     ) {
-                        Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(stringResource(R.string.btn_join_patreon))
+                        Text(
+                            text = stringResource(R.string.btn_join_patreon),
+                            maxLines = 1,
+                            softWrap = false,
+                            fontSize = 13.sp
+                        )
                     }
 
                     Button(
@@ -183,11 +187,15 @@ fun AboutScreen(
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.tertiary
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
                     ) {
-                        Icon(Icons.Default.LocalCafe, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(stringResource(R.string.btn_buy_me_a_coffee))
+                        Text(
+                            text = stringResource(R.string.btn_buy_me_a_coffee),
+                            maxLines = 1,
+                            softWrap = false,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }

@@ -1,0 +1,5 @@
+• Tabbed Terminal: Run multiple interactive terminal tabs concurrently.
+• Multi-Rootfs Containers: Install multiple Linux distros side-by-side.
+• Multi-Distro Wizard: Debian 12, Alpine 3.21, Arch Linux, Kali, Void Linux, Ubuntu.
+• 3-Tab Container Layout: Scoped Overview, Software Hub, and Settings (Upgrades, Backup, Storage, DNS, Users).
+• Streamlined App Settings: Focused app updates, terminal themes, and background keep-alive.

@@ -2,6 +2,36 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.5.0] - 2026-09-01
+
+### 📑 Tabbed Multi-Window Terminal System
+- **Concurrent Multi-Tab Terminal**: Launch, run, switch, and manage multiple independent interactive terminal sessions simultaneously within your container rootfs.
+- **Dynamic Tab Strip UI**: Scrollable top tab strip with live status indicators (running / stopped), active session highlights, close tab shortcuts (`✕`), and quick `+` new tab creation.
+- **Session Renaming & Custom Titles**: Long-press on any tab chip to give it a custom name (e.g. "Web Server", "Database", "Compiler").
+- **Container-Specific Tabs**: Open new terminal tabs bound directly into different installed rootfs environments from a single unified screen.
+- **Independent PTY Subprocesses**: Each tab operates its own isolated pseudo-terminal (PTY) process, buffering output and maintaining full interactive state in the background.
+
+### 🐧 Multiple Rootfs Distributions & Extended Setup Wizard
+- **Multi-Distribution Catalog**: Choose from 6 distinct Linux distributions tailored for different use cases:
+  - **Ubuntu 26.04 LTS**: Official LTS base rootfs with APT package manager for general development.
+  - **Debian 12**: Ultra-stable lightweight alternative with vast package repositories.
+  - **Alpine Linux 3.21**: Minimalist musl/busybox environment (~10MB rootfs) booting instantly with tiny memory footprint.
+  - **Arch Linux ARM**: Rolling release distribution featuring the pacman package manager and bleeding-edge software.
+  - **Kali Linux CLI Tools**: Security auditing and network forensics environment with Kali Linux repositories.
+  - **Void Linux**: Independent general-purpose distribution with XBPS package manager and fast boot times.
+- **Multi-Package Manager Engine**: Native bootstrap setup and package manager support for `apt`, `apk`, `pacman`, `dnf`, and `xbps`.
+- **Rootfs Symlink & File Extraction Safety**: Preserves and safely unlinks rootfs symlinks without recursive deletion across archive extractions and software package installations.
+- **Cross-Distribution User Account Provisioning**: Robust fallback user record generation (`/etc/passwd`, `/etc/group`, `/etc/shadow`) and multi-path `su` binary resolution ensuring seamless terminal logins on Busybox and shadow environments (Alpine, Arch, Void, Debian, Ubuntu).
+- **High-Capacity Archive Extraction Engine**: Streamlined in-memory logging and hardened Tar extractor handling large distributions (e.g. Arch Linux ARM ~790MB archive, ~2.2GB rootfs) with hard-link resolution and heap protection.
+
+### 🎛️ Installed Containers Dashboard & Per-Container Overview
+- **Three-Tab Container Detail Layout**: Split container details into dedicated "Overview", "Software", and "Settings" tabs with seamless sliding animations and swipe gestures.
+  - **Overview Tab**: Live RAM and storage dials, intelligent one-touch service launchers (VNC, NGINX, SSH) with installation checks and 1-tap setup guidance, live process table (`ps aux`), and open listening ports.
+  - **Software Tab**: Scoped package installer with category filters, custom package command prompt (`apt`, `apk`, `pacman`, `dnf`), and preset software cards with logs.
+  - **Settings Tab**: Scoped rootfs upgrade mechanism with live build version status and inspection logs dialog, container backup and restore (.tar.gz export/import), storage mount (/sdcard bind) configuration, user/account management (root password, add/delete user, default login user selection, sudo permissions), custom network/DNS settings (/etc/resolv.conf), and safe container deletion.
+- **Streamlined Global App Settings**: Focused exclusively on app-wide preferences including GitHub update checks, terminal fonts and 16-color theme palette customization, background keep-alive/WakeLock policies, and diagnostics debug reporting.
+- **Multi-Container Diagnostics & Integrity Verification**: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and verifying essential filesystem components (/bin/sh, /etc/os-release, /etc/resolv.conf, /etc/passwd, /etc/group, /etc/hosts, and proot runtime binaries).
+
 ## [1.4.0] - 2026-08-28
 
 ### 🚀 GitHub Release Update Checker & Play Store Migration Guide

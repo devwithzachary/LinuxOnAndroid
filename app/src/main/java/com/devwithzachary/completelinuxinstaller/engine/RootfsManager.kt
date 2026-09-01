@@ -10,6 +10,7 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.zip.GZIPInputStream
+import org.tukaani.xz.XZInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -40,16 +41,20 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         return prefs.getLong("cached_storage_used_mb", 0L)
     }
 
-    suspend fun getStorageUsedMb(): Long = withContext(Dispatchers.IO) {
-        if (!rootfsDir.exists()) {
-            prefs.edit().putLong("cached_storage_used_mb", 0L).apply()
+    suspend fun getStorageUsedMb(): Long = getStorageUsedMbForDir(rootfsDir)
+
+    suspend fun getStorageUsedMbForDir(dir: File): Long = withContext(Dispatchers.IO) {
+        if (!dir.exists()) {
+            if (dir == rootfsDir) {
+                prefs.edit().putLong("cached_storage_used_mb", 0L).apply()
+            }
             return@withContext 0L
         }
 
         // 1. Fast native 'du -sk' via system du
         try {
             val duBin = if (File("/system/bin/du").exists()) "/system/bin/du" else "du"
-            val pb = ProcessBuilder(duBin, "-sk", rootfsDir.absolutePath)
+            val pb = ProcessBuilder(duBin, "-sk", dir.absolutePath)
             pb.redirectErrorStream(true)
             val proc = pb.start()
             val output = proc.inputStream.bufferedReader().readLine()
@@ -59,7 +64,9 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 val kb = tokens.firstOrNull()?.toLongOrNull()
                 if (kb != null && kb > 0) {
                     val mb = (kb / 1024L).coerceAtLeast(1L)
-                    prefs.edit().putLong("cached_storage_used_mb", mb).apply()
+                    if (dir == rootfsDir) {
+                        prefs.edit().putLong("cached_storage_used_mb", mb).apply()
+                    }
                     return@withContext mb
                 }
             }
@@ -68,7 +75,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         // 2. Safe recursive directory size fallback (API 23+ compatible)
         try {
             var totalBytes = 0L
-            rootfsDir.walkTopDown()
+            dir.walkTopDown()
                 .onEnter { !it.name.startsWith(".git") }
                 .forEach { file ->
                     if (file.isFile) {
@@ -76,10 +83,12 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                     }
                 }
             val mb = (totalBytes / (1024 * 1024)).coerceAtLeast(0L)
-            prefs.edit().putLong("cached_storage_used_mb", mb).apply()
+            if (dir == rootfsDir) {
+                prefs.edit().putLong("cached_storage_used_mb", mb).apply()
+            }
             return@withContext mb
         } catch (_: Exception) {
-            getCachedStorageUsedMb()
+            if (dir == rootfsDir) getCachedStorageUsedMb() else 0L
         }
     }
 
@@ -88,17 +97,39 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         rootPassword: String = "root",
         username: String = "ubuntu",
         userPassword: String = "ubuntu"
+    ): Flow<DownloadState> {
+        val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(distro.id)
+        return downloadAndInstallDistro(
+            targetDir = rootfsDir,
+            distroDef = distroDef,
+            rootPassword = rootPassword,
+            username = username,
+            userPassword = userPassword
+        )
+    }
+
+    fun downloadAndInstallDistro(
+        targetDir: File,
+        distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition,
+        containerName: String = distroDef.name,
+        rootPassword: String = "root",
+        username: String = "ubuntu",
+        userPassword: String = "ubuntu"
     ): Flow<DownloadState> = channelFlow {
         send(DownloadState.Downloading(0L, 100L, 0))
-        val archiveFile = File(context.cacheDir, "ubuntu_base.tar.gz")
+        val isXz = distroDef.getDownloadUrl(com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getForSystemArch(android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64"))?.endsWith(".xz") == true
+        val archiveFile = File(context.cacheDir, if (isXz) "rootfs_base.tar.xz" else "rootfs_base.tar.gz")
 
         try {
-            if (!rootfsDir.exists()) {
-                rootfsDir.mkdirs()
+            if (!targetDir.exists()) {
+                targetDir.mkdirs()
             }
 
-            Log.d(TAG, "Starting download of Ubuntu rootfs from: ${distro.downloadUrl}")
-            val url = URL(distro.downloadUrl)
+            val arch = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getForSystemArch(android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64")
+            val downloadUrl = distroDef.getDownloadUrl(arch) ?: distroDef.downloadUrls[com.devwithzachary.completelinuxinstaller.model.SystemArchitecture.ARM64]!!
+            Log.d(TAG, "Starting download of ${distroDef.name} rootfs from: $downloadUrl")
+
+            val url = URL(downloadUrl)
             val connection = url.openConnection() as HttpURLConnection
             connection.connectTimeout = 15000
             connection.readTimeout = 15000
@@ -132,24 +163,32 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val logList = mutableListOf<String>()
 
             fun emitLog(msg: String) {
+                if (logList.size > 500) {
+                    logList.removeAt(0)
+                }
                 logList.add(msg)
             }
 
-            emitLog("Downloading official Ubuntu rootfs tarball...")
-            send(DownloadState.Extracting("Extracting Ubuntu rootfs structure...", logList.toList()))
-            if (rootfsDir.exists()) {
-                rootfsDir.deleteRecursively()
+            emitLog("Downloading official ${distroDef.name} rootfs tarball...")
+            send(DownloadState.Extracting("Extracting ${distroDef.name} rootfs structure...", logList.toList()))
+            if (targetDir.exists()) {
+                targetDir.deleteRecursively()
             }
-            rootfsDir.mkdirs()
-            extractTarGz(archiveFile, rootfsDir)
-            emitLog("Extracted rootfs base structure to ${rootfsDir.absolutePath}")
+            targetDir.mkdirs()
+            extractArchive(archiveFile, targetDir) { msg, _ ->
+                emitLog(msg)
+            }
+            emitLog("Extracted rootfs base structure to ${targetDir.absolutePath}")
 
-            emitLog("Configuring DNS resolvers and system files...")
+            emitLog("Configuring DNS resolvers and system files for ${distroDef.name}...")
             send(DownloadState.Extracting("Configuring DNS and system files...", logList.toList()))
-            configureSystemFiles()
-            initializeFallbackRootfs()
+            configureDistroSystemFiles(targetDir, distroDef, containerName)
+            initializeDistroFallback(targetDir, distroDef)
 
-            performFirstLaunchSetup(
+            performDistroFirstLaunchSetup(
+                targetDir = targetDir,
+                distroDef = distroDef,
+                containerName = containerName,
                 rootPassword = rootPassword,
                 username = username,
                 userPassword = userPassword
@@ -161,168 +200,245 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             }
 
             archiveFile.delete()
-            writeRootfsVersion(BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME)
-            emitLog("Ubuntu setup completed successfully!")
-            send(DownloadState.Success(rootfsDir, logList.toList()))
+            writeRootfsVersion(BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME, targetDir)
+            emitLog("${distroDef.name} setup completed successfully!")
+            send(DownloadState.Success(targetDir, logList.toList()))
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error installing Ubuntu rootfs", e)
-            send(DownloadState.Extracting("Network download fallback: Initializing local Ubuntu environment..."))
-            initializeFallbackRootfs()
-            configureSystemFiles()
-            writeRootfsVersion(BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME)
-            send(DownloadState.Success(rootfsDir))
+            Log.e(TAG, "Error installing ${distroDef.name} rootfs", e)
+            send(DownloadState.Extracting("Initializing local fallback environment for ${distroDef.name}..."))
+            initializeDistroFallback(targetDir, distroDef)
+            configureDistroSystemFiles(targetDir, distroDef)
+            writeRootfsVersion(BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME, targetDir)
+            send(DownloadState.Success(targetDir))
         }
     }.flowOn(Dispatchers.IO)
+
+    private suspend fun extractArchive(
+        archiveFile: File,
+        targetDir: File,
+        onProgress: (suspend (String, Int) -> Unit)? = null
+    ) {
+        val fileName = archiveFile.name.lowercase()
+        val isXz = fileName.endsWith(".xz")
+        extractArchiveInJava(archiveFile, targetDir, isXz = isXz, onProgress = onProgress)
+    }
 
     private suspend fun extractTarGz(
         tarGzFile: File,
         targetDir: File,
         onProgress: (suspend (String, Int) -> Unit)? = null
     ) {
-        try {
-            Log.d(TAG, "Extracting tar.gz using native system tar tool...")
-            val pb = ProcessBuilder("tar", "-xzvf", tarGzFile.absolutePath, "-C", targetDir.absolutePath)
-            pb.redirectErrorStream(true)
-            val proc = pb.start()
-
-            val reader = proc.inputStream.bufferedReader()
-            var extractedFiles = 0
-            var lastUpdate = System.currentTimeMillis()
-
-            var line: String? = reader.readLine()
-            while (line != null) {
-                extractedFiles++
-                val now = System.currentTimeMillis()
-                if (onProgress != null && now - lastUpdate > 100) {
-                    lastUpdate = now
-                    val fileName = line.removePrefix("./").takeLast(35)
-                    val percent = 50 + ((extractedFiles * 35) / 15000).coerceIn(0, 35)
-                    onProgress("Extracting: $fileName ($extractedFiles files)", percent)
-                }
-                line = reader.readLine()
-            }
-
-            val exitVal = proc.waitFor()
-            Log.d(TAG, "Native tar extraction exit code: $exitVal")
-
-            if (exitVal != 0) {
-                Log.w(TAG, "Native tar extraction returned $exitVal, attempting Java TarExtractor fallback...")
-                extractTarGzInJava(tarGzFile, targetDir)
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "ProcessBuilder tar failed, falling back to Java TarExtractor", e)
-            try {
-                extractTarGzInJava(tarGzFile, targetDir)
-            } catch (e2: Exception) {
-                Log.e(TAG, "Java TarExtractor exception", e2)
-            }
-        }
+        extractArchive(tarGzFile, targetDir, onProgress)
     }
 
-    private fun extractTarGzInJava(tarGzFile: File, targetDir: File) {
-        val gzipIn = GZIPInputStream(BufferedInputStream(tarGzFile.inputStream()))
+    private suspend fun extractArchiveInJava(
+        archiveFile: File,
+        targetDir: File,
+        isXz: Boolean,
+        onProgress: (suspend (String, Int) -> Unit)? = null
+    ) = withContext(Dispatchers.IO) {
+        if (!targetDir.exists()) {
+            targetDir.mkdirs()
+        }
+
+        val rawIn = BufferedInputStream(archiveFile.inputStream(), 65536)
+        val tarIn: java.io.InputStream = if (isXz) {
+            XZInputStream(rawIn)
+        } else {
+            GZIPInputStream(rawIn, 65536)
+        }
+
         val buffer = ByteArray(512)
         var longName: String? = null
+        var longLink: String? = null
+        var extractedFiles = 0
+        var lastUpdate = System.currentTimeMillis()
 
-        while (true) {
-            var bytesRead = 0
-            while (bytesRead < 512) {
-                val r = gzipIn.read(buffer, bytesRead, 512 - bytesRead)
-                if (r == -1) break
-                bytesRead += r
-            }
-            if (bytesRead < 512) break
-
-            var isEmpty = true
-            for (i in 0 until 512) {
-                if (buffer[i] != 0.toByte()) {
-                    isEmpty = false
-                    break
+        tarIn.use { stream ->
+            while (true) {
+                var bytesRead = 0
+                while (bytesRead < 512) {
+                    val r = stream.read(buffer, bytesRead, 512 - bytesRead)
+                    if (r == -1) break
+                    bytesRead += r
                 }
-            }
-            if (isEmpty) break
+                if (bytesRead < 512) break
 
-            val rawName = String(buffer, 0, 100, Charsets.US_ASCII).trimEnd('\u0000', ' ')
-            val prefix = String(buffer, 345, 155, Charsets.US_ASCII).trimEnd('\u0000', ' ')
-            val typeFlag = buffer[156].toInt().toChar()
-            val size = parseOctal(buffer, 124, 12)
-
-            var entryName = longName ?: if (prefix.isNotEmpty()) "$prefix/$rawName" else rawName
-            longName = null
-
-            if (entryName.isEmpty()) {
-                skipBytes(gzipIn, size)
-                continue
-            }
-
-            if (typeFlag == 'L') {
-                val nameBytes = ByteArray(size.toInt())
-                readFully(gzipIn, nameBytes)
-                longName = String(nameBytes, Charsets.UTF_8).trimEnd('\u0000', ' ', '\n', '\r')
-                val remainder = (512 - (size % 512)) % 512
-                if (remainder > 0) skipBytes(gzipIn, remainder)
-                continue
-            }
-
-            if (entryName.startsWith("/")) {
-                entryName = entryName.substring(1)
-            }
-
-            val destFile = File(targetDir, entryName)
-
-            when (typeFlag) {
-                '5' -> {
-                    destFile.mkdirs()
-                    skipBytes(gzipIn, (512 - (size % 512)) % 512)
-                }
-
-                '0', '\u0000' -> {
-                    destFile.parentFile?.mkdirs()
-                    FileOutputStream(destFile).use { out ->
-                        copyBytes(gzipIn, out, size)
+                var isEmpty = true
+                for (i in 0 until 512) {
+                    if (buffer[i] != 0.toByte()) {
+                        isEmpty = false
+                        break
                     }
-                    if (entryName.contains("bin/") || entryName.endsWith(".sh")) {
-                        destFile.setExecutable(true, false)
+                }
+                if (isEmpty) break
+
+                val rawName = String(buffer, 0, 100, Charsets.US_ASCII).trimEnd('\u0000', ' ')
+                val mode = parseOctal(buffer, 100, 8)
+                val size = parseOctal(buffer, 124, 12)
+                val typeFlag = buffer[156].toInt().toChar()
+                val rawLink = String(buffer, 157, 100, Charsets.US_ASCII).trimEnd('\u0000', ' ')
+                val prefix = String(buffer, 345, 155, Charsets.US_ASCII).trimEnd('\u0000', ' ')
+
+                // Handle GNU Long Name
+                if (typeFlag == 'L') {
+                    val nameBytes = ByteArray(size.toInt())
+                    readFully(stream, nameBytes)
+                    longName = String(nameBytes, Charsets.UTF_8).trimEnd('\u0000', ' ', '\n', '\r')
+                    val remainder = (512 - (size % 512)) % 512
+                    if (remainder > 0) skipBytes(stream, remainder)
+                    continue
+                }
+
+                // Handle GNU Long Link
+                if (typeFlag == 'K') {
+                    val linkBytes = ByteArray(size.toInt())
+                    readFully(stream, linkBytes)
+                    longLink = String(linkBytes, Charsets.UTF_8).trimEnd('\u0000', ' ', '\n', '\r')
+                    val remainder = (512 - (size % 512)) % 512
+                    if (remainder > 0) skipBytes(stream, remainder)
+                    continue
+                }
+
+                // Handle PAX Extended Headers
+                if (typeFlag == 'x' || typeFlag == 'g') {
+                    val paxBytes = ByteArray(size.toInt())
+                    readFully(stream, paxBytes)
+                    val paxString = String(paxBytes, Charsets.UTF_8)
+                    for (paxLine in paxString.lines()) {
+                        val spaceIdx = paxLine.indexOf(' ')
+                        if (spaceIdx != -1) {
+                            val eqIdx = paxLine.indexOf('=', spaceIdx)
+                            if (eqIdx != -1) {
+                                val key = paxLine.substring(spaceIdx + 1, eqIdx)
+                                val value = paxLine.substring(eqIdx + 1)
+                                if (key == "path") longName = value
+                                else if (key == "linkpath") longLink = value
+                            }
+                        }
                     }
                     val remainder = (512 - (size % 512)) % 512
-                    if (remainder > 0) skipBytes(gzipIn, remainder)
+                    if (remainder > 0) skipBytes(stream, remainder)
+                    continue
                 }
 
-                '1', '2' -> {
-                    destFile.parentFile?.mkdirs()
-                    val rawLink = String(buffer, 157, 100, Charsets.US_ASCII).trimEnd('\u0000', ' ')
-                    if (rawLink.isNotEmpty()) {
-                        val isTopLevel = (destFile.parentFile?.absolutePath == rootfsDir.absolutePath)
-                        val isAbsoluteRootfsPath =
-                            rawLink.startsWith("usr/") || rawLink.startsWith("etc/") || rawLink.startsWith("var/") || rawLink.startsWith(
-                                "opt/"
-                            )
-                        val linkTarget = if (!isTopLevel && isAbsoluteRootfsPath) {
-                            "/$rawLink"
-                        } else {
-                            rawLink
+                var entryName = longName ?: if (prefix.isNotEmpty()) "$prefix/$rawName" else rawName
+                val finalLink = longLink ?: rawLink
+                longName = null
+                longLink = null
+
+                if (entryName.isEmpty() || entryName == "." || entryName == "./") {
+                    val remainder = (512 - (size % 512)) % 512
+                    skipBytes(stream, size + remainder)
+                    continue
+                }
+
+                if (entryName.startsWith("./")) {
+                    entryName = entryName.substring(2)
+                } else if (entryName.startsWith("/")) {
+                    entryName = entryName.substring(1)
+                }
+
+                val destFile = File(targetDir, entryName)
+
+                try {
+                    when (typeFlag) {
+                        '5' -> {
+                            destFile.mkdirs()
+                            val remainder = (512 - (size % 512)) % 512
+                            if (remainder > 0) skipBytes(stream, remainder)
                         }
-                        try {
-                            if (destFile.exists()) {
+
+                        '0', '\u0000' -> {
+                            destFile.parentFile?.mkdirs()
+                            try {
+                                android.system.Os.remove(destFile.absolutePath)
+                            } catch (_: Exception) {
                                 destFile.delete()
                             }
-                            android.system.Os.symlink(linkTarget, destFile.absolutePath)
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Symlink creation fallback for ${destFile.name} -> $linkTarget: ${e.message}")
+                            FileOutputStream(destFile).use { out ->
+                                copyBytes(stream, out, size)
+                            }
+                            val isExec = (mode and 0x49L) != 0L || entryName.contains("bin/") || entryName.endsWith(".sh")
+                            if (isExec) {
+                                destFile.setExecutable(true, false)
+                            }
+                            val remainder = (512 - (size % 512)) % 512
+                            if (remainder > 0) skipBytes(stream, remainder)
+                        }
+
+                        '1' -> {
+                            // Hard Link
+                            destFile.parentFile?.mkdirs()
+                            val sourceFile = File(targetDir, finalLink.removePrefix("/"))
+                            if (sourceFile.exists()) {
+                                try {
+                                    android.system.Os.remove(destFile.absolutePath)
+                                } catch (_: Exception) {
+                                    destFile.delete()
+                                }
+                                try {
+                                    android.system.Os.link(sourceFile.absolutePath, destFile.absolutePath)
+                                } catch (_: Exception) {
+                                    try {
+                                        sourceFile.copyTo(destFile, overwrite = true)
+                                    } catch (_: Exception) {}
+                                }
+                            }
+                            val remainder = (512 - (size % 512)) % 512
+                            if (remainder > 0) skipBytes(stream, remainder)
+                        }
+
+                        '2' -> {
+                            // Symbolic Link
+                            destFile.parentFile?.mkdirs()
+                            if (finalLink.isNotEmpty()) {
+                                val isTopLevel = (destFile.parentFile?.absolutePath == targetDir.absolutePath)
+                                val isAbsoluteRootfsPath =
+                                    finalLink.startsWith("usr/") || finalLink.startsWith("etc/") || finalLink.startsWith("var/") || finalLink.startsWith("opt/")
+                                val linkTarget = if (!isTopLevel && isAbsoluteRootfsPath) {
+                                    "/$finalLink"
+                                } else {
+                                    finalLink
+                                }
+                                try {
+                                    try {
+                                        android.system.Os.remove(destFile.absolutePath)
+                                    } catch (_: Exception) {
+                                        destFile.delete()
+                                    }
+                                    android.system.Os.symlink(linkTarget, destFile.absolutePath)
+                                } catch (e: Exception) {
+                                    Log.w(TAG, "Symlink creation failed for ${destFile.name} -> $linkTarget: ${e.message}")
+                                }
+                            }
+                            val remainder = (512 - (size % 512)) % 512
+                            if (remainder > 0) skipBytes(stream, remainder)
+                        }
+
+                        else -> {
+                            val remainder = (512 - (size % 512)) % 512
+                            skipBytes(stream, size + remainder)
                         }
                     }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error extracting entry $entryName: ${e.message}")
                     val remainder = (512 - (size % 512)) % 512
-                    if (remainder > 0) skipBytes(gzipIn, remainder)
+                    skipBytes(stream, size + remainder)
                 }
 
-                else -> {
-                    val remainder = (512 - (size % 512)) % 512
-                    skipBytes(gzipIn, size + remainder)
+                extractedFiles++
+                val now = System.currentTimeMillis()
+                if (onProgress != null && (now - lastUpdate > 250 || extractedFiles % 500 == 0)) {
+                    lastUpdate = now
+                    val fName = entryName.substringAfterLast('/')
+                    val percent = 50 + ((extractedFiles * 35) / 50000).coerceIn(0, 35)
+                    onProgress("Extracting: $fName ($extractedFiles files)", percent)
                 }
             }
         }
-        gzipIn.close()
+        Log.d(TAG, "Java archive extraction completed: $extractedFiles total files extracted to ${targetDir.absolutePath}")
     }
 
     private fun parseOctal(buffer: ByteArray, offset: Int, length: Int): Long {
@@ -349,7 +465,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     private fun copyBytes(input: java.io.InputStream, output: FileOutputStream, count: Long) {
         var remaining = count
-        val buf = ByteArray(8192)
+        val buf = ByteArray(65536)
         while (remaining > 0) {
             val toRead = minOf(buf.size.toLong(), remaining).toInt()
             val r = input.read(buf, 0, toRead)
@@ -361,7 +477,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     private fun skipBytes(input: java.io.InputStream, count: Long) {
         var remaining = count
-        val buf = ByteArray(8192)
+        val buf = ByteArray(65536)
         while (remaining > 0) {
             val toRead = minOf(buf.size.toLong(), remaining).toInt()
             val r = input.read(buf, 0, toRead)
@@ -384,7 +500,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         try {
             val bashFile = File(rootfsDir, "bin/bash")
             if (!bashFile.exists()) {
-                bashFile.writeText("#!/system/bin/sh\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec /system/bin/sh \"$@\"\n")
+                bashFile.writeText("#!/bin/sh\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec /bin/sh \"$@\"\n")
                 bashFile.setExecutable(true, false)
             }
         } catch (_: Exception) {
@@ -394,7 +510,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val usrBashFile = File(rootfsDir, "usr/bin/bash")
             if (!usrBashFile.exists()) {
                 usrBashFile.parentFile?.mkdirs()
-                usrBashFile.writeText("#!/system/bin/sh\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec /system/bin/sh \"$@\"\n")
+                usrBashFile.writeText("#!/bin/sh\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec /bin/sh \"$@\"\n")
                 usrBashFile.setExecutable(true, false)
             }
         } catch (_: Exception) {
@@ -403,7 +519,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         try {
             val shFile = File(rootfsDir, "bin/sh")
             if (!shFile.exists()) {
-                shFile.writeText("#!/system/bin/sh\nexec /system/bin/sh \"$@\"\n")
+                shFile.writeText("#!/bin/sh\nexec /bin/sh \"$@\"\n")
                 shFile.setExecutable(true, false)
             }
         } catch (_: Exception) {
@@ -412,21 +528,21 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         val aptFile = File(rootfsDir, "usr/bin/apt")
         if (!aptFile.exists()) {
             aptFile.parentFile?.mkdirs()
-            aptFile.writeText("#!/system/bin/sh\nif [ \"$1\" = \"--version\" ] || [ \"$1\" = \"-v\" ]; then\n  echo \"apt 2.8.1 (arm64/x86_64 Ubuntu PRoot Emulation)\"\n  exit 0\nfi\necho \"Reading package lists... Done\"\necho \"Building dependency tree... Done\"\necho \"Reading state information... Done\"\necho \"All packages are up to date.\"\n")
+            aptFile.writeText("#!/bin/sh\nif [ \"$1\" = \"--version\" ] || [ \"$1\" = \"-v\" ]; then\n  echo \"apt 2.8.1 (arm64/x86_64 Ubuntu PRoot Emulation)\"\n  exit 0\nfi\necho \"Reading package lists... Done\"\necho \"Building dependency tree... Done\"\necho \"Reading state information... Done\"\necho \"All packages are up to date.\"\n")
             aptFile.setExecutable(true, false)
         }
 
         val aptGetFile = File(rootfsDir, "usr/bin/apt-get")
         if (!aptGetFile.exists()) {
             aptGetFile.parentFile?.mkdirs()
-            aptGetFile.writeText("#!/system/bin/sh\nexec /usr/bin/apt \"$@\"\n")
+            aptGetFile.writeText("#!/bin/sh\nexec /usr/bin/apt \"$@\"\n")
             aptGetFile.setExecutable(true, false)
         }
 
         val dpkgFile = File(rootfsDir, "usr/bin/dpkg")
         if (!dpkgFile.exists()) {
             dpkgFile.parentFile?.mkdirs()
-            dpkgFile.writeText("#!/system/bin/sh\necho \"Debian dpkg package management tools (PRoot Emulation)\"\n")
+            dpkgFile.writeText("#!/bin/sh\necho \"Debian dpkg package management tools (PRoot Emulation)\"\n")
             dpkgFile.setExecutable(true, false)
         }
 
@@ -725,12 +841,231 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         }
     }
 
-    suspend fun setRootPassword(password: String): Boolean = withContext(Dispatchers.IO) {
+    fun configureDistroSystemFiles(
+        targetDir: File = rootfsDir,
+        distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.UBUNTU_26_04,
+        containerName: String = distroDef.name
+    ) {
+        val etcDir = File(targetDir, "etc").apply { if (!exists()) mkdirs() }
+        val hostName = ContainerManager.formatContainerHostname(containerName)
+
+        val hostnameFile = File(etcDir, "hostname")
+        try {
+            try { android.system.Os.remove(hostnameFile.absolutePath) } catch (_: Exception) { hostnameFile.delete() }
+            hostnameFile.writeText("$hostName\n")
+        } catch (_: Exception) {}
+
+        val currentDns = getDnsServers()
+        val resolvConf = File(etcDir, "resolv.conf")
+        val dnsContent = currentDns.joinToString("\n") { "nameserver $it" } + "\n"
+        try {
+            try { android.system.Os.remove(resolvConf.absolutePath) } catch (_: Exception) { resolvConf.delete() }
+            resolvConf.writeText(dnsContent)
+        } catch (_: Exception) {}
+
+        val hosts = File(etcDir, "hosts")
+        try {
+            try { android.system.Os.remove(hosts.absolutePath) } catch (_: Exception) { hosts.delete() }
+            hosts.writeText(
+                """
+                127.0.0.1   localhost localhost.localdomain $hostName
+                ::1         localhost ip6-localhost ip6-loopback
+                """.trimIndent() + "\n"
+            )
+        } catch (_: Exception) {}
+
+        val profileD = File(etcDir, "profile.d").apply { if (!exists()) mkdirs() }
+        val hostnameProfile = File(profileD, "00-hostname.sh")
+        try {
+            try { android.system.Os.remove(hostnameProfile.absolutePath) } catch (_: Exception) { hostnameProfile.delete() }
+            hostnameProfile.writeText("export HOSTNAME=\"$hostName\"\n")
+        } catch (_: Exception) {}
+
+        val bashrc = File(etcDir, "bash.bashrc")
+        if (bashrc.exists()) {
+            val content = bashrc.readText()
+            if (!content.contains("HOSTNAME=")) {
+                bashrc.appendText("\nexport HOSTNAME=\"$hostName\"\n")
+            }
+        }
+
+        val usrSbinDir = File(targetDir, "usr/sbin").apply { mkdirs() }
+        val policyRcD = File(usrSbinDir, "policy-rc.d")
+        try {
+            policyRcD.writeText("#!/bin/sh\nexit 101\n")
+            policyRcD.setExecutable(true, false)
+        } catch (_: Exception) {}
+
+        val systemctlFile = File(targetDir, "usr/bin/systemctl")
+        if (!systemctlFile.exists()) {
+            try {
+                systemctlFile.parentFile?.mkdirs()
+                systemctlFile.writeText("#!/bin/sh\nexit 0\n")
+                systemctlFile.setExecutable(true, false)
+            } catch (_: Exception) {}
+        }
+
+        val pamDir = File(targetDir, "etc/pam.d").apply { mkdirs() }
+        val pamContent = "auth sufficient pam_permit.so\n" +
+                "account sufficient pam_permit.so\n" +
+                "session sufficient pam_permit.so\n" +
+                "password sufficient pam_permit.so\n"
+
+        try {
+            File(pamDir, "sudo").writeText(pamContent)
+            File(pamDir, "su").writeText(pamContent)
+            File(pamDir, "su-l").writeText(pamContent)
+        } catch (_: Exception) {}
+
+        if (distroDef.packageManager == com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT) {
+            val aptDir = File(etcDir, "apt").apply { if (!exists()) mkdirs() }
+            val aptConfDir = File(aptDir, "apt.conf.d").apply { mkdirs() }
+            try {
+                File(aptConfDir, "99linuxonandroid").writeText(
+                    "APT::Sandbox::User \"root\";\n" +
+                            "Acquire::http::Pipeline-Depth \"0\";\n" +
+                            "Acquire::http::No-Cache \"true\";\n" +
+                            "Acquire::PDiffs \"false\";\n" +
+                            "Acquire::ForceIPv4 \"true\";\n"
+                )
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun initializeDistroFallback(
+        targetDir: File = rootfsDir,
+        distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.UBUNTU_26_04
+    ) {
+        if (!targetDir.exists()) targetDir.mkdirs()
+
+        val dirs = listOf(
+            "usr/bin", "usr/sbin", "usr/local/bin", "usr/local/sbin",
+            "etc", "dev", "proc", "sys", "tmp", "root", "home", "var", "var/log"
+        )
+        for (d in dirs) {
+            File(targetDir, d).mkdirs()
+        }
+
+        try {
+            val bashFile = File(targetDir, "usr/bin/bash")
+            if (!bashFile.exists()) {
+                bashFile.writeText("#!/bin/sh\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec /bin/sh \"$@\"\n")
+                bashFile.setExecutable(true, false)
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val shFile = File(targetDir, "usr/bin/sh")
+            if (!shFile.exists()) {
+                shFile.writeText("#!/bin/sh\nexec /bin/sh \"$@\"\n")
+                shFile.setExecutable(true, false)
+            }
+        } catch (_: Exception) {}
+
+        val osRelease = File(targetDir, "etc/os-release")
+        if (!osRelease.exists()) {
+            osRelease.writeText(
+                """
+                NAME="${distroDef.name}"
+                VERSION="${distroDef.version}"
+                ID=${distroDef.id}
+                PRETTY_NAME="${distroDef.name}"
+                """.trimIndent() + "\n"
+            )
+        }
+    }
+
+    suspend fun performDistroFirstLaunchSetup(
+        targetDir: File = rootfsDir,
+        distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.UBUNTU_26_04,
+        containerName: String = distroDef.name,
+        rootPassword: String = "root",
+        username: String = "user",
+        userPassword: String = "user",
+        onProgress: suspend (String, String?) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        val cleanUsername = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { "user" }
+        val hostName = ContainerManager.formatContainerHostname(containerName)
+        onProgress("Initializing ${distroDef.name} environment...", "Configuring system accounts...")
+
+        val etcDir = File(targetDir, "etc").apply { if (!exists()) mkdirs() }
+        val hostnameFile = File(etcDir, "hostname")
+        try {
+            try { android.system.Os.remove(hostnameFile.absolutePath) } catch (_: Exception) { hostnameFile.delete() }
+            hostnameFile.writeText("$hostName\n")
+        } catch (_: Exception) {}
+
+        val resolvConf = File(etcDir, "resolv.conf")
+        try {
+            val currentDns = getDnsServers()
+            val dnsContent = currentDns.joinToString("\n") { "nameserver $it" } + "\n"
+            try { android.system.Os.remove(resolvConf.absolutePath) } catch (_: Exception) { resolvConf.delete() }
+            resolvConf.writeText(dnsContent)
+        } catch (_: Exception) {}
+
+        val hosts = File(etcDir, "hosts")
+        try {
+            try { android.system.Os.remove(hosts.absolutePath) } catch (_: Exception) { hosts.delete() }
+            hosts.writeText(
+                "127.0.0.1   localhost localhost.localdomain $hostName\n" +
+                        "::1         localhost ip6-localhost ip6-loopback\n"
+            )
+        } catch (_: Exception) {}
+
+        try {
+            val isArm = android.os.Build.SUPPORTED_ABIS.any { it.contains("arm") || it.contains("aarch64") }
+            val setupScript = distroDef.buildFirstLaunchSetupScript(
+                rootPassword = rootPassword,
+                username = cleanUsername,
+                userPassword = userPassword,
+                isArm = isArm
+            )
+
+            val config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir)
+            val shellBin = when {
+                File(targetDir, "usr/bin/dash").exists() || File(targetDir, "bin/dash").exists() -> "/usr/bin/dash"
+                File(targetDir, "usr/bin/bash").exists() || File(targetDir, "bin/bash").exists() -> "/bin/bash"
+                else -> "/bin/sh"
+            }
+            val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf(shellBin, "-c", setupScript))
+            val pb = ProcessBuilder(cmd)
+            pb.directory(targetDir)
+            val env = pb.environment()
+            env.putAll(pRootEngine.getEnvironmentVariables())
+            env["DEBIAN_FRONTEND"] = "noninteractive"
+            env["DEBIAN_PRIORITY"] = "critical"
+            env["UCF_FORCE_CONFFOLD"] = "1"
+            env["NEEDRESTART_MODE"] = "a"
+
+            pb.redirectErrorStream(true)
+            val proc = pb.start()
+
+            try {
+                proc.outputStream.close()
+            } catch (_: Exception) {}
+
+            val reader = proc.inputStream.bufferedReader()
+            var line: String? = null
+            while (reader.readLine().also { line = it } != null) {
+                val text = line ?: break
+                Log.d(TAG, "[DistroSetup-${distroDef.id}] $text")
+                val cleanText = text.trim().replace(Regex("\\s+"), " ")
+                val displayMsg = if (cleanText.length > 50) cleanText.take(50) + "..." else cleanText
+                onProgress("Configuring ${distroDef.name}: $displayMsg", text)
+            }
+            proc.waitFor()
+        } catch (e: Exception) {
+            Log.e(TAG, "First launch setup error for ${distroDef.name}", e)
+        }
+    }
+
+    suspend fun setRootPassword(password: String, targetDir: File = rootfsDir): Boolean = withContext(Dispatchers.IO) {
         try {
             val script = "rm -f /etc/*.lock && echo \"root:$password\" | chpasswd && passwd -u root 2>/dev/null || true"
-            val cmd = pRootEngine.buildPRootCommand(command = listOf("/bin/sh", "-c", script))
+            val config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir)
+            val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf("/bin/sh", "-c", script))
             val pb = ProcessBuilder(cmd).apply {
-                directory(rootfsDir)
+                directory(targetDir)
                 environment().putAll(pRootEngine.getEnvironmentVariables())
             }
             val proc = pb.start()
@@ -741,51 +1076,56 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         }
     }
 
-    suspend fun createOrUpdateUser(username: String, password: String, isSudo: Boolean = true): Boolean =
-        withContext(Dispatchers.IO) {
-            try {
-                val cleanName =
-                    username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { return@withContext false }
-                val existingUsers = getContainerUsers()
-                val uid = if (existingUsers.contains(cleanName)) {
-                    getUidForUser(cleanName) ?: 1000
-                } else {
-                    val usedUids = getUsedUids()
-                    var newUid = 1000
-                    while (usedUids.contains(newUid)) {
-                        newUid++
-                    }
-                    newUid
+    suspend fun createOrUpdateUser(
+        username: String,
+        password: String,
+        isSudo: Boolean = true,
+        targetDir: File = rootfsDir
+    ): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val cleanName =
+                username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { return@withContext false }
+            val existingUsers = getContainerUsers(targetDir)
+            val uid = if (existingUsers.contains(cleanName)) {
+                getUidForUser(cleanName, targetDir) ?: 1000
+            } else {
+                val usedUids = getUsedUids(targetDir)
+                var newUid = 1000
+                while (usedUids.contains(newUid)) {
+                    newUid++
                 }
-
-                val sudoCmd =
-                    if (isSudo) "&& echo \"$cleanName ALL=(ALL:ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$cleanName && chmod 0440 /etc/sudoers.d/$cleanName" else ""
-                val script =
-                    "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; rm -f /etc/*.lock; " +
-                            "grep -q ^$cleanName: /etc/passwd || echo \"$cleanName:x:$uid:$uid:$cleanName:/home/$cleanName:/bin/bash\" >> /etc/passwd; " +
-                            "grep -q ^$cleanName: /etc/group || echo \"$cleanName:x:$uid:\" >> /etc/group; " +
-                            "grep -q ^$cleanName: /etc/shadow || echo \"$cleanName:*:19700:0:99999:7:::\" >> /etc/shadow; " +
-                            "mkdir -p /home/$cleanName && echo \"$cleanName:$password\" | chpasswd && passwd -u $cleanName 2>/dev/null || true && " +
-                            "chown -R $cleanName:$cleanName /home/$cleanName 2>/dev/null || true && " +
-                            "chmod 644 /etc/shadow /etc/shadow- /etc/passwd /etc/group 2>/dev/null || true && " +
-                            "usermod -aG sudo,shadow $cleanName 2>/dev/null || true && " +
-                            "printf 'auth sufficient pam_permit.so\\naccount sufficient pam_permit.so\\nsession sufficient pam_permit.so\\npassword sufficient pam_permit.so\\n' > /etc/pam.d/su && " +
-                            "cp /etc/pam.d/su /etc/pam.d/su-l 2>/dev/null || true $sudoCmd"
-                val cmd = pRootEngine.buildPRootCommand(command = listOf("/bin/sh", "-c", script))
-                val pb = ProcessBuilder(cmd).apply {
-                    directory(rootfsDir)
-                    environment().putAll(pRootEngine.getEnvironmentVariables())
-                }
-                val proc = pb.start()
-                proc.waitFor() == 0
-            } catch (e: Exception) {
-                Log.e(TAG, "Error creating/updating user $username", e)
-                false
+                newUid
             }
-        }
 
-    private fun getUsedUids(): Set<Int> {
-        val passwdFile = File(rootfsDir, "etc/passwd")
+            val sudoCmd =
+                if (isSudo) "&& echo \"$cleanName ALL=(ALL:ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$cleanName && chmod 0440 /etc/sudoers.d/$cleanName" else ""
+            val script =
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; rm -f /etc/*.lock; " +
+                        "grep -q ^$cleanName: /etc/passwd || echo \"$cleanName:x:$uid:$uid:$cleanName:/home/$cleanName:/bin/bash\" >> /etc/passwd; " +
+                        "grep -q ^$cleanName: /etc/group || echo \"$cleanName:x:$uid:\" >> /etc/group; " +
+                        "grep -q ^$cleanName: /etc/shadow || echo \"$cleanName:*:19700:0:99999:7:::\" >> /etc/shadow; " +
+                        "mkdir -p /home/$cleanName && echo \"$cleanName:$password\" | chpasswd && passwd -u $cleanName 2>/dev/null || true && " +
+                        "chown -R $cleanName:$cleanName /home/$cleanName 2>/dev/null || true && " +
+                        "chmod 644 /etc/shadow /etc/shadow- /etc/passwd /etc/group 2>/dev/null || true && " +
+                        "usermod -aG sudo,shadow $cleanName 2>/dev/null || true && " +
+                        "printf 'auth sufficient pam_permit.so\\naccount sufficient pam_permit.so\\nsession sufficient pam_permit.so\\npassword sufficient pam_permit.so\\n' > /etc/pam.d/su && " +
+                        "cp /etc/pam.d/su /etc/pam.d/su-l 2>/dev/null || true $sudoCmd"
+            val config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir)
+            val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf("/bin/sh", "-c", script))
+            val pb = ProcessBuilder(cmd).apply {
+                directory(targetDir)
+                environment().putAll(pRootEngine.getEnvironmentVariables())
+            }
+            val proc = pb.start()
+            proc.waitFor() == 0
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating/updating user $username", e)
+            false
+        }
+    }
+
+    private fun getUsedUids(targetDir: File = rootfsDir): Set<Int> {
+        val passwdFile = File(targetDir, "etc/passwd")
         if (!passwdFile.exists()) return setOf(1000)
         val uids = mutableSetOf<Int>()
         try {
@@ -801,8 +1141,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         return uids
     }
 
-    private fun getUidForUser(username: String): Int? {
-        val passwdFile = File(rootfsDir, "etc/passwd")
+    private fun getUidForUser(username: String, targetDir: File = rootfsDir): Int? {
+        val passwdFile = File(targetDir, "etc/passwd")
         if (!passwdFile.exists()) return null
         try {
             passwdFile.readLines().forEach { line ->
@@ -816,7 +1156,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         return null
     }
 
-    suspend fun deleteUser(username: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun deleteUser(username: String, targetDir: File = rootfsDir): Boolean = withContext(Dispatchers.IO) {
         try {
             val cleanName = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { return@withContext false }
             val script =
@@ -825,15 +1165,16 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                         "sed -i '/^$cleanName:/d' /etc/passwd /etc/group /etc/shadow 2>/dev/null || true; " +
                         "rm -f /etc/sudoers.d/$cleanName; " +
                         "rm -rf /home/$cleanName"
-            val cmd = pRootEngine.buildPRootCommand(command = listOf("/bin/sh", "-c", script))
+            val config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir)
+            val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf("/bin/sh", "-c", script))
             val pb = ProcessBuilder(cmd).apply {
-                directory(rootfsDir)
+                directory(targetDir)
                 environment().putAll(pRootEngine.getEnvironmentVariables())
             }
             val proc = pb.start()
             proc.waitFor()
 
-            val homeDir = File(rootfsDir, "home/$cleanName")
+            val homeDir = File(targetDir, "home/$cleanName")
             if (homeDir.exists()) {
                 homeDir.deleteRecursively()
             }
@@ -844,8 +1185,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         }
     }
 
-    fun getContainerUsers(): List<String> {
-        val passwdFile = File(rootfsDir, "etc/passwd")
+    fun getContainerUsers(targetDir: File = rootfsDir): List<String> {
+        val passwdFile = File(targetDir, "etc/passwd")
         if (!passwdFile.exists()) return emptyList()
         val users = mutableListOf<String>()
         try {
@@ -872,9 +1213,10 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     suspend fun exportContainerToStream(
         outputStream: java.io.OutputStream,
+        targetDir: File = rootfsDir,
         onProgress: suspend (String, Int) -> Unit
     ): Boolean = withContext(Dispatchers.IO) {
-        if (!rootfsDir.exists()) {
+        if (!targetDir.exists()) {
             onProgress("RootFS container directory does not exist.", -1)
             return@withContext false
         }
@@ -883,7 +1225,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val tempBackupFile = File(context.cacheDir, "container_export_temp.tar.gz")
             if (tempBackupFile.exists()) tempBackupFile.delete()
 
-            val pb = ProcessBuilder("tar", "-czvf", tempBackupFile.absolutePath, "-C", rootfsDir.absolutePath, ".")
+            val pb = ProcessBuilder("tar", "-czvf", tempBackupFile.absolutePath, "-C", targetDir.absolutePath, ".")
             pb.redirectErrorStream(true)
             val proc = pb.start()
 
@@ -946,6 +1288,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     suspend fun importContainerFromStream(
         inputStream: java.io.InputStream,
+        targetDir: File = rootfsDir,
         onProgress: suspend (String, Int) -> Unit
     ): Boolean = withContext(Dispatchers.IO) {
         try {
@@ -971,20 +1314,20 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             }
 
             onProgress("Clearing active RootFS container...", 35)
-            if (rootfsDir.exists()) {
-                rootfsDir.deleteRecursively()
+            if (targetDir.exists()) {
+                targetDir.deleteRecursively()
             }
-            rootfsDir.mkdirs()
+            targetDir.mkdirs()
 
             onProgress("Extracting RootFS file system...", 50)
-            extractTarGz(tempImportFile, rootfsDir, onProgress)
+            extractTarGz(tempImportFile, targetDir, onProgress)
 
             // Fix any un-nested or nested wrapper directory structure (e.g. ubuntu_rootfs/)
-            val nestedDir = File(rootfsDir, "ubuntu_rootfs")
+            val nestedDir = File(targetDir, "ubuntu_rootfs")
             if (nestedDir.exists() && nestedDir.isDirectory) {
                 Log.d(TAG, "Un-nesting backup files from ubuntu_rootfs wrapper...")
                 nestedDir.listFiles()?.forEach { child ->
-                    val dest = File(rootfsDir, child.name)
+                    val dest = File(targetDir, child.name)
                     if (dest.exists()) dest.deleteRecursively()
                     child.renameTo(dest)
                 }
@@ -992,11 +1335,11 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             }
 
             onProgress("Configuring DNS resolvers and permissions...", 85)
-            configureSystemFiles()
+            configureDistroSystemFiles(targetDir)
 
             tempImportFile.delete()
-            if (getRootfsVersion() == null) {
-                writeRootfsVersion(BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME)
+            if (getRootfsVersion(targetDir) == null) {
+                writeRootfsVersion(BuildConfig.VERSION_CODE, BuildConfig.VERSION_NAME, targetDir)
             }
             onProgress("Container restored successfully!", 100)
             true
@@ -1007,15 +1350,16 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         }
     }
 
-    fun getRootfsVersion(): RootfsVersionInfo? {
-        return RootfsMigrationManager.readVersion(rootfsDir)
+    fun getRootfsVersion(targetDir: File = rootfsDir): RootfsVersionInfo? {
+        return RootfsMigrationManager.readVersion(targetDir)
     }
 
     fun writeRootfsVersion(
         versionCode: Int = BuildConfig.VERSION_CODE,
-        versionName: String = BuildConfig.VERSION_NAME
+        versionName: String = BuildConfig.VERSION_NAME,
+        targetDir: File = rootfsDir
     ) {
-        val existing = getRootfsVersion()
+        val existing = getRootfsVersion(targetDir)
         val installedAt = existing?.installedAt ?: System.currentTimeMillis()
         val info = RootfsVersionInfo(
             versionCode = versionCode,
@@ -1023,28 +1367,28 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             installedAt = installedAt,
             lastUpgradedAt = System.currentTimeMillis()
         )
-        RootfsMigrationManager.writeVersion(rootfsDir, info)
+        RootfsMigrationManager.writeVersion(targetDir, info)
     }
 
-    fun isUpgradeAvailable(): Boolean {
-        if (!isInstalled()) return false
-        val currentVersion = getRootfsVersion() ?: return false
+    fun isUpgradeAvailable(targetDir: File = rootfsDir): Boolean {
+        if (!pRootEngine.isRootfsInstalled(targetDir)) return false
+        val currentVersion = getRootfsVersion(targetDir) ?: return false
         return RootfsMigrationManager.hasRootfsImprovements(currentVersion.versionCode, BuildConfig.VERSION_CODE)
     }
 
-    fun upgradeRootfs(): Flow<UpgradeState> = channelFlow {
+    fun upgradeRootfs(targetDir: File = rootfsDir): Flow<UpgradeState> = channelFlow {
         val logList = mutableListOf<String>()
         fun emitLog(msg: String) {
             logList.add(msg)
             Log.d(TAG, "[UpgradeRootfs] $msg")
         }
 
-        if (!isInstalled()) {
+        if (!pRootEngine.isRootfsInstalled(targetDir)) {
             send(UpgradeState.Error("RootFS is not installed. Nothing to upgrade.", logList.toList()))
             return@channelFlow
         }
 
-        val currentVersion = getRootfsVersion() ?: RootfsVersionInfo(
+        val currentVersion = getRootfsVersion(targetDir) ?: RootfsVersionInfo(
             versionCode = RootfsMigrationManager.LEGACY_VERSION_CODE,
             versionName = RootfsMigrationManager.LEGACY_VERSION_NAME
         )
@@ -1058,8 +1402,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         val pendingMigrations = RootfsMigrationManager.getPendingMigrations(fromVersion, targetVersion)
         if (pendingMigrations.isEmpty()) {
             emitLog("No pending migration patches found. Re-verifying core system configuration files...")
-            configureSystemFiles()
-            writeRootfsVersion(targetVersion, BuildConfig.VERSION_NAME)
+            configureDistroSystemFiles(targetDir)
+            writeRootfsVersion(targetVersion, BuildConfig.VERSION_NAME, targetDir)
             emitLog("RootFS is fully up to date with version ${BuildConfig.VERSION_NAME}!")
             send(UpgradeState.Success(fromVersion, targetVersion, logList.toList()))
             return@channelFlow
@@ -1075,7 +1419,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             send(UpgradeState.Upgrading("Applying: ${migration.name}", logList.toList(), stepPercent))
 
             val success = try {
-                migration.execute(pRootEngine, rootfsDir) { logLine ->
+                migration.execute(pRootEngine, targetDir) { logLine ->
                     emitLog("  -> $logLine")
                 }
             } catch (e: Exception) {
@@ -1091,14 +1435,14 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         }
 
         emitLog("\nAll migrations applied successfully! Re-verifying system files, DNS, and sudo permissions...")
-        configureSystemFiles()
-        writeRootfsVersion(targetVersion, BuildConfig.VERSION_NAME)
+        configureDistroSystemFiles(targetDir)
+        writeRootfsVersion(targetVersion, BuildConfig.VERSION_NAME, targetDir)
         emitLog("RootFS successfully upgraded to ${BuildConfig.VERSION_NAME} (Build $targetVersion)!")
         send(UpgradeState.Success(fromVersion, targetVersion, logList.toList()))
     }.flowOn(Dispatchers.IO)
 
-    fun getDnsServers(): List<String> {
-        val resolvConf = File(rootfsDir, "etc/resolv.conf")
+    fun getDnsServers(targetDir: File = rootfsDir): List<String> {
+        val resolvConf = File(targetDir, "etc/resolv.conf")
         if (resolvConf.exists()) {
             try {
                 val servers = resolvConf.readLines()
@@ -1116,18 +1460,16 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         return listOf("8.8.8.8", "1.1.1.1", "8.8.4.4")
     }
 
-    fun setDnsServers(servers: List<String>): Boolean {
+    fun setDnsServers(servers: List<String>, targetDir: File = rootfsDir): Boolean {
         val cleanList = servers.map { it.trim() }.filter { it.isNotBlank() }
         if (cleanList.isEmpty()) return false
         val prefs = context.getSharedPreferences("dns_prefs", Context.MODE_PRIVATE)
         prefs.edit().putString("dns_servers_csv", cleanList.joinToString(",")).apply()
 
-        if (isInstalled()) {
-            val etcDir = File(rootfsDir, "etc").apply { if (!exists()) mkdirs() }
-            val resolvConf = File(etcDir, "resolv.conf")
-            val content = cleanList.joinToString("\n") { "nameserver $it" } + "\n"
-            resolvConf.writeText(content)
-        }
+        val etcDir = File(targetDir, "etc").apply { if (!exists()) mkdirs() }
+        val resolvConf = File(etcDir, "resolv.conf")
+        val content = cleanList.joinToString("\n") { "nameserver $it" } + "\n"
+        resolvConf.writeText(content)
         return true
     }
 }

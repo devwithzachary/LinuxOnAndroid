@@ -40,13 +40,8 @@ class PRootEngine(val context: Context) {
         return File(binDir, PROOT_BIN_NAME)
     }
 
-    fun isRootfsInstalled(): Boolean {
-        if (!rootfsDir.exists()) return false
-        val osRelease = File(rootfsDir, "etc/os-release")
-        val dpkg = File(rootfsDir, "usr/bin/dpkg")
-        val apt = File(rootfsDir, "usr/bin/apt-get")
-        val libGlibc = File(rootfsDir, "usr/lib")
-        return osRelease.exists() && (dpkg.exists() || apt.exists() || libGlibc.exists())
+    fun isRootfsInstalled(dir: File = rootfsDir): Boolean {
+        return ContainerManager.isRealRootfs(dir)
     }
 
     suspend fun ensurePRootExecutable(): File = withContext(Dispatchers.IO) {
@@ -111,11 +106,97 @@ class PRootEngine(val context: Context) {
 
         val usePRoot = prootExec.exists() && prootExec.length() > 0L
 
+        val targetRootfs = config.rootfsDir
         val targetUser = loginUser?.takeIf { it.isNotBlank() }
-        val effectiveCommand = if (command == listOf("/bin/bash", "-l") && !isRootfsInstalled()) {
-            listOf("/system/bin/sh")
-        } else if (command == listOf("/bin/bash", "-l") && targetUser != null && targetUser != "root") {
-            listOf("/bin/su", "-", targetUser)
+
+        val hasRealBash = (File(targetRootfs, "bin/bash").exists() && File(targetRootfs, "bin/bash").length() > 1000) ||
+                          (File(targetRootfs, "usr/bin/bash").exists() && File(targetRootfs, "usr/bin/bash").length() > 1000)
+
+        val guestShell = when {
+            hasRealBash -> if (File(targetRootfs, "bin/bash").exists()) "/bin/bash" else "/usr/bin/bash"
+            File(targetRootfs, "bin/ash").exists() -> "/bin/ash"
+            File(targetRootfs, "bin/sh").exists() -> "/bin/sh"
+            File(targetRootfs, "usr/bin/sh").exists() -> "/usr/bin/sh"
+            else -> "/bin/sh"
+        }
+
+        // If real bash is absent, ensure /bin/bash and /usr/bin/bash are working wrappers around guestShell
+        if (!hasRealBash) {
+            val binBash = File(targetRootfs, "bin/bash")
+            val usrBinBash = File(targetRootfs, "usr/bin/bash")
+            try {
+                binBash.parentFile?.mkdirs()
+                binBash.writeText("#!$guestShell\nexec $guestShell \"$@\"\n")
+                binBash.setExecutable(true, false)
+            } catch (_: Exception) {}
+            try {
+                usrBinBash.parentFile?.mkdirs()
+                usrBinBash.writeText("#!$guestShell\nexec $guestShell \"$@\"\n")
+                usrBinBash.setExecutable(true, false)
+            } catch (_: Exception) {}
+        } else {
+            // Clean up any stale host-path shebangs in fallback scripts inside the guest rootfs
+            listOf("bin/bash", "usr/bin/bash", "bin/sh", "usr/bin/sh").forEach { relPath ->
+                val shellFile = File(targetRootfs, relPath)
+                if (shellFile.exists() && !java.nio.file.Files.isSymbolicLink(shellFile.toPath())) {
+                    try {
+                        val content = shellFile.readText()
+                        if (content.contains("/system/bin/sh")) {
+                            shellFile.writeText("#!$guestShell\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec $guestShell \"$@\"\n")
+                            shellFile.setExecutable(true, false)
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+
+        if (targetUser != null && targetUser != "root") {
+            val etcDir = File(targetRootfs, "etc").apply { if (!exists()) mkdirs() }
+            val passwdFile = File(etcDir, "passwd")
+            val groupFile = File(etcDir, "group")
+            val shadowFile = File(etcDir, "shadow")
+            val homeDir = File(targetRootfs, "home/$targetUser").apply { if (!exists()) mkdirs() }
+            val passwdContent = if (passwdFile.exists()) try { passwdFile.readText() } catch (_: Exception) { "" } else ""
+            if (!passwdContent.lines().any { it.startsWith("$targetUser:") }) {
+                try {
+                    passwdFile.appendText("$targetUser:x:1000:1000:$targetUser:/home/$targetUser:$guestShell\n")
+                    if (!groupFile.exists() || !groupFile.readText().lines().any { it.startsWith("$targetUser:") }) {
+                        groupFile.appendText("$targetUser:x:1000:\n")
+                    }
+                    if (!shadowFile.exists() || !shadowFile.readText().lines().any { it.startsWith("$targetUser:") }) {
+                        shadowFile.appendText("$targetUser:*:19700:0:99999:7:::\n")
+                    }
+                } catch (_: Exception) {}
+            } else if (!hasRealBash && passwdFile.exists()) {
+                // Ensure existing user entry doesn't reference non-existent /bin/bash
+                try {
+                    val lines = passwdFile.readLines()
+                    val updated = lines.map { line ->
+                        if (line.startsWith("$targetUser:") || line.startsWith("root:")) {
+                            if (line.endsWith(":/bin/bash") || line.endsWith(":/usr/bin/bash")) {
+                                line.substringBeforeLast(":") + ":$guestShell"
+                            } else {
+                                line
+                            }
+                        } else {
+                            line
+                        }
+                    }
+                    passwdFile.writeText(updated.joinToString("\n") + "\n")
+                } catch (_: Exception) {}
+            }
+        }
+
+        val suBin = when {
+            File(targetRootfs, "bin/su").exists() -> "/bin/su"
+            File(targetRootfs, "usr/bin/su").exists() -> "/usr/bin/su"
+            else -> "/bin/su"
+        }
+
+        val effectiveCommand = if (targetUser != null && targetUser != "root") {
+            listOf(suBin, "-s", guestShell, "-", targetUser)
+        } else if (command == listOf("/bin/bash", "-l") && !hasRealBash) {
+            listOf(guestShell, "-l")
         } else {
             command
         }

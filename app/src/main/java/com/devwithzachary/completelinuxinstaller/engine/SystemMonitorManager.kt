@@ -56,7 +56,8 @@ data class SystemResourceMetrics(
 class SystemMonitorManager(
     private val context: Context,
     private val pRootEngine: PRootEngine,
-    private val rootfsManager: RootfsManager
+    private val rootfsManager: RootfsManager,
+    private val containerManager: ContainerManager? = null
 ) {
 
     private val myAppUid: Int = Process.myUid()
@@ -84,7 +85,12 @@ class SystemMonitorManager(
         } catch (_: Exception) {}
 
         val storageUsedMb = try {
-            rootfsManager.getCachedStorageUsedMb()
+            val defaultContainer = containerManager?.getDefaultContainer()
+            if (defaultContainer != null && defaultContainer.storageUsedMb > 0L) {
+                defaultContainer.storageUsedMb
+            } else {
+                rootfsManager.getCachedStorageUsedMb()
+            }
         } catch (_: Exception) {
             0L
         }

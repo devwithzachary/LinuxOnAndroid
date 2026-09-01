@@ -23,9 +23,22 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
+        version = "v1.5.0",
+        date = "September 1, 2026",
+        initialExpanded = true,
+        highlights = listOf(
+            "Tabbed Multi-Window Terminal: Open, run, switch, rename, and manage multiple concurrent interactive terminal tabs within your Linux rootfs environments.",
+            "Multi-Rootfs Container Management: Install, run, and manage multiple distinct Linux distributions side-by-side on disk with per-container storage tracking, custom container names, and dynamic shell hostnames (e.g. user@ContainerName).",
+            "Multi-Distro Setup Wizard: Extended setup catalog allowing you to choose and install Debian 12, Alpine Linux 3.21 (ultra-fast ~10MB rootfs), Arch Linux ARM, Kali Linux CLI Tools, Void Linux, or Ubuntu 26.04 LTS.",
+            "Interactive Dashboard & Per-Container Overview: Real-time container cards displaying installed distributions, RAM and disk usage, plus full per-container system overview screens.",
+            "Filesystem & Software Hub Hardening: Safe rootfs symlink and file extraction without recursive deletion, robust cross-distro user account provisioning (/etc/passwd, /etc/group), high-capacity archive extractor for large rootfs distributions (Arch Linux ARM), automated setup wizard reset, and tailored 1-click software package scripts for all supported distributions.",
+            "Multi-Container Debug Diagnostics: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and checking required filesystem files."
+        )
+    ),
+    ReleaseChangelog(
         version = "v1.4.0",
         date = "August 28, 2026",
-        initialExpanded = true,
+        initialExpanded = false,
         highlights = listOf(
             "GitHub Release Update Checker & Play Store Migration Guide: Automated in-app GitHub release checks notifying users of cutting-edge updates, with full step-by-step guidance on migrating from Google Play Store builds to GitHub developer-signed APKs.",
             "Real-Time Container Dashboard & System Monitor: Live visual RAM and storage gauges, real-time process table (ps aux) with 1-tap kill confirmation, and active TCP network port listener with 1-tap browser launcher.",

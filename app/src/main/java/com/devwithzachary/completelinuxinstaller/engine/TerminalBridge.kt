@@ -1,16 +1,22 @@
 package com.devwithzachary.completelinuxinstaller.engine
 
-import android.system.Os
 import android.util.Log
+import java.io.File
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class TerminalBridge(private val pRootEngine: PRootEngine) {
+class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
 
     companion object {
         private const val TAG = "TerminalBridge"
@@ -41,198 +47,172 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
         }
     }
 
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val scope = CoroutineScope(Dispatchers.Default + kotlinx.coroutines.SupervisorJob())
 
-    val emulator = TerminalEmulator(cols = 80, rows = 24)
+    private val _sessions = MutableStateFlow<List<TerminalSession>>(emptyList())
+    val sessions: StateFlow<List<TerminalSession>> = _sessions.asStateFlow()
 
-    private val _isRunning = MutableStateFlow(false)
-    val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
+    private val _activeSessionId = MutableStateFlow<String?>(null)
+    val activeSessionId: StateFlow<String?> = _activeSessionId.asStateFlow()
 
-    private val _refreshTrigger = MutableStateFlow(0L)
-    val refreshTrigger: StateFlow<Long> = _refreshTrigger.asStateFlow()
+    val fallbackEmulator = TerminalEmulator(cols = 80, rows = 24)
 
-    private var ptyProcess: PtyProcess? = null
+    val emulator: TerminalEmulator
+        get() = getActiveSession()?.emulator ?: fallbackEmulator
 
-    fun startSession(loginUser: String? = null) {
-        if (_isRunning.value) return
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val isAnySessionRunning: StateFlow<Boolean> = _sessions.flatMapLatest { list ->
+        if (list.isEmpty()) flowOf(false)
+        else combine(list.map { it.isRunning }) { array -> array.any { it } }
+    }.stateIn(scope, SharingStarted.Eagerly, false)
 
-        scope.launch {
-            try {
-                _isRunning.value = true
-                val cmdList = pRootEngine.buildPRootCommand(loginUser = loginUser)
-                val cmdPath = cmdList[0]
-                val args = cmdList.toTypedArray()
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val isRunning: StateFlow<Boolean> = _activeSessionId.flatMapLatest { id ->
+        val session = _sessions.value.find { it.id == id } ?: _sessions.value.firstOrNull()
+        session?.isRunning ?: flowOf(false)
+    }.stateIn(scope, SharingStarted.Eagerly, false)
 
-                val envMap = pRootEngine.getEnvironmentVariables(loginUser = loginUser).toMutableMap()
-                envMap["TERM"] = "xterm-256color"
-                envMap["COLORTERM"] = "truecolor"
-                envMap["PROOT_NO_SECCOMP"] = "1"
-                envMap["PROOT_FORCE_SETID"] = "1"
-                envMap["PROOT_LINK2SYMLINK"] = "1"
-                envMap["PATH"] = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val refreshTrigger: StateFlow<Long> = _activeSessionId.flatMapLatest { id ->
+        val session = _sessions.value.find { it.id == id } ?: _sessions.value.firstOrNull()
+        session?.refreshTrigger ?: flowOf(0L)
+    }.stateIn(scope, SharingStarted.Eagerly, 0L)
 
-                val envArray = envMap.map { "${it.key}=${it.value}" }.toTypedArray()
+    fun getActiveSession(): TerminalSession? {
+        val id = _activeSessionId.value
+        val list = _sessions.value
+        return if (id != null) list.find { it.id == id } else list.firstOrNull()
+    }
 
-                val outPid = IntArray(1)
-                val masterFd = PtyNative.createSubprocess(
-                    cmdPath = cmdPath,
-                    args = args,
-                    env = envArray,
-                    cwdPath = pRootEngine.rootfsDir.absolutePath,
-                    cols = emulator.cols,
-                    rows = emulator.rows,
-                    outPid = outPid
-                )
+    fun createSession(
+        containerId: String = "ubuntu_default",
+        containerName: String = "Ubuntu",
+        loginUser: String = "root",
+        title: String? = null,
+        rootfsDir: File? = pRootEngine?.rootfsDir,
+        defaultShell: String? = null,
+        autoStart: Boolean = true
+    ): TerminalSession {
+        val tabNum = _sessions.value.size + 1
+        val sessionTitle = title ?: "Tab $tabNum: ${containerName.take(10)}"
+        val sessionId = UUID.randomUUID().toString()
 
-                if (masterFd < 0) {
-                    Log.e(TAG, "Failed to create PTY subprocess")
-                    _isRunning.value = false
-                    return@launch
-                }
+        val session = TerminalSession(
+            id = sessionId,
+            initialTitle = sessionTitle,
+            containerId = containerId,
+            containerName = containerName,
+            loginUser = loginUser
+        )
 
-                val proc = PtyProcess(masterFdInt = masterFd, pid = outPid[0])
-                ptyProcess = proc
+        val updated = _sessions.value + session
+        _sessions.value = updated
+        _activeSessionId.value = sessionId
 
-                Log.d(TAG, "PTY Subprocess launched successfully with PID ${outPid[0]}")
-
-                val buffer = ByteArray(4096)
-                while (_isRunning.value) {
-                    val bytesRead = try {
-                        proc.inputStream.read(buffer)
-                    } catch (e: Exception) {
-                        -1
-                    }
-
-                    if (bytesRead <= 0) break
-
-                    emulator.appendBytes(buffer, bytesRead)
-                    _refreshTrigger.value = System.currentTimeMillis()
-                }
-
-                PtyNative.waitForProcess(outPid[0])
-            } catch (e: Exception) {
-                Log.e(TAG, "Error in PTY session", e)
-            } finally {
-                _isRunning.value = false
-                ptyProcess = null
-                _refreshTrigger.value = System.currentTimeMillis()
-            }
+        if (autoStart && pRootEngine != null && rootfsDir != null) {
+            session.startSession(pRootEngine, rootfsDir, defaultShell)
         }
+
+        return session
+    }
+
+    fun switchActiveSession(sessionId: String) {
+        val session = _sessions.value.find { it.id == sessionId }
+        if (session != null) {
+            _activeSessionId.value = sessionId
+        }
+    }
+
+    fun closeSession(sessionId: String) {
+        val list = _sessions.value
+        val sessionToClose = list.find { it.id == sessionId } ?: return
+        sessionToClose.stopSession()
+
+        val remaining = list.filter { it.id != sessionId }
+        _sessions.value = remaining
+
+        if (_activeSessionId.value == sessionId) {
+            _activeSessionId.value = remaining.lastOrNull()?.id
+        }
+    }
+
+    fun closeAllSessions() {
+        _sessions.value.forEach { it.stopSession() }
+        _sessions.value = emptyList()
+        _activeSessionId.value = null
+    }
+
+    fun renameSession(sessionId: String, newTitle: String) {
+        _sessions.value.find { it.id == sessionId }?.setTitle(newTitle)
+    }
+
+    fun startSession(
+        loginUser: String? = null,
+        containerId: String = "ubuntu_default",
+        containerName: String = "Ubuntu",
+        rootfsDir: File? = pRootEngine?.rootfsDir,
+        defaultShell: String? = null
+    ) {
+        val engine = pRootEngine ?: return
+        val dir = rootfsDir ?: engine.rootfsDir
+        val active = getActiveSession()
+        if (active != null) {
+            if (!active.isRunning.value) {
+                active.startSession(engine, dir, defaultShell)
+            }
+        } else {
+            createSession(
+                containerId = containerId,
+                containerName = containerName,
+                loginUser = loginUser ?: "root",
+                rootfsDir = dir,
+                defaultShell = defaultShell,
+                autoStart = true
+            )
+        }
+    }
+
+    fun stopSession() {
+        getActiveSession()?.stopSession()
     }
 
     fun updateTerminalSize(cols: Int, rows: Int) {
-        if (cols > 0 && rows > 0 && (emulator.cols != cols || emulator.rows != rows)) {
-            emulator.resize(cols, rows)
-            ptyProcess?.updateWindowSize(cols, rows)
-            _refreshTrigger.value = System.currentTimeMillis()
-        }
+        getActiveSession()?.updateTerminalSize(cols, rows)
     }
 
-    private val writeDispatcher = Dispatchers.IO.limitedParallelism(1)
-
     fun sendInput(input: String) {
-        emulator.scrollToBottom()
-        scope.launch(writeDispatcher) {
-            try {
-                var proc = ptyProcess
-                if (proc == null || !_isRunning.value) {
-                    if (!_isRunning.value) {
-                        startSession()
-                    }
-                    for (i in 0 until 50) {
-                        proc = ptyProcess
-                        if (proc != null && _isRunning.value) break
-                        kotlinx.coroutines.delay(50)
-                    }
-                }
-                if (proc != null && _isRunning.value) {
-                    val bytes = input.toByteArray(Charsets.UTF_8)
-                    Os.write(proc.parcelFd.fileDescriptor, bytes, 0, bytes.size)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error writing to PTY stream via POSIX write", e)
-            }
+        val active = getActiveSession()
+        if (active != null) {
+            active.sendInput(input)
+        } else {
+            val session = createSession(autoStart = true)
+            session.sendInput(input)
         }
     }
 
     fun scrollUp(lines: Int = 3) {
-        emulator.scrollUp(lines)
-        _refreshTrigger.value = System.currentTimeMillis()
+        getActiveSession()?.scrollUp(lines)
     }
 
     fun scrollDown(lines: Int = 3) {
-        emulator.scrollDown(lines)
-        _refreshTrigger.value = System.currentTimeMillis()
+        getActiveSession()?.scrollDown(lines)
     }
 
     fun scrollToBottom() {
-        emulator.scrollToBottom()
-        _refreshTrigger.value = System.currentTimeMillis()
+        getActiveSession()?.scrollToBottom()
     }
 
     fun pasteText(text: String) {
-        if (text.isNotEmpty()) {
-            val formatted = text.replace("\r\n", "\r").replace("\n", "\r")
-            sendInput(formatted)
-        }
+        getActiveSession()?.pasteText(text)
     }
 
-    fun getScreenText(): String = emulator.getVisibleText()
-
-    fun getAllTerminalText(): String = emulator.getAllText()
-
-    fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String =
-        emulator.getSelectedText(startRow, startCol, endRow, endCol)
-
-    fun getWordAt(row: Int, col: Int): Pair<Int, Int> =
-        emulator.getWordAt(row, col)
+    fun sendModifiedChar(char: Char, isCtrl: Boolean, isAlt: Boolean) {
+        val seq = getModifiedSequence(char, isCtrl, isAlt)
+        sendInput(seq)
+    }
 
     fun sendKeyShortcut(key: String) {
-        val trimmed = key.trim()
-        if (trimmed.isEmpty()) return
-
-        // 1. Special Named Keys & Direct Control Mappings
-        when (trimmed) {
-            "Paste" -> return // Handled in UI layer via clipboard manager
-            "Ctrl+C" -> return sendCtrlC()
-            "Ctrl+Z" -> return sendCtrlZ()
-            "Ctrl+D" -> return sendCtrlD()
-            "Tab" -> return sendTab()
-            "Esc", "ESC" -> return sendEsc()
-            "▲", "Up" -> return sendArrowUp()
-            "▼", "Down" -> return sendArrowDown()
-            "◄", "Left" -> return sendArrowLeft()
-            "►", "Right" -> return sendArrowRight()
-            "Enter", "Return" -> return sendInput("\r")
-            "Backspace" -> return sendInput("\u007F")
-        }
-
-        // 2. Generic Ctrl+<Letter> (e.g., Ctrl+X -> ASCII 24 \u0018 for nano exit)
-        if (trimmed.startsWith("Ctrl+", ignoreCase = true) && trimmed.length == 6) {
-            val char = trimmed[5]
-            val upperChar = char.uppercaseChar()
-            if (upperChar in 'A'..'Z') {
-                val ctrlByte = (upperChar.code - 'A'.code + 1).toChar().toString()
-                sendInput(ctrlByte)
-                return
-            }
-        }
-
-        // 3. Generic Alt+<Char> (e.g., Alt+X -> Escape sequence \u001Bx)
-        if (trimmed.startsWith("Alt+", ignoreCase = true) && trimmed.length == 5) {
-            val char = trimmed[4]
-            sendInput("\u001B" + char)
-            return
-        }
-
-        // 4. Single Symbols, Escaped Keys, or Short Typed Input without Spaces
-        if (trimmed.length <= 2 && !trimmed.contains(" ")) {
-            sendInput(trimmed)
-            return
-        }
-
-        // 5. Multi-character shell commands
-        sendCommand(trimmed)
+        getActiveSession()?.sendKeyShortcut(key)
     }
 
     fun sendCommand(command: String) {
@@ -260,30 +240,28 @@ class TerminalBridge(private val pRootEngine: PRootEngine) {
     }
 
     fun sendArrowUp() {
-        if (emulator.appCursorKeys) sendInput("\u001BOA") else sendInput("\u001B[A")
+        sendInput("\u001B[A")
     }
 
     fun sendArrowDown() {
-        if (emulator.appCursorKeys) sendInput("\u001BOB") else sendInput("\u001B[B")
+        sendInput("\u001B[B")
     }
 
     fun sendArrowRight() {
-        if (emulator.appCursorKeys) sendInput("\u001BOC") else sendInput("\u001B[C")
+        sendInput("\u001B[C")
     }
 
     fun sendArrowLeft() {
-        if (emulator.appCursorKeys) sendInput("\u001BOD") else sendInput("\u001B[D")
+        sendInput("\u001B[D")
     }
 
-    fun sendModifiedChar(char: Char, isCtrl: Boolean, isAlt: Boolean) {
-        val seq = getModifiedSequence(char, isCtrl, isAlt)
-        sendInput(seq)
-    }
+    fun getScreenText(): String = getActiveSession()?.getScreenText() ?: ""
 
-    fun stopSession() {
-        _isRunning.value = false
-        ptyProcess?.destroy()
-        ptyProcess = null
-        _refreshTrigger.value = System.currentTimeMillis()
-    }
+    fun getAllTerminalText(): String = getActiveSession()?.getAllTerminalText() ?: ""
+
+    fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String =
+        emulator.getSelectedText(startRow, startCol, endRow, endCol)
+
+    fun getWordAt(row: Int, col: Int): Pair<Int, Int> =
+        emulator.getWordAt(row, col)
 }

@@ -13,8 +13,8 @@ android {
         applicationId = "com.devwithzachary.completelinuxinstaller"
         minSdk = 23
         targetSdk = 36
-        versionCode = 11
-        versionName = "1.4.0"
+        versionCode = 12
+        versionName = "1.5.0"
     }
 
     dependenciesInfo {
@@ -111,6 +111,9 @@ dependencies {
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
   testImplementation("org.json:json:20240303")
+
+  // XZ Archive Decompression
+  implementation("org.tukaani:xz:1.10")
 
   // Navigation
   implementation(libs.androidx.navigation3.ui)

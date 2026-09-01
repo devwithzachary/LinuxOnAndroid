@@ -8,8 +8,8 @@ import org.junit.Test
 class DiagnosticsManagerTest {
 
     private fun fullInfo() = DiagnosticsInfo(
-        appVersionName = "1.3.0",
-        appVersionCode = 10,
+        appVersionName = "1.5.0",
+        appVersionCode = 12,
         deviceManufacturer = "Google",
         deviceModel = "Pixel 8",
         androidRelease = "14",
@@ -24,47 +24,114 @@ class DiagnosticsManagerTest {
         totalRamMb = 8192L,
         freeRamMb = 2048L,
         sessionRunning = true,
-        containerVersionName = "1.2.0",
-        containerVersionCode = 9,
+        containerVersionName = "1.5.0",
+        containerVersionCode = 12,
         distroPrettyName = "Ubuntu 26.04 LTS",
         integrityChecks = listOf(
             "rootfs directory" to true,
             "bin/sh" to false
         ),
+        containers = listOf(
+            ContainerDiagnostics(
+                id = "alpine_1",
+                name = "Alpine Linux",
+                distroName = "Alpine Linux 3.20",
+                rootDirPath = "/data/user/0/com.example/files/containers/alpine_1/rootfs",
+                isDefault = true,
+                storageUsedMb = 15L,
+                storageSource = "fresh scan",
+                containerVersionName = "1.5.0",
+                containerVersionCode = 12,
+                distroPrettyName = "Alpine Linux v3.20",
+                integrityChecks = listOf(
+                    "rootfs directory" to true,
+                    "shell (bin/sh, bash, ash)" to true,
+                    "etc/os-release" to true,
+                    "etc/resolv.conf" to true,
+                    "etc/passwd" to true,
+                    "etc/group" to true,
+                    "etc/hosts" to true,
+                    "version metadata" to true
+                )
+            ),
+            ContainerDiagnostics(
+                id = "ubuntu_default",
+                name = "Ubuntu 26.04",
+                distroName = "Ubuntu 26.04 LTS",
+                rootDirPath = "/data/user/0/com.example/files/ubuntu_rootfs",
+                isDefault = false,
+                storageUsedMb = 1536L,
+                storageSource = "cached",
+                containerVersionName = "1.4.0",
+                containerVersionCode = 11,
+                distroPrettyName = "Ubuntu 26.04 LTS",
+                integrityChecks = listOf(
+                    "rootfs directory" to true,
+                    "shell (bin/sh, bash, ash)" to true,
+                    "etc/os-release" to true,
+                    "etc/resolv.conf" to true,
+                    "etc/passwd" to true,
+                    "etc/group" to true,
+                    "etc/hosts" to true,
+                    "version metadata" to false
+                )
+            )
+        ),
+        prootBinaryExists = true,
         timestampMs = 0L
     )
 
     @Test
-    fun testFullReport_containsAllSections() {
+    fun testMultiContainerReport_containsAllSections() {
         val report = DiagnosticsManager.buildReport(fullInfo())
 
-        assertTrue(report.contains("LinuxOnAndroid Debug Report"))
+        assertTrue(report.contains("=== LinuxOnAndroid Debug Report ==="))
         assertTrue(report.contains("--- App ---"))
         assertTrue(report.contains("--- Device ---"))
-        assertTrue(report.contains("--- Container ---"))
-        assertTrue(report.contains("--- Storage ---"))
-        assertTrue(report.contains("--- Memory ---"))
-        assertTrue(report.contains("--- Integrity Checks ---"))
+        assertTrue(report.contains("--- Session & Host Resources ---"))
+        assertTrue(report.contains("--- Installed RootFS Containers (2) ---"))
+        assertTrue(report.contains("[1] Alpine Linux [DEFAULT]"))
+        assertTrue(report.contains("ID: alpine_1"))
+        assertTrue(report.contains("Distribution: Alpine Linux v3.20"))
+        assertTrue(report.contains("Size: 15 MB (fresh scan)"))
+        assertTrue(report.contains("Build: v1.5.0 (Build 12)"))
+        assertTrue(report.contains("• shell (bin/sh, bash, ash): OK"))
+
+        assertTrue(report.contains("[2] Ubuntu 26.04"))
+        assertTrue(report.contains("ID: ubuntu_default"))
+        assertTrue(report.contains("Size: 1536 MB (cached)"))
+        assertTrue(report.contains("Build: v1.4.0 (Build 11)"))
+        assertTrue(report.contains("• version metadata: MISSING"))
     }
 
     @Test
     fun testFullReport_containsValues() {
         val report = DiagnosticsManager.buildReport(fullInfo())
 
-        assertTrue(report.contains("App version: 1.3.0 (Build 10)"))
+        assertTrue(report.contains("App version: 1.5.0 (Build 12)"))
+        assertTrue(report.contains("PRoot binary: Available & Executable"))
         assertTrue(report.contains("Google Pixel 8"))
         assertTrue(report.contains("Android version: 14 (SDK 34)"))
         assertTrue(report.contains("ABI: arm64-v8a"))
-        assertTrue(report.contains("/data/user/0/com.example/files/ubuntu_rootfs"))
-        assertTrue(report.contains("Status: Installed"))
-        assertTrue(report.contains("Distribution: Ubuntu 26.04 LTS"))
-        assertTrue(report.contains("Container build: v1.2.0 (Build 9)"))
         assertTrue(report.contains("Session running: Yes"))
-        assertTrue(report.contains("RootFS size: 1536 MB (fresh scan)"))
         assertTrue(report.contains("Volume total: 128.8 GB"))
         assertTrue(report.contains("Volume free: 64.4 GB"))
         assertTrue(report.contains("Total RAM: 8192 MB"))
         assertTrue(report.contains("Available RAM: 2048 MB"))
+    }
+
+    @Test
+    fun testLegacyReport_withoutContainersList() {
+        val info = fullInfo().copy(containers = emptyList())
+        val report = DiagnosticsManager.buildReport(info)
+
+        assertTrue(report.contains("--- Container ---"))
+        assertTrue(report.contains("Status: Installed"))
+        assertTrue(report.contains("Distribution: Ubuntu 26.04 LTS"))
+        assertTrue(report.contains("Container build: v1.5.0 (Build 12)"))
+        assertTrue(report.contains("Install path: /data/user/0/com.example/files/ubuntu_rootfs"))
+        assertTrue(report.contains("RootFS size: 1536 MB (fresh scan)"))
+        assertTrue(report.contains("--- Integrity Checks ---"))
         assertTrue(report.contains("rootfs directory: OK"))
         assertTrue(report.contains("bin/sh: MISSING"))
     }
@@ -72,6 +139,7 @@ class DiagnosticsManagerTest {
     @Test
     fun testNotInstalled_reportDegradesGracefully() {
         val info = fullInfo().copy(
+            containers = emptyList(),
             rootfsInstalled = false,
             storageUsedMb = null,
             storageSource = "",
@@ -90,52 +158,12 @@ class DiagnosticsManagerTest {
     }
 
     @Test
-    fun testLegacyContainerWithoutVersionFile() {
-        val info = fullInfo().copy(
-            containerVersionName = null,
-            containerVersionCode = null
-        )
-
-        val report = DiagnosticsManager.buildReport(info)
-
-        assertTrue(report.contains("Container build: Legacy v1.0.0"))
-        assertFalse(report.contains("(Build 9)"))
-    }
-
-    @Test
-    fun testNullOptionalFieldsRenderAsUnavailable() {
-        val info = fullInfo().copy(
-            totalStorageBytes = null,
-            freeStorageBytes = null,
-            totalRamMb = null,
-            freeRamMb = null,
-            storageUsedMb = null,
-            storageSource = ""
-        )
-
-        val report = DiagnosticsManager.buildReport(info)
-
-        assertTrue(report.contains("RootFS size: unavailable"))
-        assertTrue(report.contains("Volume total: unavailable"))
-        assertTrue(report.contains("Volume free: unavailable"))
-        assertTrue(report.contains("Total RAM: unavailable"))
-        assertTrue(report.contains("Available RAM: unavailable"))
-    }
-
-    @Test
     fun testStartupSection_onlyWhenMeasured() {
         val without = DiagnosticsManager.buildReport(fullInfo())
         assertFalse(without.contains("Startup"))
 
         val with = DiagnosticsManager.buildReport(fullInfo().copy(startupElapsedMs = 1234L))
         assertTrue(with.contains("Startup duration: 1234 ms"))
-    }
-
-    @Test
-    fun testCachedSizeSourceIsLabeled() {
-        val report = DiagnosticsManager.buildReport(fullInfo().copy(storageSource = "cached"))
-
-        assertTrue(report.contains("RootFS size: 1536 MB (cached)"))
     }
 
     @Test

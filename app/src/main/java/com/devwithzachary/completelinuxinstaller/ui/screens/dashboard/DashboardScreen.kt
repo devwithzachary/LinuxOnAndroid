@@ -1,8 +1,10 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.dashboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -11,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -18,23 +21,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
+import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
-import com.devwithzachary.completelinuxinstaller.ui.components.ActiveProcessTableCard
-import com.devwithzachary.completelinuxinstaller.ui.components.DashboardGaugesCard
-import com.devwithzachary.completelinuxinstaller.ui.components.NetworkListenerCard
 import com.devwithzachary.completelinuxinstaller.ui.components.PatreonBanner
-import com.devwithzachary.completelinuxinstaller.ui.components.SystemStatusCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     state: DashboardUiState,
     metrics: SystemResourceMetrics = SystemResourceMetrics(),
-    onKillProcess: (Int) -> Unit = {},
     onInstallClick: () -> Unit,
     onOpenTerminalClick: () -> Unit,
-    onStopSessionClick: () -> Unit,
-    onRunPresetClick: (String) -> Unit
+    onOpenContainerTerminalClick: (String) -> Unit = {},
+    onContainerClick: (String, com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab) -> Unit = { _, _ -> },
+    onSetDefaultContainerClick: (String) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
 
@@ -60,33 +60,12 @@ fun DashboardScreen(
                 modifier = Modifier.padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.app_title),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 8.dp),
-                        maxLines = 2
-                    )
-                    Badge(
-                        containerColor = if (state.isInstalled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
-                    ) {
-                        Text(
-                            text = if (state.isInstalled) stringResource(R.string.status_ready) else stringResource(R.string.status_not_installed),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp
-                        )
-                    }
-                }
+                Text(
+                    text = stringResource(R.string.app_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
                 Text(
                     text = stringResource(R.string.app_tagline_hero),
                     style = MaterialTheme.typography.bodyMedium,
@@ -95,7 +74,7 @@ fun DashboardScreen(
             }
         }
 
-        if (!state.isInstalled) {
+        if (!state.isInstalled || state.containers.isEmpty()) {
             // Setup Required Action Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -118,7 +97,7 @@ fun DashboardScreen(
                             tint = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            text = stringResource(R.string.dashboard_setup_required_title),
+                            text = "No Linux distribution rootfs installed yet.",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onErrorContainer
@@ -133,117 +112,229 @@ fun DashboardScreen(
                     ) {
                         Icon(Icons.Default.Download, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.btn_install_barebones))
+                        Text("Install a Linux Distribution")
                     }
                 }
             }
         } else {
-            // 1. System Status & Distribution Card at top
-            SystemStatusCard(state = state)
-
-            // 2. Quick Launcher Actions Grid
-            Text(
-                text = stringResource(R.string.section_quick_actions),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
+            // Section Header: Installed RootFS Containers
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
-                    onClick = onOpenTerminalClick,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.btn_terminal), fontSize = 12.sp)
-                }
-
-                if (state.isRunning) {
-                    OutlinedButton(
-                        onClick = onStopSessionClick,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.btn_stop), fontSize = 12.sp)
-                    }
-                }
+                Icon(
+                    imageVector = Icons.Default.Widgets,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Installed RootFS Containers",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
-            // 3. Preset Quick Triggers (One-Touch Service Launchers)
-            val hasAnyServiceInstalled = state.isVncInstalled || state.isNginxInstalled || state.isSshInstalled
+            // List of Container Cards
+            state.containers.forEach { container ->
+                val isDefault = container.id == state.defaultContainerId
+                val isRunning = state.isRunning && (isDefault || container.isDefault)
 
-            if (hasAnyServiceInstalled) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .clickable { onContainerClick(container.id, com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab.OVERVIEW) },
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = stringResource(R.string.section_one_touch_launchers),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        if (state.isVncInstalled) {
-                            OutlinedButton(
-                                onClick = { onRunPresetClick("vncserver :1 -geometry 1280x720") },
-                                modifier = Modifier.fillMaxWidth()
+                        // Container Title & Badges
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Icon(Icons.Default.Computer, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.btn_start_vnc))
+                                Box(
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .background(Color(container.colorHex), shape = CircleShape)
+                                )
+                                Column {
+                                    Text(
+                                        text = container.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = container.distroName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (isDefault) {
+                                    Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                        Text(
+                                            text = "DEFAULT",
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                IconButton(
+                                    onClick = { onContainerClick(container.id, com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab.SETTINGS) },
+                                    modifier = Modifier.size(26.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = "Container Settings",
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
 
-                        if (state.isNginxInstalled) {
-                            OutlinedButton(
-                                onClick = { onRunPresetClick("service nginx start") },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(Icons.Default.Dns, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.btn_start_nginx))
-                            }
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+
+                        // Resource Usage Overview Grid (RAM, Storage, CPU/Processes, Status)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // RAM Usage
+                            ContainerMetricItem(
+                                label = "RAM Used",
+                                value = if (isRunning) "${metrics.containerMemoryUsedMb} MB" else "Idle (0 MB)",
+                                icon = Icons.Default.Memory,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            // Storage Used
+                            ContainerMetricItem(
+                                label = "Storage",
+                                value = "${container.storageUsedMb} MB",
+                                icon = Icons.Default.Storage,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            // Active Processes
+                            ContainerMetricItem(
+                                label = "Processes",
+                                value = if (isRunning) "${metrics.processes.size} active" else "Stopped",
+                                icon = Icons.Default.Speed,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
 
-                        if (state.isSshInstalled) {
-                            OutlinedButton(
-                                onClick = { onRunPresetClick("su - root -c '/usr/sbin/sshd -p ${state.sshPort}'") },
-                                modifier = Modifier.fillMaxWidth()
+                        // Card Actions
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Button(
+                                onClick = { onOpenContainerTerminalClick(container.id) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                             ) {
-                                Icon(Icons.Default.Security, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.btn_start_ssh, state.sshPort))
+                                Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Terminal", fontSize = 12.sp)
+                            }
+
+                            FilledTonalButton(
+                                onClick = { onContainerClick(container.id, com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab.OVERVIEW) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Overview", fontSize = 12.sp)
+                            }
+
+                            FilledTonalButton(
+                                onClick = { onContainerClick(container.id, com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab.SOFTWARE) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.Apps, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Software", fontSize = 12.sp)
                             }
                         }
                     }
                 }
             }
 
-            // 4. Live RAM & Storage Resource Gauges
-            DashboardGaugesCard(metrics = metrics)
-
-            // 5. Active Process Table (ps aux with 1-tap kill)
-            ActiveProcessTableCard(
-                processes = metrics.processes,
-                onKillProcess = onKillProcess
-            )
-
-            // 6. Open Ports (TCP Listeners)
-            NetworkListenerCard(ports = metrics.listeningPorts)
+            // Bottom Add More Container Button
+            OutlinedButton(
+                onClick = onInstallClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.AddCircleOutline, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Install Another Linux Distribution")
+            }
         }
+    }
+}
+
+@Composable
+private fun ContainerMetricItem(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 4.dp),
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp
+            )
+        }
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp
+        )
     }
 }
