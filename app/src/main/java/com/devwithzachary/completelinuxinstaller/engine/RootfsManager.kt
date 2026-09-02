@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 sealed class DownloadState {
     data object Idle : DownloadState()
@@ -55,12 +56,12 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         try {
             val duBin = if (File("/system/bin/du").exists()) "/system/bin/du" else "du"
             val pb = ProcessBuilder(duBin, "-sk", dir.absolutePath)
-            pb.redirectErrorStream(true)
+            pb.redirectErrorStream(false)
             val proc = pb.start()
-            val output = proc.inputStream.bufferedReader().readLine()
+            val lines = proc.inputStream.bufferedReader().readLines()
             proc.waitFor()
-            if (output != null) {
-                val tokens = output.trim().split("\\s+".toRegex())
+            for (line in lines.reversed()) {
+                val tokens = line.trim().split("\\s+".toRegex())
                 val kb = tokens.firstOrNull()?.toLongOrNull()
                 if (kb != null && kb > 0) {
                     val mb = (kb / 1024L).coerceAtLeast(1L)
@@ -72,11 +73,14 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             }
         } catch (_: Exception) {}
 
-        // 2. Safe recursive directory size fallback (API 23+ compatible)
+        // 2. Safe recursive directory size fallback excluding virtual mounts & hardlinks
         try {
             var totalBytes = 0L
+            val skippedDirs = setOf("proc", "sys", "dev", "sdcard", "storage", "mnt", "tmp", "l2s")
             dir.walkTopDown()
-                .onEnter { !it.name.startsWith(".git") }
+                .onEnter { file ->
+                    !file.name.startsWith(".git") && !skippedDirs.contains(file.name)
+                }
                 .forEach { file ->
                     if (file.isFile) {
                         totalBytes += file.length()
@@ -183,7 +187,6 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             emitLog("Configuring DNS resolvers and system files for ${distroDef.name}...")
             send(DownloadState.Extracting("Configuring DNS and system files...", logList.toList()))
             configureDistroSystemFiles(targetDir, distroDef, containerName)
-            initializeDistroFallback(targetDir, distroDef)
 
             performDistroFirstLaunchSetup(
                 targetDir = targetDir,
@@ -222,6 +225,35 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         val fileName = archiveFile.name.lowercase()
         val isXz = fileName.endsWith(".xz")
         extractArchiveInJava(archiveFile, targetDir, isXz = isXz, onProgress = onProgress)
+        unwrapNestedRootfsIfNeeded(targetDir)
+    }
+
+    private fun unwrapNestedRootfsIfNeeded(targetDir: File) {
+        if (!targetDir.exists()) return
+        val hasDirectRootfs = File(targetDir, "bin").exists() || File(targetDir, "usr").exists() || File(targetDir, "etc").exists()
+        if (!hasDirectRootfs) {
+            val children = targetDir.listFiles() ?: emptyArray()
+            val singleDir = children.firstOrNull { it.isDirectory && (File(it, "bin").exists() || File(it, "usr").exists() || File(it, "etc").exists()) }
+            if (singleDir != null) {
+                Log.d(TAG, "Detected nested rootfs directory ${singleDir.name}, unwrapping into ${targetDir.absolutePath}...")
+                val nestedItems = singleDir.listFiles() ?: emptyArray()
+                for (item in nestedItems) {
+                    val dest = File(targetDir, item.name)
+                    if (dest.exists()) {
+                        try { android.system.Os.remove(dest.absolutePath) } catch (_: Exception) { dest.delete() }
+                    }
+                    if (!item.renameTo(dest)) {
+                        try {
+                            item.copyRecursively(dest, overwrite = true)
+                            item.deleteRecursively()
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Failed copying nested item ${item.name}", e)
+                        }
+                    }
+                }
+                singleDir.deleteRecursively()
+            }
+        }
     }
 
     private suspend fun extractTarGz(
@@ -939,7 +971,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         if (!targetDir.exists()) targetDir.mkdirs()
 
         val dirs = listOf(
-            "usr/bin", "usr/sbin", "usr/local/bin", "usr/local/sbin",
+            "bin", "sbin", "usr/bin", "usr/sbin", "usr/local/bin", "usr/local/sbin",
             "etc", "dev", "proc", "sys", "tmp", "root", "home", "var", "var/log"
         )
         for (d in dirs) {
@@ -947,18 +979,34 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         }
 
         try {
-            val bashFile = File(targetDir, "usr/bin/bash")
-            if (!bashFile.exists()) {
-                bashFile.writeText("#!/bin/sh\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec /bin/sh \"$@\"\n")
-                bashFile.setExecutable(true, false)
+            val binSh = File(targetDir, "bin/sh")
+            if (!binSh.exists()) {
+                binSh.writeText("#!/bin/sh\nexec /system/bin/sh \"$@\"\n")
+                binSh.setExecutable(true, false)
             }
         } catch (_: Exception) {}
 
         try {
-            val shFile = File(targetDir, "usr/bin/sh")
-            if (!shFile.exists()) {
-                shFile.writeText("#!/bin/sh\nexec /bin/sh \"$@\"\n")
-                shFile.setExecutable(true, false)
+            val binBash = File(targetDir, "bin/bash")
+            if (!binBash.exists()) {
+                binBash.writeText("#!/bin/sh\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec /bin/sh \"$@\"\n")
+                binBash.setExecutable(true, false)
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val usrBinBash = File(targetDir, "usr/bin/bash")
+            if (!usrBinBash.exists()) {
+                usrBinBash.writeText("#!/bin/sh\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec /bin/sh \"$@\"\n")
+                usrBinBash.setExecutable(true, false)
+            }
+        } catch (_: Exception) {}
+
+        try {
+            val usrBinSh = File(targetDir, "usr/bin/sh")
+            if (!usrBinSh.exists()) {
+                usrBinSh.writeText("#!/bin/sh\nexec /bin/sh \"$@\"\n")
+                usrBinSh.setExecutable(true, false)
             }
         } catch (_: Exception) {}
 
@@ -985,10 +1033,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         onProgress: suspend (String, String?) -> Unit
     ) = withContext(Dispatchers.IO) {
         val cleanUsername = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { "user" }
-        val hostName = ContainerManager.formatContainerHostname(containerName)
-        onProgress("Initializing ${distroDef.name} environment...", "Configuring system accounts...")
-
         val etcDir = File(targetDir, "etc").apply { if (!exists()) mkdirs() }
+        val hostName = ContainerManager.formatContainerHostname(containerName)
         val hostnameFile = File(etcDir, "hostname")
         try {
             try { android.system.Os.remove(hostnameFile.absolutePath) } catch (_: Exception) { hostnameFile.delete() }
@@ -1023,8 +1069,14 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
             val config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir)
             val shellBin = when {
-                File(targetDir, "usr/bin/dash").exists() || File(targetDir, "bin/dash").exists() -> "/usr/bin/dash"
-                File(targetDir, "usr/bin/bash").exists() || File(targetDir, "bin/bash").exists() -> "/bin/bash"
+                File(targetDir, "bin/bash").exists() -> "/bin/bash"
+                File(targetDir, "usr/bin/bash").exists() -> "/usr/bin/bash"
+                File(targetDir, "bin/dash").exists() -> "/bin/dash"
+                File(targetDir, "usr/bin/dash").exists() -> "/usr/bin/dash"
+                File(targetDir, "bin/ash").exists() -> "/bin/ash"
+                File(targetDir, "usr/bin/ash").exists() -> "/usr/bin/ash"
+                File(targetDir, "bin/sh").exists() -> "/bin/sh"
+                File(targetDir, "usr/bin/sh").exists() -> "/usr/bin/sh"
                 else -> "/bin/sh"
             }
             val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf(shellBin, "-c", setupScript))
@@ -1044,16 +1096,23 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 proc.outputStream.close()
             } catch (_: Exception) {}
 
-            val reader = proc.inputStream.bufferedReader()
-            var line: String? = null
-            while (reader.readLine().also { line = it } != null) {
-                val text = line ?: break
-                Log.d(TAG, "[DistroSetup-${distroDef.id}] $text")
-                val cleanText = text.trim().replace(Regex("\\s+"), " ")
-                val displayMsg = if (cleanText.length > 50) cleanText.take(50) + "..." else cleanText
-                onProgress("Configuring ${distroDef.name}: $displayMsg", text)
+            withTimeoutOrNull(180_000) {
+                val reader = proc.inputStream.bufferedReader()
+                var line: String? = null
+                while (reader.readLine().also { line = it } != null) {
+                    val text = line ?: break
+                    Log.d(TAG, "[DistroSetup-${distroDef.id}] $text")
+                    val cleanText = text.trim().replace(Regex("\\s+"), " ")
+                    val displayMsg = if (cleanText.length > 50) cleanText.take(50) + "..." else cleanText
+                    onProgress("Configuring ${distroDef.name}: $displayMsg", text)
+                }
+                proc.waitFor()
             }
-            proc.waitFor()
+            try {
+                if (proc.isAlive) {
+                    proc.destroyForcibly()
+                }
+            } catch (_: Exception) {}
         } catch (e: Exception) {
             Log.e(TAG, "First launch setup error for ${distroDef.name}", e)
         }

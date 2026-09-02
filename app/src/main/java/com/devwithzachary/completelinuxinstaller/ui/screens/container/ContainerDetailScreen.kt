@@ -330,7 +330,7 @@ private fun OverviewTabContent(
     ) {
         // 1. Live System Resources & Gauges Card
         DashboardGaugesCard(
-            metrics = metrics
+            metrics = metrics.copy(storageUsedMb = container.storageUsedMb)
         )
 
         // 2. One-Touch Container Services

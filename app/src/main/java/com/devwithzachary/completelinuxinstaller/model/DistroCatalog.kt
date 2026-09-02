@@ -12,6 +12,16 @@ enum class PackageManagerType(
     XBPS("XBPS", "xbps-install -y", "xbps-install -S")
 }
 
+fun formatDistroSize(sizeMb: Int): String {
+    return if (sizeMb >= 1000) {
+        val gb = sizeMb / 1000.0
+        val formatted = String.format(java.util.Locale.US, "%.1f", gb).removeSuffix(".0")
+        "$formatted GB"
+    } else {
+        "$sizeMb MB"
+    }
+}
+
 data class DistroDefinition(
     val id: String,
     val name: String,
@@ -20,13 +30,19 @@ data class DistroDefinition(
     val description: String,
     val packageManager: PackageManagerType,
     val defaultShell: String = "/bin/bash",
-    val expectedSizeMb: Int = 30,
+    val downloadSizeMb: Int = 33,
+    val installedSizeMb: Int = 1500,
     val downloadUrls: Map<SystemArchitecture, String>,
     val colorHex: Long = 0xFFE95420, // Default accent
     val isRecommended: Boolean = false,
     val firstLaunchScriptBuilder: (rootPassword: String, username: String, userPassword: String, isArm: Boolean) -> String = { _, _, _, _ -> "" },
     val softwarePackageCommands: Map<String, (sshPort: Int) -> String> = emptyMap()
 ) {
+    val expectedSizeMb: Int get() = downloadSizeMb
+
+    val formattedDownloadSize: String get() = formatDistroSize(downloadSizeMb)
+    val formattedInstalledSize: String get() = formatDistroSize(installedSizeMb)
+
     fun getDownloadUrl(arch: SystemArchitecture): String? = downloadUrls[arch]
 
     fun buildFirstLaunchSetupScript(rootPassword: String, username: String, userPassword: String, isArm: Boolean): String {
@@ -47,7 +63,9 @@ data class DistroDefinition(
             version = version,
             architecture = arch,
             downloadUrl = url,
-            expectedSizeMb = expectedSizeMb,
+            expectedSizeMb = downloadSizeMb,
+            downloadSizeMb = downloadSizeMb,
+            installedSizeMb = installedSizeMb,
             description = description
         )
     }
@@ -63,7 +81,8 @@ object DistroCatalog {
         description = "Full Ubuntu LTS base rootfs with APT package manager. Ideal for general development and servers.",
         packageManager = PackageManagerType.APT,
         defaultShell = "/bin/bash",
-        expectedSizeMb = 28,
+        downloadSizeMb = 33,
+        installedSizeMb = 1500,
         colorHex = 0xFFE95420,
         isRecommended = true,
         downloadUrls = mapOf(
@@ -128,7 +147,8 @@ object DistroCatalog {
         description = "Rock-solid, ultra-stable Debian Bookworm base with vast package repositories and minimal memory footprint.",
         packageManager = PackageManagerType.APT,
         defaultShell = "/bin/bash",
-        expectedSizeMb = 32,
+        downloadSizeMb = 27,
+        installedSizeMb = 244,
         colorHex = 0xFFA80030,
         downloadUrls = mapOf(
             SystemArchitecture.ARM64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz",
@@ -185,11 +205,12 @@ object DistroCatalog {
         id = "alpine_3_21",
         name = "Alpine Linux 3.21",
         version = "3.21",
-        tag = "Minimalist (~10MB)",
-        description = "Ultra-lightweight musl/busybox environment. Boots instantly with tiny storage and RAM usage (~10MB rootfs).",
+        tag = "Minimalist",
+        description = "Ultra-lightweight musl and BusyBox environment. Boots instantly with minimal memory footprint and fast APK package manager.",
         packageManager = PackageManagerType.APK,
         defaultShell = "/bin/sh",
-        expectedSizeMb = 5,
+        downloadSizeMb = 3,
+        installedSizeMb = 32,
         colorHex = 0xFF0D597F,
         downloadUrls = mapOf(
             SystemArchitecture.ARM64 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/aarch64/alpine-minirootfs-3.21.3-aarch64.tar.gz",
@@ -241,10 +262,11 @@ object DistroCatalog {
         name = "Arch Linux ARM",
         version = "Rolling",
         tag = "Bleeding Edge",
-        description = "Rolling release distribution featuring the pacman package manager and bleeding-edge packages (~790MB download, ~2.2GB on disk).",
+        description = "Rolling release distribution featuring the pacman package manager and bleeding-edge packages.",
         packageManager = PackageManagerType.PACMAN,
         defaultShell = "/bin/bash",
-        expectedSizeMb = 790,
+        downloadSizeMb = 790,
+        installedSizeMb = 2100,
         colorHex = 0xFF1793D1,
         downloadUrls = mapOf(
             SystemArchitecture.ARM64 to "http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz",
@@ -262,8 +284,6 @@ object DistroCatalog {
                     "chmod 644 /etc/shadow /etc/shadow- /etc/passwd /etc/group 2>/dev/null || true; " +
                     "echo \"$username ALL=(ALL:ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$username && chmod 0440 /etc/sudoers.d/$username; " +
                     "printf 'auth sufficient pam_permit.so\\naccount sufficient pam_permit.so\\nsession sufficient pam_permit.so\\npassword sufficient pam_permit.so\\n' > /etc/pam.d/su 2>/dev/null || true; " +
-                    "pacman-key --init 2>/dev/null || true; pacman-key --populate archlinuxarm 2>/dev/null || pacman-key --populate archlinux 2>/dev/null || true; " +
-                    "pacman -Sy --noconfirm bash sudo coreutils curl wget nano procps 2>/dev/null || true; " +
                     "echo \"root:$rootPassword\" | chpasswd 2>/dev/null; passwd -u root 2>/dev/null || true; " +
                     "echo \"$username:$userPassword\" | chpasswd 2>/dev/null; passwd -u $username 2>/dev/null || true"
         },
@@ -297,7 +317,8 @@ object DistroCatalog {
         description = "Official Kali NetHunter security auditing and network forensics minimal environment with Kali repositories.",
         packageManager = PackageManagerType.APT,
         defaultShell = "/bin/bash",
-        expectedSizeMb = 55,
+        downloadSizeMb = 130,
+        installedSizeMb = 1076,
         colorHex = 0xFF557C93,
         downloadUrls = mapOf(
             SystemArchitecture.ARM64 to "https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-arm64.tar.xz",
@@ -356,7 +377,8 @@ object DistroCatalog {
         description = "General-purpose, independent Linux distribution featuring the XBPS package system and fast boot times.",
         packageManager = PackageManagerType.XBPS,
         defaultShell = "/bin/bash",
-        expectedSizeMb = 35,
+        downloadSizeMb = 43,
+        installedSizeMb = 283,
         colorHex = 0xFF478061,
         downloadUrls = mapOf(
             SystemArchitecture.ARM64 to "https://repo-default.voidlinux.org/live/current/void-aarch64-ROOTFS-20250202.tar.xz",

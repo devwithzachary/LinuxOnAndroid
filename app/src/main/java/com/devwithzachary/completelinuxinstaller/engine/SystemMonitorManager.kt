@@ -85,9 +85,10 @@ class SystemMonitorManager(
         } catch (_: Exception) {}
 
         val storageUsedMb = try {
-            val defaultContainer = containerManager?.getDefaultContainer()
-            if (defaultContainer != null && defaultContainer.storageUsedMb > 0L) {
-                defaultContainer.storageUsedMb
+            val containers = containerManager?.getAllContainers() ?: emptyList()
+            if (containers.isNotEmpty()) {
+                val sum = containers.sumOf { it.storageUsedMb }
+                if (sum > 0L) sum else rootfsManager.getCachedStorageUsedMb()
             } else {
                 rootfsManager.getCachedStorageUsedMb()
             }

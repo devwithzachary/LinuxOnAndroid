@@ -12,7 +12,9 @@ data class LinuxDistribution(
     val version: String = "26.04",
     val architecture: SystemArchitecture,
     val downloadUrl: String,
-    val expectedSizeMb: Int = 28,
+    val expectedSizeMb: Int = 33,
+    val downloadSizeMb: Int = 33,
+    val installedSizeMb: Int = 1500,
     val description: String = "Barebones minimal Ubuntu LTS rootfs image for ARM64 / x86_64 non-rooted PRoot container."
 ) {
     companion object {

@@ -109,46 +109,19 @@ class PRootEngine(val context: Context) {
         val targetRootfs = config.rootfsDir
         val targetUser = loginUser?.takeIf { it.isNotBlank() }
 
-        val hasRealBash = (File(targetRootfs, "bin/bash").exists() && File(targetRootfs, "bin/bash").length() > 1000) ||
-                          (File(targetRootfs, "usr/bin/bash").exists() && File(targetRootfs, "usr/bin/bash").length() > 1000)
-
-        val guestShell = when {
-            hasRealBash -> if (File(targetRootfs, "bin/bash").exists()) "/bin/bash" else "/usr/bin/bash"
-            File(targetRootfs, "bin/ash").exists() -> "/bin/ash"
-            File(targetRootfs, "bin/sh").exists() -> "/bin/sh"
-            File(targetRootfs, "usr/bin/sh").exists() -> "/usr/bin/sh"
-            else -> "/bin/sh"
-        }
-
-        // If real bash is absent, ensure /bin/bash and /usr/bin/bash are working wrappers around guestShell
-        if (!hasRealBash) {
-            val binBash = File(targetRootfs, "bin/bash")
-            val usrBinBash = File(targetRootfs, "usr/bin/bash")
-            try {
-                binBash.parentFile?.mkdirs()
-                binBash.writeText("#!$guestShell\nexec $guestShell \"$@\"\n")
-                binBash.setExecutable(true, false)
-            } catch (_: Exception) {}
-            try {
-                usrBinBash.parentFile?.mkdirs()
-                usrBinBash.writeText("#!$guestShell\nexec $guestShell \"$@\"\n")
-                usrBinBash.setExecutable(true, false)
-            } catch (_: Exception) {}
-        } else {
-            // Clean up any stale host-path shebangs in fallback scripts inside the guest rootfs
-            listOf("bin/bash", "usr/bin/bash", "bin/sh", "usr/bin/sh").forEach { relPath ->
-                val shellFile = File(targetRootfs, relPath)
-                if (shellFile.exists() && !java.nio.file.Files.isSymbolicLink(shellFile.toPath())) {
-                    try {
-                        val content = shellFile.readText()
-                        if (content.contains("/system/bin/sh")) {
-                            shellFile.writeText("#!$guestShell\nif [ \"$1\" = \"-l\" ] || [ \"$1\" = \"--login\" ]; then shift; fi\nexec $guestShell \"$@\"\n")
-                            shellFile.setExecutable(true, false)
-                        }
-                    } catch (_: Exception) {}
-                }
-            }
-        }
+        val candidateShells = listOf(
+            "/usr/bin/bash",
+            "/bin/bash",
+            "/usr/bin/dash",
+            "/bin/dash",
+            "/usr/bin/ash",
+            "/bin/ash",
+            "/usr/bin/sh",
+            "/bin/sh"
+        )
+        val guestShell = candidateShells.firstOrNull { relPath ->
+            File(targetRootfs, relPath.removePrefix("/")).exists()
+        } ?: "/bin/sh"
 
         if (targetUser != null && targetUser != "root") {
             val etcDir = File(targetRootfs, "etc").apply { if (!exists()) mkdirs() }
@@ -167,36 +140,19 @@ class PRootEngine(val context: Context) {
                         shadowFile.appendText("$targetUser:*:19700:0:99999:7:::\n")
                     }
                 } catch (_: Exception) {}
-            } else if (!hasRealBash && passwdFile.exists()) {
-                // Ensure existing user entry doesn't reference non-existent /bin/bash
-                try {
-                    val lines = passwdFile.readLines()
-                    val updated = lines.map { line ->
-                        if (line.startsWith("$targetUser:") || line.startsWith("root:")) {
-                            if (line.endsWith(":/bin/bash") || line.endsWith(":/usr/bin/bash")) {
-                                line.substringBeforeLast(":") + ":$guestShell"
-                            } else {
-                                line
-                            }
-                        } else {
-                            line
-                        }
-                    }
-                    passwdFile.writeText(updated.joinToString("\n") + "\n")
-                } catch (_: Exception) {}
             }
         }
 
         val suBin = when {
-            File(targetRootfs, "bin/su").exists() -> "/bin/su"
             File(targetRootfs, "usr/bin/su").exists() -> "/usr/bin/su"
+            File(targetRootfs, "bin/su").exists() -> "/bin/su"
             else -> "/bin/su"
         }
 
         val effectiveCommand = if (targetUser != null && targetUser != "root") {
             listOf(suBin, "-s", guestShell, "-", targetUser)
-        } else if (command == listOf("/bin/bash", "-l") && !hasRealBash) {
-            listOf(guestShell, "-l")
+        } else if (command.isNotEmpty() && command[0].startsWith("/") && !File(targetRootfs, command[0].removePrefix("/")).exists()) {
+            listOf(guestShell) + command.drop(1)
         } else {
             command
         }

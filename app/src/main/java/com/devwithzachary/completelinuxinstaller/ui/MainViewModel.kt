@@ -558,7 +558,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val currentDns = rootfsManager.getDnsServers()
         _dnsServers.value = currentDns
 
-        val cachedStorage = defaultContainer?.storageUsedMb?.takeIf { it > 0L }
+        val totalContainerStorage = allContainers.sumOf { it.storageUsedMb }.takeIf { it > 0L }
+            ?: defaultContainer?.storageUsedMb?.takeIf { it > 0L }
             ?: (if (installed) rootfsManager.getCachedStorageUsedMb() else 0L)
 
         _dashboardState.value = _dashboardState.value.copy(
@@ -572,7 +573,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isUpgradeAvailable = isUpgradeAvail,
             dnsServers = currentDns,
             containerUsers = users,
-            storageUsedMb = cachedStorage,
+            storageUsedMb = totalContainerStorage,
             containers = allContainers,
             defaultContainerId = containerManager.defaultContainerId.value,
             distroName = defaultContainer?.distroName ?: "Ubuntu 26.04 LTS"
@@ -590,11 +591,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         storageCalculationJob = viewModelScope.launch(Dispatchers.IO) {
             containerManager.refreshContainerStorage(rootfsManager)
             val updatedContainers = containerManager.getAllContainers()
-            val defaultContainer = containerManager.getDefaultContainer()
-            val freshStorageMb = defaultContainer?.storageUsedMb ?: 0L
+            val totalFreshStorageMb = updatedContainers.sumOf { it.storageUsedMb }.takeIf { it > 0L }
+                ?: (containerManager.getDefaultContainer()?.storageUsedMb ?: 0L)
             _dashboardState.value = _dashboardState.value.copy(
                 containers = updatedContainers,
-                storageUsedMb = freshStorageMb
+                storageUsedMb = totalFreshStorageMb
             )
             refreshSystemMetrics()
         }

@@ -140,6 +140,28 @@ class ContainerManager(private val context: Context) {
             val firstId = _containers.value.first().id
             setDefaultContainer(firstId)
         }
+
+        // Clean up any orphaned container directories on disk (from aborted/crashed installs or previous uninstalls)
+        try {
+            val registeredContainerDirPaths = _containers.value.mapNotNull {
+                val root = File(it.rootDirPath)
+                if (root.parentFile?.parentFile == containersBaseDir) root.parentFile?.absolutePath else root.absolutePath
+            }.toSet()
+
+            val onDiskDirs = containersBaseDir.listFiles() ?: emptyArray()
+            for (dir in onDiskDirs) {
+                if (dir.isDirectory && !registeredContainerDirPaths.contains(dir.absolutePath)) {
+                    Log.d(TAG, "Purging orphaned container directory on disk: ${dir.name}")
+                    try {
+                        val chmodBin = if (File("/system/bin/chmod").exists()) "/system/bin/chmod" else "chmod"
+                        ProcessBuilder(chmodBin, "-R", "777", dir.absolutePath).start().waitFor()
+                    } catch (_: Exception) {}
+                    dir.deleteRecursively()
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error cleaning orphaned container directories", e)
+        }
     }
 
     private fun loadContainersFromPrefs(): List<ContainerInstance> {
@@ -297,12 +319,19 @@ class ContainerManager(private val context: Context) {
         val container = getContainer(id) ?: return@withContext false
         try {
             val rootDir = File(container.rootDirPath)
-            if (rootDir.exists()) {
-                rootDir.deleteRecursively()
+            val containerFolder = if (rootDir.parentFile?.parentFile == containersBaseDir) {
+                rootDir.parentFile
+            } else {
+                rootDir
             }
-            // Delete parent container folder if inside containers/
-            if (rootDir.parentFile?.parentFile == containersBaseDir) {
-                rootDir.parentFile?.deleteRecursively()
+
+            // Ensure full write permissions before recursive deletion
+            if (containerFolder != null && containerFolder.exists()) {
+                try {
+                    val chmodBin = if (File("/system/bin/chmod").exists()) "/system/bin/chmod" else "chmod"
+                    ProcessBuilder(chmodBin, "-R", "777", containerFolder.absolutePath).start().waitFor()
+                } catch (_: Exception) {}
+                containerFolder.deleteRecursively()
             }
 
             val updated = _containers.value.filter { it.id != id }
@@ -319,17 +348,19 @@ class ContainerManager(private val context: Context) {
         }
     }
 
+    fun getContainers(): List<ContainerInstance> = _containers.value
+
     fun calculateFastDiskUsageMb(dir: File): Long {
         if (!dir.exists() || !dir.isDirectory) return 0L
         try {
             val duBin = if (File("/system/bin/du").exists()) "/system/bin/du" else "du"
             val pb = ProcessBuilder(duBin, "-sk", dir.absolutePath)
-            pb.redirectErrorStream(true)
+            pb.redirectErrorStream(false)
             val proc = pb.start()
-            val output = proc.inputStream.bufferedReader().readLine()
+            val lines = proc.inputStream.bufferedReader().readLines()
             proc.waitFor()
-            if (output != null) {
-                val tokens = output.trim().split("\\s+".toRegex())
+            for (line in lines.reversed()) {
+                val tokens = line.trim().split("\\s+".toRegex())
                 val kb = tokens.firstOrNull()?.toLongOrNull()
                 if (kb != null && kb > 0) {
                     return (kb / 1024L).coerceAtLeast(1L)

@@ -58,15 +58,20 @@ class TerminalSession(
                     tmpDir = pRootEngine.tmpDir
                 )
 
-                val hasRealBash = (File(rootfsDir, "bin/bash").exists() && File(rootfsDir, "bin/bash").length() > 1000) ||
-                                  (File(rootfsDir, "usr/bin/bash").exists() && File(rootfsDir, "usr/bin/bash").length() > 1000)
-                val effectiveShell = when {
-                    defaultShell != null && (File(rootfsDir, defaultShell.removePrefix("/")).exists() || defaultShell == "/bin/sh") -> defaultShell
-                    hasRealBash -> if (File(rootfsDir, "bin/bash").exists()) "/bin/bash" else "/usr/bin/bash"
-                    File(rootfsDir, "bin/ash").exists() -> "/bin/ash"
-                    File(rootfsDir, "bin/sh").exists() -> "/bin/sh"
-                    else -> "/bin/sh"
-                }
+                val candidateShells = listOfNotNull(
+                    defaultShell,
+                    "/usr/bin/bash",
+                    "/bin/bash",
+                    "/usr/bin/dash",
+                    "/bin/dash",
+                    "/usr/bin/ash",
+                    "/bin/ash",
+                    "/usr/bin/sh",
+                    "/bin/sh"
+                )
+                val effectiveShell = candidateShells.firstOrNull { shell ->
+                    File(rootfsDir, shell.removePrefix("/")).exists()
+                } ?: "/bin/sh"
 
                 val cmdList = pRootEngine.buildPRootCommand(
                     config = customConfig,
