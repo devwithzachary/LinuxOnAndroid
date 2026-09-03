@@ -37,6 +37,10 @@ data class SoftwarePackage(
         private const val NONINT_EXPORT =
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; mkdir -p /usr/sbin /etc /var/lib/dbus 2>/dev/null; (grep -q ^messagebus: /etc/group || echo \"messagebus:x:101:\" >> /etc/group); (grep -q ^messagebus: /etc/passwd || echo \"messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\" >> /etc/passwd); (grep -q ^messagebus: /etc/shadow || echo \"messagebus:*:19700:0:99999:7:::\" >> /etc/shadow); (grep -q ^www-data: /etc/group || echo \"www-data:x:33:\" >> /etc/group); (grep -q ^www-data: /etc/passwd || echo \"www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\" >> /etc/passwd); (grep -q ^sshd: /etc/group || echo \"sshd:x:102:\" >> /etc/group); (grep -q ^sshd: /etc/passwd || echo \"sshd:x:102:102:Privilege-separated SSH:/run/sshd:/usr/sbin/nologin\" >> /etc/passwd); printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; if [ ! -f /bin/systemctl ] && [ ! -f /usr/bin/systemctl ]; then printf '#!/bin/sh\\nexit 0\\n' > /usr/bin/systemctl && chmod 755 /usr/bin/systemctl; fi; dbus-uuidgen --ensure 2>/dev/null || true; chmod 755 /usr /usr/local /usr/local/bin /usr/local/sbin /usr/bin /usr/sbin /bin /sbin /etc 2>/dev/null; chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /var/lib/dpkg/lock* /usr/bin/*.dpkg-new /usr/lib/*.dpkg-new 2>/dev/null; mkdir -p /etc/dpkg/dpkg.cfg.d && echo force-all > /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-unsafe-io >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-overwrite >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confold >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confdef >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-depends >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid; mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; export TMPDIR=/tmp && export TMP=/tmp && export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a; chown -R 0:0 /etc/sudoers /etc/sudoers.d /etc/sudo.conf /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true; chmod 0440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true"
 
+        private const val INITD_VERSION = "0.0.2"
+        private const val INITD_SHA256_ARM64 = "0484f46990bf48b7b46223064d79c029d2a6789aa24e7fd7b82efea0e3d4634e"
+        private const val INITD_SHA256_AMD64 = "0dcd1f33ee224ab1f70d264db9378c434cde9bd8c82abba4009e008c5d85c801"
+
         fun buildSshLaunchCommand(port: Int = 2222): String {
             val validPort = if (port in 1..65535) port else 2222
             return "mkdir -p /run/sshd /var/run/sshd /var/empty && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true && (killall -9 sshd 2>/dev/null || true) && /usr/sbin/sshd -p $validPort"
@@ -45,6 +49,178 @@ data class SoftwarePackage(
         fun buildSshPostInstallNotes(port: Int = 2222): String {
             val validPort = if (port in 1..65535) port else 2222
             return "SSH server listening on port $validPort. Connect via 'ssh <username>@<phone-ip> -p $validPort' using your Linux password."
+        }
+
+        fun buildInitdShim(): String = listOf(
+            "#!/bin/sh",
+            "# LinuxOnAndroid shim: initd-backed systemctl with automatic daemon recovery",
+            "CLIENT=/usr/local/lib/initd/systemctl",
+            "DAEMON=/usr/local/lib/initd/initd",
+            "SOCK=/run/initd.sock",
+            "LOCK=/run/.initd-start.lock",
+            "LOG=/var/log/initd.log",
+            "",
+            "case \"\$1\" in",
+            "    reboot|poweroff|halt)",
+            "        echo \"systemctl \$1 is not supported in LinuxOnAndroid.\" >&2",
+            "        exit 1",
+            "        ;;",
+            "esac",
+            "",
+            "alive() {",
+            "    [ -S \"\$SOCK\" ] && \"\$CLIENT\" list-units >/dev/null 2>&1",
+            "}",
+            "",
+            "clear_stale_lock() {",
+            "    if [ -d \"\$LOCK\" ] && ! find \"\$LOCK\" -maxdepth 0 -newermt '-10 seconds' >/dev/null 2>&1; then",
+            "        rmdir \"\$LOCK\" 2>/dev/null",
+            "    fi",
+            "}",
+            "",
+            "wait_alive() {",
+            "    i=0",
+            "    while [ \"\$i\" -lt 30 ]; do",
+            "        if alive; then return 0; fi",
+            "        sleep 0.1",
+            "        i=\$((i + 1))",
+            "    done",
+            "    return 1",
+            "}",
+            "",
+            "start_daemon() {",
+            "    clear_stale_lock",
+            "    if mkdir \"\$LOCK\" 2>/dev/null; then",
+            "        ( umask 000; nohup \"\$DAEMON\" --socket >\"\$LOG\" 2>&1 & sleep 1; rmdir \"\$LOCK\" 2>/dev/null ) &",
+            "    fi",
+            "    wait_alive",
+            "}",
+            "",
+            "offline() {",
+            "    case \"\$1\" in",
+            "        daemon-reload)",
+            "            exit 0",
+            "            ;;",
+            "        is-enabled)",
+            "            shift",
+            "            rc=0",
+            "            for u in \"\$@\"; do",
+            "                n=\$(basename \"\$u\")",
+            "                en=\"\"",
+            "                for d in /etc/systemd/system/*.wants; do",
+            "                    if [ -e \"\$d/\$n\" ]; then en=1; fi",
+            "                done",
+            "                if [ -n \"\$en\" ]; then",
+            "                    echo \"enabled\"",
+            "                else",
+            "                    echo \"disabled\"",
+            "                    rc=1",
+            "                fi",
+            "            done",
+            "            exit \$rc",
+            "            ;;",
+            "        enable)",
+            "            shift",
+            "            for u in \"\$@\"; do",
+            "                case \"\$u\" in",
+            "                    *.* ) ;;",
+            "                    *) u=\"\$u.service\" ;;",
+            "                esac",
+            "                src=\"\"",
+            "                for b in /etc/systemd/system /lib/systemd/system /usr/lib/systemd/system; do",
+            "                    if [ -f \"\$b/\$u\" ]; then src=\"\$b/\$u\"; fi",
+            "                done",
+            "                if [ -z \"\$src\" ]; then",
+            "                    echo \"Unit \$u not found.\" >&2",
+            "                    exit 1",
+            "                fi",
+            "                want=\$(sed -n '/^\\[Install\\]/,/^\\[/s/^WantedBy=//p' \"\$src\" | head -n 1)",
+            "                if [ -z \"\$want\" ]; then want=\"multi-user.target\"; fi",
+            "                mkdir -p \"/etc/systemd/system/\$want.wants\"",
+            "                ln -sf \"\$src\" \"/etc/systemd/system/\$want.wants/\$u\"",
+            "            done",
+            "            exit 0",
+            "            ;;",
+            "        disable)",
+            "            shift",
+            "            for u in \"\$@\"; do",
+            "                case \"\$u\" in",
+            "                    *.* ) ;;",
+            "                    *) u=\"\$u.service\" ;;",
+            "                esac",
+            "                for d in /etc/systemd/system/*.wants; do",
+            "                    if [ -e \"\$d/\$u\" ]; then rm -f \"\$d/\$u\"; fi",
+            "                done",
+            "            done",
+            "            exit 0",
+            "            ;;",
+            "    esac",
+            "}",
+            "",
+            "if alive; then",
+            "    exec \"\$CLIENT\" \"\$@\"",
+            "fi",
+            "",
+            "start_daemon",
+            "",
+            "if alive; then",
+            "    exec \"\$CLIENT\" \"\$@\"",
+            "fi",
+            "",
+            "offline \"\$@\"",
+            "",
+            "echo \"initd service manager is not running and 'systemctl \$1' requires the daemon.\" >&2",
+            "exit 1"
+        ).joinToString("\n")
+
+        fun buildInitdAutostartHook(): String = listOf(
+            "#!/bin/sh",
+            "# LinuxOnAndroid: auto-start the initd service manager when a session opens",
+            "INITD_DAEMON=/usr/local/lib/initd/initd",
+            "INITD_CLIENT=/usr/local/lib/initd/systemctl",
+            "INITD_LOCK=/run/.initd-start.lock",
+            "if [ -x \"\$INITD_DAEMON\" ]; then",
+            "    if ! \"\$INITD_CLIENT\" list-units >/dev/null 2>&1; then",
+            "        if [ -d \"\$INITD_LOCK\" ] && ! find \"\$INITD_LOCK\" -maxdepth 0 -newermt '-10 seconds' >/dev/null 2>&1; then",
+            "            rmdir \"\$INITD_LOCK\" 2>/dev/null",
+            "        fi",
+            "        if mkdir \"\$INITD_LOCK\" 2>/dev/null; then",
+            "            ( umask 000; nohup \"\$INITD_DAEMON\" --socket >/var/log/initd.log 2>&1 & sleep 1; rmdir \"\$INITD_LOCK\" 2>/dev/null ) &",
+            "        fi",
+            "    fi",
+            "    unset INITD_DAEMON INITD_CLIENT INITD_LOCK",
+            "fi"
+        ).joinToString("\n")
+
+        fun buildInitdInstallCommand(): String {
+            val shim = buildInitdShim()
+            val hook = buildInitdAutostartHook()
+            return listOf(
+                "$NONINT_EXPORT && dpkg --configure -a && \\",
+                "{ command -v curl >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y $DPKG_FLAGS curl ca-certificates; }; } && \\",
+                "{ command -v python3 >/dev/null 2>&1 || { echo 'ERROR: python3 is required to unpack the initd package.' >&2; exit 1; }; } && \\",
+                "INITD_ARCH=\$(uname -m) && \\",
+                "INITD_VERSION=$INITD_VERSION && \\",
+                "if [ \"\$INITD_ARCH\" = \"aarch64\" ] || [ \"\$INITD_ARCH\" = \"arm64\" ]; then INITD_ARCH=arm64; INITD_SHA=$INITD_SHA256_ARM64; elif [ \"\$INITD_ARCH\" = \"x86_64\" ]; then INITD_ARCH=amd64; INITD_SHA=$INITD_SHA256_AMD64; else echo \"ERROR: initd requires arm64 or x86_64 (detected: \$INITD_ARCH).\" >&2; exit 1; fi && \\",
+                "rm -rf /tmp/initd-pkg /tmp/initd-pkg.zip && mkdir -p /tmp/initd-pkg /usr/local/lib/initd /var/log && \\",
+                "curl -fSL --retry 3 --connect-timeout 20 -o /tmp/initd-pkg.zip \"https://github.com/EdwardLab/initd/releases/download/$INITD_VERSION/initd-v$INITD_VERSION-linux-\${INITD_ARCH}.zip\" && \\",
+                "echo \"\$INITD_SHA  /tmp/initd-pkg.zip\" | sha256sum -c - && \\",
+                "python3 -m zipfile -e /tmp/initd-pkg.zip /tmp/initd-pkg && \\",
+                "[ -f /tmp/initd-pkg/initd ] && [ -f /tmp/initd-pkg/systemctl ] && \\",
+                "install -m 755 /tmp/initd-pkg/initd /usr/local/lib/initd/initd && \\",
+                "install -m 755 /tmp/initd-pkg/systemctl /usr/local/lib/initd/systemctl && \\",
+                "{ [ ! -e /usr/bin/systemctl ] || { [ -e /usr/bin/systemctl.loa-stub ] || mv /usr/bin/systemctl /usr/bin/systemctl.loa-stub; }; } && \\",
+                "ln -sf /usr/local/bin/systemctl /usr/bin/systemctl && \\",
+                "cat << 'SHIMEOF' > /usr/local/bin/systemctl",
+                shim,
+                "SHIMEOF",
+                "chmod 755 /usr/local/bin/systemctl && \\",
+                "cat << 'HOOKEOF' > /etc/profile.d/00-initd-autostart.sh",
+                hook,
+                "HOOKEOF",
+                "chmod 644 /etc/profile.d/00-initd-autostart.sh && \\",
+                "rm -rf /tmp/initd-pkg /tmp/initd-pkg.zip && \\",
+                "echo \"initd v$INITD_VERSION (\$INITD_ARCH) installed successfully.\""
+            ).joinToString("\n")
         }
 
         fun getPresets(sshPort: Int = 2222): List<SoftwarePackage> {
@@ -130,6 +306,24 @@ data class SoftwarePackage(
                     postInstallNotes = buildSshPostInstallNotes(validPort),
                     expectedBinaries = listOf("usr/sbin/sshd", "usr/bin/ssh-keygen"),
                     version = 3
+                ),
+                SoftwarePackage(
+                    id = "initd_service_manager",
+                    name = "initd Service Manager",
+                    category = SoftwareCategory.UTILITIES,
+                    description = "Lightweight systemd-compatible init system. Enables systemctl start/stop/enable for services in proot where systemd cannot run.",
+                    iconName = "Settings",
+                    installCommand = buildInitdInstallCommand(),
+                    launchCommand = "systemctl list-units",
+                    postInstallNotes = "The service manager auto-starts with each session. Manage services with 'systemctl start/stop/enable <unit>'. 'systemctl reboot/poweroff/halt' is disabled.",
+                    expectedBinaries = listOf(
+                        "usr/local/lib/initd/initd",
+                        "usr/local/lib/initd/systemctl",
+                        "usr/local/bin/systemctl",
+                        "usr/bin/systemctl",
+                        "etc/profile.d/00-initd-autostart.sh"
+                    ),
+                    version = 1
                 )
             )
         }

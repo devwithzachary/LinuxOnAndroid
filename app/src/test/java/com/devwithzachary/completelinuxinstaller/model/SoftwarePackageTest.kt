@@ -12,7 +12,7 @@ class SoftwarePackageTest {
     fun testGetPresets_returnsNonEmptyList() {
         val presets = SoftwarePackage.getPresets()
         assertTrue("Preset package list should not be empty", presets.isNotEmpty())
-        assertEquals(6, presets.size)
+        assertEquals(7, presets.size)
     }
 
     @Test
@@ -109,5 +109,53 @@ class SoftwarePackageTest {
             assertTrue("launchCommand must specify -UseBlacklist=0", it.launchCommand?.contains("-UseBlacklist=0") == true)
             assertTrue("launchCommand must include --I-KNOW-THIS-IS-INSECURE", it.launchCommand?.contains("--I-KNOW-THIS-IS-INSECURE") == true)
         }
+    }
+
+    @Test
+    fun testPreset_initd_service_manager_pinsVersionAndHashes() {
+        val initd = SoftwarePackage.getPresets().find { it.id == "initd_service_manager" }
+        assertNotNull("initd_service_manager preset must exist", initd)
+        initd?.let {
+            assertTrue("installCommand must pin the release tag and asset version", it.installCommand.contains("releases/download/0.0.2/initd-v0.0.2-linux-"))
+            assertTrue("installCommand must contain the amd64 SHA256 hash", it.installCommand.contains("0dcd1f33ee224ab1f70d264db9378c434cde9bd8c82abba4009e008c5d85c801"))
+            assertTrue("installCommand must contain the arm64 SHA256 hash", it.installCommand.contains("0484f46990bf48b7b46223064d79c029d2a6789aa24e7fd7b82efea0e3d4634e"))
+            assertTrue("installCommand must verify SHA256 with sha256sum -c", it.installCommand.contains("sha256sum -c"))
+            assertTrue("installCommand must install initd to /usr/local/lib/initd/initd", it.installCommand.contains("/usr/local/lib/initd/initd"))
+            assertTrue("installCommand must install systemctl client to /usr/local/lib/initd/systemctl", it.installCommand.contains("/usr/local/lib/initd/systemctl"))
+            assertTrue("installCommand must install autostart hook to /etc/profile.d/", it.installCommand.contains("/etc/profile.d/00-initd-autostart.sh"))
+            assertTrue("installCommand must guard armv7 with uname -m arch check", it.installCommand.contains("uname -m"))
+            assertTrue("installCommand must reject non-arm64/amd64 architectures", it.installCommand.contains("x86_64"))
+            assertTrue("installCommand must use python3 to extract the zip (unzip absent in ubuntu base)", it.installCommand.contains("python3 -m zipfile"))
+            assertTrue("launchCommand must list units", it.launchCommand != null && it.launchCommand.contains("list-units"))
+            assertEquals(
+                "expectedBinaries must match installed artifacts",
+                setOf(
+                    "usr/local/lib/initd/initd",
+                    "usr/local/lib/initd/systemctl",
+                    "usr/local/bin/systemctl",
+                    "usr/bin/systemctl",
+                    "etc/profile.d/00-initd-autostart.sh"
+                ),
+                it.expectedBinaries.toSet()
+            )
+            assertEquals(1, it.version)
+        }
+    }
+
+    @Test
+    fun testPreset_initd_shimInterceptsReboot() {
+        val shim = SoftwarePackage.buildInitdShim()
+        assertTrue("shim must intercept reboot", shim.contains("reboot|poweroff|halt"))
+        assertFalse("shim must be POSIX sh (no bashisms)", shim.contains("[["))
+        assertTrue("shim must be POSIX sh shebang", shim.startsWith("#!/bin/sh"))
+    }
+
+    @Test
+    fun testBuildInitdInstallCommand_containsDpkgAndPolicyRcD() {
+        val cmd = SoftwarePackage.buildInitdInstallCommand()
+        assertTrue("initd install must contain dpkg --configure -a", cmd.contains("dpkg --configure -a"))
+        assertTrue("initd install must contain policy-rc.d", cmd.contains("policy-rc.d"))
+        assertTrue("initd install must contain apt-get install -y for curl fallback", cmd.contains("apt-get install -y"))
+        assertTrue("initd install must contain messagebus system user initialization", cmd.contains("messagebus:"))
     }
 }
