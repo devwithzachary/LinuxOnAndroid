@@ -163,8 +163,86 @@ class PRootEngine(val context: Context) {
             File(targetRootfs, relPath.removePrefix("/")).exists()
         } ?: "/bin/sh"
 
+        val etcDir = File(targetRootfs, "etc").apply { if (!exists()) mkdirs() }
+        val profileD = File(etcDir, "profile.d").apply { if (!exists()) mkdirs() }
+        val pathScript = File(profileD, "00-linuxonandroid-path.sh")
+        if (!pathScript.exists() || !pathScript.readText().contains("/usr/sbin")) {
+            try {
+                pathScript.writeText("export PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n")
+                pathScript.setExecutable(true, false)
+            } catch (_: Exception) {}
+        }
+        val loginDefs = File(etcDir, "login.defs")
+        if (loginDefs.exists()) {
+            try {
+                val content = loginDefs.readText()
+                if (content.contains("ENV_PATH") && !content.contains("ENV_PATH\tPATH=/usr/local/sbin")) {
+                    loginDefs.writeText(content.replace(Regex("ENV_PATH\\s+PATH=[^\n]+"), "ENV_PATH\tPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"))
+                }
+            } catch (_: Exception) {}
+        }
+        val bashrc = File(etcDir, "bash.bashrc")
+        if (bashrc.exists()) {
+            try {
+                val content = bashrc.readText()
+                if (!content.contains("/usr/sbin")) {
+                    bashrc.appendText("\nexport PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n")
+                }
+            } catch (_: Exception) {}
+        }
+
+        val usrLocalBin = File(targetRootfs, "usr/local/bin").apply { if (!exists()) mkdirs() }
+        val serviceShim = File(usrLocalBin, "service")
+        if (!serviceShim.exists() || serviceShim.length() == 0L) {
+            try {
+                serviceShim.writeText(
+                    """
+                    #!/bin/sh
+                    NAME="${'$'}1"
+                    ACTION="${'$'}2"
+                    shift 2 2>/dev/null || true
+                    if [ -x "/usr/sbin/service" ]; then
+                        exec /usr/sbin/service "${'$'}NAME" "${'$'}ACTION" "${'$'}@"
+                    fi
+                    if [ -x "/etc/init.d/${'$'}NAME" ]; then
+                        exec "/etc/init.d/${'$'}NAME" "${'$'}ACTION" "${'$'}@"
+                    fi
+                    if [ "${'$'}NAME" = "nginx" ]; then
+                        case "${'$'}ACTION" in
+                            start) exec /usr/sbin/nginx "${'$'}@" 2>/dev/null || exec /usr/bin/nginx "${'$'}@" 2>/dev/null || exec nginx "${'$'}@" ;;
+                            stop) exec /usr/sbin/nginx -s stop 2>/dev/null || exec nginx -s stop ;;
+                            reload) exec /usr/sbin/nginx -s reload 2>/dev/null || exec nginx -s reload ;;
+                            status) ps aux | grep -v grep | grep nginx ;;
+                        esac
+                    fi
+                    if [ "${'$'}NAME" = "ssh" ] || [ "${'$'}NAME" = "sshd" ]; then
+                        case "${'$'}ACTION" in
+                            start) exec /usr/sbin/sshd "${'$'}@" ;;
+                            stop) pkill -f sshd ;;
+                            status) ps aux | grep -v grep | grep sshd ;;
+                        esac
+                    fi
+                    """.trimIndent() + "\n"
+                )
+                serviceShim.setExecutable(true, false)
+            } catch (_: Exception) {}
+        }
+
+        if (File(targetRootfs, "usr/sbin/service").exists() && !File(targetRootfs, "usr/bin/service").exists()) {
+            try {
+                java.nio.file.Files.createSymbolicLink(
+                    File(targetRootfs, "usr/bin/service").toPath(),
+                    java.nio.file.Paths.get("/usr/sbin/service")
+                )
+            } catch (_: Exception) {
+                try {
+                    File(targetRootfs, "usr/sbin/service").copyTo(File(targetRootfs, "usr/bin/service"), overwrite = true)
+                    File(targetRootfs, "usr/bin/service").setExecutable(true, false)
+                } catch (_: Exception) {}
+            }
+        }
+
         if (targetUser != null && targetUser != "root") {
-            val etcDir = File(targetRootfs, "etc").apply { if (!exists()) mkdirs() }
             val passwdFile = File(etcDir, "passwd")
             val groupFile = File(etcDir, "group")
             val shadowFile = File(etcDir, "shadow")
@@ -178,6 +256,46 @@ class PRootEngine(val context: Context) {
                     }
                     if (!shadowFile.exists() || !shadowFile.readText().lines().any { it.startsWith("$targetUser:") }) {
                         shadowFile.appendText("$targetUser:*:19700:0:99999:7:::\n")
+                    }
+                } catch (_: Exception) {}
+            }
+
+            val userBashrc = File(homeDir, ".bashrc")
+            if (!userBashrc.exists()) {
+                try {
+                    val skelBashrc = File(targetRootfs, "etc/skel/.bashrc")
+                    if (skelBashrc.exists()) {
+                        skelBashrc.copyTo(userBashrc, overwrite = true)
+                    } else {
+                        userBashrc.writeText("export PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n")
+                    }
+                } catch (_: Exception) {}
+            }
+            if (userBashrc.exists()) {
+                try {
+                    val content = userBashrc.readText()
+                    if (!content.contains("/usr/sbin")) {
+                        userBashrc.appendText("\nexport PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n")
+                    }
+                } catch (_: Exception) {}
+            }
+
+            val userProfile = File(homeDir, ".profile")
+            if (!userProfile.exists()) {
+                try {
+                    val skelProfile = File(targetRootfs, "etc/skel/.profile")
+                    if (skelProfile.exists()) {
+                        skelProfile.copyTo(userProfile, overwrite = true)
+                    } else {
+                        userProfile.writeText("export PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n")
+                    }
+                } catch (_: Exception) {}
+            }
+            if (userProfile.exists()) {
+                try {
+                    val content = userProfile.readText()
+                    if (!content.contains("/usr/sbin")) {
+                        userProfile.appendText("\nexport PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\"\n")
                     }
                 } catch (_: Exception) {}
             }

@@ -2,5 +2,5 @@
 • Multi-Rootfs Containers: Install multiple Linux distros side-by-side.
 • Multi-Distro Wizard: Debian 12, Alpine 3.21, Arch, Kali, Void, Ubuntu (450MB).
 • 3-Tab Container Layout: Scoped Overview, Software Hub, and Settings.
-• Port & Package Fixes: Open port listener recovery, symlink detection, and Ubuntu 1-click fixes.
-• Service Launcher Fix: Queued command execution for SSH, VNC, and NGINX.
+• Terminal Keyboard Fix: Preserves scrollback and prompt when keyboard opens.
+• NGINX & Service Fix: Port 8080 unprivileged support and universal service wrapper.

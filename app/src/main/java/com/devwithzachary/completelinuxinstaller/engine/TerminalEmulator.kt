@@ -41,19 +41,21 @@ class TerminalEmulator(
     }
 
     fun getRenderRow(r: Int): Array<TerminalChar> {
-        if (scrollOffset == 0 || scrollback.isEmpty()) {
-            return if (r < grid.size) grid[r] else Array(cols) { TerminalChar() }
-        }
-        val totalHistory = scrollback.size
-        val targetIndex = (totalHistory + r) - scrollOffset
-        return when {
-            targetIndex < 0 -> Array(cols) { TerminalChar() }
-            targetIndex < totalHistory -> scrollback[targetIndex]
-            else -> {
-                val gridIndex = targetIndex - totalHistory
-                if (gridIndex < grid.size) grid[gridIndex] else Array(cols) { TerminalChar() }
+        val row = if (scrollOffset == 0 || scrollback.isEmpty()) {
+            if (r < grid.size) grid[r] else Array(cols) { TerminalChar() }
+        } else {
+            val totalHistory = scrollback.size
+            val targetIndex = (totalHistory + r) - scrollOffset
+            when {
+                targetIndex < 0 -> Array(cols) { TerminalChar() }
+                targetIndex < totalHistory -> scrollback[targetIndex]
+                else -> {
+                    val gridIndex = targetIndex - totalHistory
+                    if (gridIndex < grid.size) grid[gridIndex] else Array(cols) { TerminalChar() }
+                }
             }
         }
+        return if (row.size == cols) row else Array(cols) { c -> if (c < row.size) row[c] else TerminalChar() }
     }
 
     var cursorX = 0
@@ -105,24 +107,126 @@ class TerminalEmulator(
 
     fun resize(newCols: Int, newRows: Int) {
         if (newCols <= 0 || newRows <= 0) return
+        if (newCols == cols && newRows == rows) return
+
         val oldCols = cols
         val oldRows = rows
-        cols = newCols
-        rows = newRows
+        val oldGrid = grid
+        val wasInAlt = inAltBuffer
 
-        primaryGrid = Array(rows) { r ->
-            Array(cols) { c ->
-                if (r < oldRows && c < oldCols) grid[r][c] else TerminalChar()
+        fun isRowBlank(row: Array<TerminalChar>): Boolean {
+            return row.all { it.ch == ' ' && it.bgColor == Color.Transparent }
+        }
+
+        fun resizeRow(row: Array<TerminalChar>): Array<TerminalChar> {
+            return if (row.size == newCols) {
+                row
+            } else {
+                Array(newCols) { c ->
+                    if (c < row.size) row[c] else TerminalChar()
+                }
             }
         }
-        altGrid = Array(rows) { Array(cols) { TerminalChar() } }
-        grid = if (inAltBuffer) altGrid else primaryGrid
+
+        if (newCols != oldCols) {
+            for (i in scrollback.indices) {
+                scrollback[i] = resizeRow(scrollback[i])
+            }
+        }
+
+        if (!wasInAlt) {
+            var lastNonBlankRow = -1
+            for (r in oldRows - 1 downTo 0) {
+                if (r < oldGrid.size && !isRowBlank(oldGrid[r])) {
+                    lastNonBlankRow = r
+                    break
+                }
+            }
+            val lastActiveRow = maxOf(cursorY, lastNonBlankRow).coerceIn(0, oldRows - 1)
+
+            val newPrimaryGrid: Array<Array<TerminalChar>>
+
+            if (newRows < oldRows) {
+                if (lastActiveRow < newRows) {
+                    newPrimaryGrid = Array(newRows) { r ->
+                        if (r < oldRows) resizeRow(oldGrid[r]) else Array(newCols) { TerminalChar() }
+                    }
+                } else {
+                    val linesToScroll = lastActiveRow - (newRows - 1)
+                    for (r in 0 until linesToScroll) {
+                        if (r < oldRows) {
+                            scrollback.add(resizeRow(oldGrid[r]))
+                            if (scrollback.size > maxScrollback) {
+                                scrollback.removeAt(0)
+                            }
+                        }
+                    }
+                    newPrimaryGrid = Array(newRows) { r ->
+                        val srcRow = r + linesToScroll
+                        if (srcRow < oldRows) resizeRow(oldGrid[srcRow]) else Array(newCols) { TerminalChar() }
+                    }
+                    cursorY = (cursorY - linesToScroll).coerceIn(0, newRows - 1)
+                    savedCursorY = (savedCursorY - linesToScroll).coerceIn(0, newRows - 1)
+                }
+            } else if (newRows > oldRows) {
+                val extraRows = newRows - oldRows
+                val linesToPull = minOf(extraRows, scrollback.size)
+                newPrimaryGrid = Array(newRows) { r ->
+                    when {
+                        r < linesToPull -> {
+                            val sbIndex = scrollback.size - linesToPull + r
+                            resizeRow(scrollback[sbIndex])
+                        }
+                        r < linesToPull + oldRows -> {
+                            val srcRow = r - linesToPull
+                            if (srcRow < oldRows) resizeRow(oldGrid[srcRow]) else Array(newCols) { TerminalChar() }
+                        }
+                        else -> {
+                            Array(newCols) { TerminalChar() }
+                        }
+                    }
+                }
+                repeat(linesToPull) {
+                    if (scrollback.isNotEmpty()) {
+                        scrollback.removeAt(scrollback.size - 1)
+                    }
+                }
+                cursorY = (cursorY + linesToPull).coerceIn(0, newRows - 1)
+                savedCursorY = (savedCursorY + linesToPull).coerceIn(0, newRows - 1)
+            } else {
+                newPrimaryGrid = Array(newRows) { r ->
+                    if (r < oldRows) resizeRow(oldGrid[r]) else Array(newCols) { TerminalChar() }
+                }
+            }
+
+            primaryGrid = newPrimaryGrid
+            altGrid = Array(newRows) { Array(newCols) { TerminalChar() } }
+            grid = primaryGrid
+        } else {
+            val shift = if (cursorY >= newRows) cursorY - (newRows - 1) else 0
+            altGrid = Array(newRows) { r ->
+                val srcRow = r + shift
+                if (srcRow < oldRows) resizeRow(altGrid[srcRow]) else Array(newCols) { TerminalChar() }
+            }
+            primaryGrid = Array(newRows) { r ->
+                if (r < primaryGrid.size) resizeRow(primaryGrid[r]) else Array(newCols) { TerminalChar() }
+            }
+            grid = altGrid
+            cursorY = (cursorY - shift).coerceIn(0, newRows - 1)
+            savedCursorY = (savedCursorY - shift).coerceIn(0, newRows - 1)
+        }
+
+        cols = newCols
+        rows = newRows
 
         scrollTop = 0
         scrollBottom = rows - 1
 
         cursorX = cursorX.coerceIn(0, cols - 1)
-        cursorY = cursorY.coerceIn(0, rows - 1)
+        savedCursorX = savedCursorX.coerceIn(0, cols - 1)
+        if (scrollOffset > 0) {
+            scrollOffset = scrollOffset.coerceIn(0, scrollback.size)
+        }
     }
 
     @Synchronized

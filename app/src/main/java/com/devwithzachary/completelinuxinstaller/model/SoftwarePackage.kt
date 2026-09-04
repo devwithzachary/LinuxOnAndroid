@@ -91,6 +91,16 @@ data class SoftwarePackage(
             return false
         }
 
+        fun buildNginxLaunchCommand(port: Int = 8080): String {
+            val validPort = if (port in 1..65535) port else 8080
+            return "(sed -i 's/\\b80\\b/$validPort/g' /etc/nginx/sites-available/default /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf /etc/nginx/http.d/*.conf /etc/nginx/nginx.conf 2>/dev/null || true); (sed -i 's/^\\s*user\\s\\+www-data/#user www-data/' /etc/nginx/nginx.conf 2>/dev/null || true); mkdir -p /run /var/log/nginx /var/lib/nginx 2>/dev/null && chmod -R 777 /run /var/log/nginx /var/lib/nginx 2>/dev/null || true; service nginx start 2>/dev/null || /usr/sbin/service nginx start 2>/dev/null || nginx 2>/dev/null || /usr/sbin/nginx 2>/dev/null || /usr/bin/nginx 2>/dev/null"
+        }
+
+        fun buildNginxPostInstallNotes(port: Int = 8080): String {
+            val validPort = if (port in 1..65535) port else 8080
+            return "NGINX HTTP server listening on port $validPort. Test in your browser or with 'curl http://localhost:$validPort'."
+        }
+
         fun buildSshLaunchCommand(port: Int = 2222): String {
             val validPort = if (port in 1..65535) port else 2222
             return "mkdir -p /run/sshd /var/run/sshd /var/empty && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true && (killall -9 sshd 2>/dev/null || true) && /usr/sbin/sshd -p $validPort"
@@ -167,11 +177,11 @@ data class SoftwarePackage(
                     category = SoftwareCategory.WEB_SERVER,
                     description = "High-performance HTTP web server and embedded database engine.",
                     iconName = "Dns",
-                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS nginx sqlite3 curl ca-certificates",
-                    launchCommand = "service nginx start",
-                    postInstallNotes = "Server starts on port 80 or 8080. Test with 'curl http://localhost'.",
+                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS nginx sqlite3 curl ca-certificates && (sed -i 's/\\b80\\b/8080/g' /etc/nginx/sites-available/default /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf /etc/nginx/http.d/*.conf /etc/nginx/nginx.conf 2>/dev/null || true) && (sed -i 's/^\\s*user\\s\\+www-data/#user www-data/' /etc/nginx/nginx.conf 2>/dev/null || true) && mkdir -p /run /var/log/nginx /var/lib/nginx && chmod -R 777 /run /var/log/nginx /var/lib/nginx 2>/dev/null || true",
+                    launchCommand = buildNginxLaunchCommand(),
+                    postInstallNotes = buildNginxPostInstallNotes(),
                     expectedBinaries = listOf("usr/sbin/nginx", "usr/bin/sqlite3"),
-                    version = 2
+                    version = 3
                 ),
                 SoftwarePackage(
                     id = "openssh_server",
