@@ -410,13 +410,29 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                                 } catch (_: Exception) {
                                     destFile.delete()
                                 }
+                                var linked = false
                                 try {
                                     android.system.Os.link(sourceFile.absolutePath, destFile.absolutePath)
+                                    linked = true
                                 } catch (_: Exception) {
+                                    // Hard links fail on Android due to SELinux restrictions.
+                                    // Create a relative symlink first to avoid duplicating large multicall binaries (e.g. uutils/rust-coreutils)
                                     try {
-                                        sourceFile.copyTo(destFile, overwrite = true)
-                                    } catch (_: Exception) {}
+                                        val parent = destFile.parentFile ?: targetDir
+                                        val relPath = sourceFile.relativeTo(parent).path
+                                        android.system.Os.symlink(relPath, destFile.absolutePath)
+                                        linked = true
+                                    } catch (_: Exception) {
+                                        try {
+                                            sourceFile.copyTo(destFile, overwrite = true)
+                                        } catch (_: Exception) {}
+                                    }
                                 }
+                                val isExec = (mode and 0x49L) != 0L || entryName.contains("bin/") || entryName.endsWith(".sh") || sourceFile.canExecute()
+                                if (isExec) {
+                                    destFile.setExecutable(true, false)
+                                }
+                                destFile.setReadable(true, false)
                             }
                             val remainder = (512 - (size % 512)) % 512
                             if (remainder > 0) skipBytes(stream, remainder)
@@ -767,6 +783,33 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             envProfileScript.setReadable(true, false)
         } catch (_: Exception) {
         }
+
+        // Ensure execution and read permissions across all system binary directories and uutils/rust-coreutils
+        val binaryDirs = listOf(
+            File(rootfsDir, "bin"),
+            File(rootfsDir, "sbin"),
+            File(rootfsDir, "usr/bin"),
+            File(rootfsDir, "usr/sbin"),
+            File(rootfsDir, "usr/local/bin"),
+            File(rootfsDir, "usr/local/sbin"),
+            File(rootfsDir, "usr/lib/cargo/bin/coreutils"),
+            File(rootfsDir, "usr/lib/cargo/bin"),
+            File(rootfsDir, "usr/libexec")
+        )
+        for (bDir in binaryDirs) {
+            if (bDir.exists()) {
+                try {
+                    bDir.setExecutable(true, false)
+                    bDir.setReadable(true, false)
+                    bDir.listFiles()?.forEach { binFile ->
+                        if (binFile.isFile) {
+                            binFile.setExecutable(true, false)
+                            binFile.setReadable(true, false)
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+        }
     }
 
     private fun fixPermissionsRecursively(file: File) {
@@ -949,7 +992,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             File(pamDir, "su-l").writeText(pamContent)
         } catch (_: Exception) {}
 
-        if (distroDef.packageManager == com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT) {
+            if (distroDef.packageManager == com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT) {
             val aptDir = File(etcDir, "apt").apply { if (!exists()) mkdirs() }
             val aptConfDir = File(aptDir, "apt.conf.d").apply { mkdirs() }
             try {
@@ -961,6 +1004,33 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                             "Acquire::ForceIPv4 \"true\";\n"
                 )
             } catch (_: Exception) {}
+        }
+
+        // Ensure execution and read permissions across all system binary directories and uutils/rust-coreutils
+        val binaryDirs = listOf(
+            File(targetDir, "bin"),
+            File(targetDir, "sbin"),
+            File(targetDir, "usr/bin"),
+            File(targetDir, "usr/sbin"),
+            File(targetDir, "usr/local/bin"),
+            File(targetDir, "usr/local/sbin"),
+            File(targetDir, "usr/lib/cargo/bin/coreutils"),
+            File(targetDir, "usr/lib/cargo/bin"),
+            File(targetDir, "usr/libexec")
+        )
+        for (bDir in binaryDirs) {
+            if (bDir.exists()) {
+                try {
+                    bDir.setExecutable(true, false)
+                    bDir.setReadable(true, false)
+                    bDir.listFiles()?.forEach { binFile ->
+                        if (binFile.isFile) {
+                            binFile.setExecutable(true, false)
+                            binFile.setReadable(true, false)
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
         }
     }
 

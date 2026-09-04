@@ -68,21 +68,25 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
             }
 
             val isApt = (distroDef?.packageManager == com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT) || (distroDef == null)
+            val postSudoFix = "chown -R 0:0 /etc/sudoers /etc/sudoers.d /etc/sudo.conf /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true; chmod 0440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true"
             val sanitizedCommand = if (isApt) {
                 "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                         "chmod 755 /usr /usr/local /usr/bin /usr/sbin /etc 2>/dev/null; " +
+                        "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
                         "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; " +
                         "rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /var/lib/dpkg/lock* /usr/bin/*.dpkg-new /usr/lib/*.dpkg-new 2>/dev/null; " +
                         "mkdir -p /etc/dpkg/dpkg.cfg.d && echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-overwrite >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confold >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confdef >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid; " +
                         "mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; " +
-                        "chmod 666 /var/lib/dpkg/status* 2>/dev/null; " + effectiveCommand +
-                        " ; chown -R 0:0 /etc/sudoers /etc/sudoers.d /etc/sudo.conf /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true; chmod 0440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true;"
+                        "chmod 666 /var/lib/dpkg/status* 2>/dev/null; " +
+                        "_LOA_ERR=0; ( " + effectiveCommand + " ) || _LOA_ERR=\$?; " +
+                        postSudoFix + "; exit \$_LOA_ERR;"
             } else {
                 "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                         "chmod 755 /usr /usr/local /usr/bin /usr/sbin /etc 2>/dev/null; " +
+                        "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
                         "mkdir -p /etc/sudoers.d /etc/pam.d /tmp 2>/dev/null; " +
-                        effectiveCommand +
-                        " ; chown -R 0:0 /etc/sudoers /etc/sudoers.d /etc/sudo.conf /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true; chmod 0440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true;"
+                        "_LOA_ERR=0; ( " + effectiveCommand + " ) || _LOA_ERR=\$?; " +
+                        postSudoFix + "; exit \$_LOA_ERR;"
             }
 
             val shellPath = when {

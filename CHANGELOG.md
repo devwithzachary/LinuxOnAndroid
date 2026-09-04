@@ -23,6 +23,7 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Rootfs Symlink & File Extraction Safety**: Preserves and safely unlinks rootfs symlinks without recursive deletion across archive extractions and software package installations.
 - **Cross-Distribution User Account Provisioning**: Robust fallback user record generation (`/etc/passwd`, `/etc/group`, `/etc/shadow`) and multi-path `su` binary resolution ensuring seamless terminal logins on Busybox and shadow environments (Alpine, Arch, Void, Debian, Ubuntu).
 - **High-Capacity Archive Extraction Engine**: Streamlined in-memory logging and hardened Tar extractor handling large distributions (e.g. Arch Linux ARM ~790MB archive, ~2.2GB rootfs) with hard-link resolution and heap protection.
+- **Ubuntu 26.04 Coreutils & Package Installation Fix**: Resolved an issue where Ubuntu 26.04's default `rust-coreutils` binaries in `/usr/lib/cargo/bin/coreutils/` lacked execution permissions due to Android SELinux hardlink restrictions. Hardened the archive extractor to link via relative symlinks and enforce `+rx` permissions, eliminating `python3.14-minimal` maintainer script failures (exit status 127) during 1-click package installs and accurately propagating subprocess exit codes in `SoftwareInstaller`.
 
 ### 🎛️ Installed Containers Dashboard & Per-Container Overview
 - **Three-Tab Container Detail Layout**: Split container details into dedicated "Overview", "Software", and "Settings" tabs with seamless sliding animations and swipe gestures.

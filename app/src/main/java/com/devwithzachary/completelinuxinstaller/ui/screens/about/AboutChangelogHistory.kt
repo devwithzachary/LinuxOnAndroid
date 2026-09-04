@@ -32,7 +32,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Multi-Distro Setup Wizard: Extended setup catalog allowing you to choose and install Debian 12, Alpine Linux 3.21 (ultra-fast ~10MB rootfs), Arch Linux ARM, Kali Linux CLI Tools, Void Linux, or Ubuntu 26.04 LTS.",
             "Interactive Dashboard & Per-Container Overview: Real-time container cards displaying installed distributions, RAM and disk usage, plus full per-container system overview screens.",
             "Filesystem & Software Hub Hardening: Safe rootfs symlink and file extraction without recursive deletion, robust cross-distro user account provisioning (/etc/passwd, /etc/group), high-capacity archive extractor for large rootfs distributions (Arch Linux ARM), automated setup wizard reset, accurate per-container storage tracking across hard links, and tailored 1-click software package scripts for all supported distributions.",
-            "Multi-Container Debug Diagnostics: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and checking required filesystem files."
+            "Multi-Container Debug Diagnostics: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and checking required filesystem files.",
+            "Ubuntu 26.04 Coreutils & Package Installation Fix: Fixed rust-coreutils binary execution permissions (/usr/lib/cargo/bin/coreutils) and tar hard link resolution preventing python3.14-minimal preinst maintainer script subprocess failures (exit status 127) during 1-click package installs."
         )
     ),
     ReleaseChangelog(

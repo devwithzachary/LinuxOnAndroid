@@ -31,6 +31,7 @@ class SoftwarePackageTest {
             assertTrue("Package ${pkg.id} must include dpkg recovery flag", pkg.installCommand.contains("dpkg --configure -a"))
             assertTrue("Package ${pkg.id} must include policy-rc.d service block", pkg.installCommand.contains("policy-rc.d"))
             assertTrue("Package ${pkg.id} must include messagebus system user initialization", pkg.installCommand.contains("messagebus:"))
+            assertTrue("Package ${pkg.id} must include cargo/libexec permission fixes", pkg.installCommand.contains("chmod -R 755 /usr/lib/cargo /usr/libexec"))
         }
     }
 
