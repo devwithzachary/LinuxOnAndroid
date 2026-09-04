@@ -92,4 +92,35 @@ class DistroCatalogTest {
         val defaultUbuntu = LinuxDistribution.defaultForArch("aarch64")
         assertEquals(450, defaultUbuntu.installedSizeMb)
     }
+
+    @Test
+    fun testDebian12_xfceDesktop_distroSpecificOverrides() {
+        val debian = DistroCatalog.DEBIAN_12
+        val installCmd = debian.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Debian install command must exist", installCmd)
+        assertTrue("Debian install command must contain tigervnc-tools", installCmd!!.contains("tigervnc-tools"))
+        assertTrue("Debian install command must contain x11-utils", installCmd.contains("x11-utils"))
+        assertTrue("Debian install command must create /usr/bin/bwrap via printf", installCmd.contains("> /usr/bin/bwrap"))
+        assertTrue("Debian install command must create /etc/vnc/xstartup via printf", installCmd.contains("> /etc/vnc/xstartup"))
+
+        val launchCmd = debian.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Debian must have distro-specific launch command for xfce_desktop", launchCmd)
+        assertTrue("Debian launch command must use debian password", launchCmd!!.contains("echo debian | vncpasswd"))
+        assertTrue("Debian launch command must support tigervncpasswd fallback", launchCmd.contains("tigervncpasswd"))
+
+        val expectedBinaries = debian.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Debian must define expected binaries for xfce_desktop", expectedBinaries)
+        assertTrue("Debian expected binaries must include vncpasswd", expectedBinaries!!.contains("usr/bin/vncpasswd"))
+        assertTrue("Debian expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
+
+        assertEquals("Debian xfce_desktop version must be 5", 5, debian.getSoftwarePackageVersion("xfce_desktop"))
+    }
+
+    @Test
+    fun testUbuntu2604_softwarePackageOverridesAreUnchanged() {
+        val ubuntu = DistroCatalog.UBUNTU_26_04
+        assertNull("Ubuntu should not override launch command by default", ubuntu.getSoftwarePackageLaunchCommand("xfce_desktop"))
+        assertNull("Ubuntu should not override expected binaries by default", ubuntu.getSoftwarePackageExpectedBinaries("xfce_desktop"))
+        assertNull("Ubuntu should not override version by default", ubuntu.getSoftwarePackageVersion("xfce_desktop"))
+    }
 }

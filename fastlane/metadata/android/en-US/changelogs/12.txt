@@ -4,3 +4,4 @@
 • Process & Port Isolation: Scopes active processes and ports per container.
 • Terminal Keyboard Fix: Preserves scrollback and prompt on keyboard open.
 • OpenSSH & SFTP Subsystem Fix: Deduplicates Subsystem sftp configuration.
+• Debian XFCE & VNC Fix: Bundles tigervnc-tools and fixes VNC launcher.

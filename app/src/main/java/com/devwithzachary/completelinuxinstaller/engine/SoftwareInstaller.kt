@@ -138,7 +138,8 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
             reader.close()
 
             if (exitCode == 0) {
-                RootfsMigrationManager.writePackageVersion(targetDir, pkg.id, pkg.version)
+                val effectiveVersion = distroDef?.getSoftwarePackageVersion(pkg.id) ?: pkg.version
+                RootfsMigrationManager.writePackageVersion(targetDir, pkg.id, effectiveVersion)
                 emit(InstallStepState.Progress(pkg.id, "Installation completed successfully!"))
                 emit(InstallStepState.Success(pkg.id, pkg.postInstallNotes))
             } else {

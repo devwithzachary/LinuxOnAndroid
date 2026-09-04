@@ -647,31 +647,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val rootfsDir = container?.rootDir ?: return _packages.value
         val installed = container.isInstalled && rootfsDir.exists()
         val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
+        val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(container.distroId.ifBlank { container.distroName })
 
         return _packages.value.map { pkg ->
+            val effectiveLaunchCommand = distroDef.getSoftwarePackageLaunchCommand(pkg.id, _sshPort.value) ?: pkg.launchCommand
+            val effectiveBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) ?: pkg.expectedBinaries
+            val effectiveVersion = distroDef.getSoftwarePackageVersion(pkg.id) ?: pkg.version
+            val hasDistroSpecificBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) != null
+
             if (pkg.status == InstallStatus.INSTALLING) {
-                pkg
+                pkg.copy(
+                    launchCommand = effectiveLaunchCommand,
+                    expectedBinaries = effectiveBinaries,
+                    version = effectiveVersion
+                )
             } else if (!installed) {
-                pkg.copy(status = InstallStatus.NOT_INSTALLED, hasUpgradeAvailable = false)
+                pkg.copy(
+                    status = InstallStatus.NOT_INSTALLED,
+                    hasUpgradeAvailable = false,
+                    launchCommand = effectiveLaunchCommand,
+                    expectedBinaries = effectiveBinaries,
+                    version = effectiveVersion
+                )
             } else {
-                val hasExpectedBinaries = pkg.expectedBinaries.isNotEmpty() &&
-                        pkg.expectedBinaries.all { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
-                val hasAnyExpectedBinary = pkg.expectedBinaries.isEmpty() ||
-                        pkg.expectedBinaries.any { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+                val hasExpectedBinaries = effectiveBinaries.isNotEmpty() &&
+                        effectiveBinaries.all { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+                val hasAnyExpectedBinary = effectiveBinaries.isEmpty() ||
+                        effectiveBinaries.any { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
 
-                val isPkgInstalled = (packageVersions.containsKey(pkg.id) && hasAnyExpectedBinary) ||
-                        hasExpectedBinaries ||
-                        (pkg.id.startsWith("custom_") && run {
-                            val binaryName = pkg.id.removePrefix("custom_")
-                            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/$binaryName") ||
-                            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/$binaryName") ||
-                            SoftwarePackage.isBinaryPresent(rootfsDir, "bin/$binaryName")
-                        })
+                val isPkgInstalled = if (hasDistroSpecificBinaries) {
+                    hasExpectedBinaries
+                } else {
+                    (packageVersions.containsKey(pkg.id) && hasAnyExpectedBinary) ||
+                            hasExpectedBinaries ||
+                            (pkg.id.startsWith("custom_") && run {
+                                val binaryName = pkg.id.removePrefix("custom_")
+                                SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/$binaryName") ||
+                                SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/$binaryName") ||
+                                SoftwarePackage.isBinaryPresent(rootfsDir, "bin/$binaryName")
+                            })
+                }
                 val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else pkg.status.takeIf { it == InstallStatus.FAILED } ?: InstallStatus.NOT_INSTALLED
-                val installedVer = if (isPkgInstalled) (packageVersions[pkg.id] ?: 1) else pkg.version
-                val hasUpgrade = isPkgInstalled && (installedVer < pkg.version)
+                val installedVer = if (isPkgInstalled) (packageVersions[pkg.id] ?: 1) else effectiveVersion
+                val hasUpgrade = isPkgInstalled && (installedVer < effectiveVersion)
 
-                pkg.copy(status = actualStatus, hasUpgradeAvailable = hasUpgrade)
+                pkg.copy(
+                    status = actualStatus,
+                    hasUpgradeAvailable = hasUpgrade,
+                    launchCommand = effectiveLaunchCommand,
+                    expectedBinaries = effectiveBinaries,
+                    version = effectiveVersion
+                )
             }
         }
     }
@@ -1032,7 +1058,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         val pkg = currentPackages[index]
         val effectiveCommand = distroDef.getSoftwarePackageInstallCommand(pkg.id, currentSshPort) ?: pkg.installCommand
-        currentPackages[index] = pkg.copy(
+        val effectiveVersion = distroDef.getSoftwarePackageVersion(pkg.id) ?: pkg.version
+        val targetPkg = pkg.copy(version = effectiveVersion)
+        currentPackages[index] = targetPkg.copy(
             status = InstallStatus.INSTALLING,
             progressMessage = "Initializing installation...",
             installLogs = "Starting installation of ${pkg.name} into ${container?.name ?: "container"}...\nExecuting script: $effectiveCommand\n"
@@ -1040,7 +1068,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _packages.value = currentPackages
 
         viewModelScope.launch {
-            softwareInstaller.installPackage(pkg, targetDir, distroDef, currentSshPort).collect { step ->
+            softwareInstaller.installPackage(targetPkg, targetDir, distroDef, currentSshPort).collect { step ->
                 val list = _packages.value.toMutableList()
                 val idx = list.indexOfFirst { it.id == packageId }
                 if (idx != -1) {
