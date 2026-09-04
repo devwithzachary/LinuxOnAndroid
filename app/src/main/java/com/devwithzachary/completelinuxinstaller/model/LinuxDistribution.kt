@@ -14,7 +14,7 @@ data class LinuxDistribution(
     val downloadUrl: String,
     val expectedSizeMb: Int = 33,
     val downloadSizeMb: Int = 33,
-    val installedSizeMb: Int = 1500,
+    val installedSizeMb: Int = 450,
     val description: String = "Barebones minimal Ubuntu LTS rootfs image for ARM64 / x86_64 non-rooted PRoot container."
 ) {
     companion object {

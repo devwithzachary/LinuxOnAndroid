@@ -97,13 +97,18 @@ fun ContainerDetailScreen(
     onCreateUser: (username: String, password: String, isSudo: Boolean, containerId: String) -> Unit = { _, _, _, _ -> },
     onDeleteUser: (username: String, containerId: String) -> Unit = { _, _ -> },
     onSetDefaultUser: (username: String, containerId: String) -> Unit = { _, _ -> },
-    onSetDnsServers: (servers: List<String>, containerId: String) -> Unit = { _, _ -> }
+    onSetDnsServers: (servers: List<String>, containerId: String) -> Unit = { _, _ -> },
+    onRefreshMetrics: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState(
         initialPage = initialTab.ordinal,
         pageCount = { ContainerDetailTab.entries.size }
     )
+
+    LaunchedEffect(Unit) {
+        onRefreshMetrics()
+    }
 
     LaunchedEffect(initialTab) {
         if (pagerState.currentPage != initialTab.ordinal) {
@@ -257,7 +262,8 @@ fun ContainerDetailScreen(
                             coroutineScope.launch {
                                 pagerState.animateScrollToPage(ContainerDetailTab.SOFTWARE.ordinal)
                             }
-                        }
+                        },
+                        onRefreshMetrics = onRefreshMetrics
                     )
                 }
 
@@ -316,7 +322,8 @@ private fun OverviewTabContent(
     isSshInstalled: Boolean,
     onKillProcess: (pid: Int) -> Unit,
     onRunPresetCommand: (command: String) -> Unit,
-    onNavigateToSoftwareTab: () -> Unit
+    onNavigateToSoftwareTab: () -> Unit,
+    onRefreshMetrics: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     var servicePrompt by remember { mutableStateOf<Pair<String, String>?>(null) }
@@ -430,7 +437,8 @@ private fun OverviewTabContent(
 
         // 4. Open Listening Ports Card
         NetworkListenerCard(
-            ports = metrics.listeningPorts
+            ports = metrics.listeningPorts,
+            onRefresh = onRefreshMetrics
         )
     }
 

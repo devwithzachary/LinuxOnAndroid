@@ -83,10 +83,18 @@ class SystemMonitorManagerTest {
         assertEquals("S", proc.state)
     }
 
+    @Test
+    fun testResolveServiceName_customSshPort() {
+        val mockManager = SystemMonitorManagerStub()
+        val customSsh = mockManager.resolveServiceName(22222, 22222)
+        assertEquals("OpenSSH Server", customSsh.first)
+        assertFalse(customSsh.second)
+    }
+
     private class SystemMonitorManagerStub {
-        fun resolveServiceName(port: Int): Pair<String, Boolean> {
+        fun resolveServiceName(port: Int, customSshPort: Int = 2222): Pair<String, Boolean> {
             return when (port) {
-                22, 2222 -> "OpenSSH Server" to false
+                22, 2222, customSshPort -> "OpenSSH Server" to false
                 5900, 5901, 5902 -> "TigerVNC Desktop (:1)" to false
                 80 -> "HTTP Web Server (NGINX / Apache)" to true
                 443 -> "HTTPS Web Server" to true

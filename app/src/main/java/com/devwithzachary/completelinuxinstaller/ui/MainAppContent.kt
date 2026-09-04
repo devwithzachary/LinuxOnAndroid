@@ -240,6 +240,9 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 },
                                 onSetDnsServers = { s, containerId ->
                                     viewModel.setDnsServers(s, containerId)
+                                },
+                                onRefreshMetrics = {
+                                    viewModel.triggerMetricsRefresh()
                                 }
                             )
                         } else {

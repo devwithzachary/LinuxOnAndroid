@@ -33,7 +33,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Interactive Dashboard & Per-Container Overview: Real-time container cards displaying installed distributions, RAM and disk usage, plus full per-container system overview screens.",
             "Filesystem & Software Hub Hardening: Safe rootfs symlink and file extraction without recursive deletion, robust cross-distro user account provisioning (/etc/passwd, /etc/group), high-capacity archive extractor for large rootfs distributions (Arch Linux ARM), automated setup wizard reset, accurate per-container storage tracking across hard links, and tailored 1-click software package scripts for all supported distributions.",
             "Multi-Container Debug Diagnostics: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and checking required filesystem files.",
-            "Ubuntu 26.04 Coreutils & Package Installation Fix: Fixed rust-coreutils binary execution permissions (/usr/lib/cargo/bin/coreutils) and tar hard link resolution preventing python3.14-minimal preinst maintainer script subprocess failures (exit status 127) during 1-click package installs."
+            "Ubuntu 26.04 Coreutils & Package Installation Fix: Fixed rust-coreutils binary execution permissions (/usr/lib/cargo/bin/coreutils) and tar hard link resolution preventing python3.14-minimal preinst maintainer script subprocess failures (exit status 127) during 1-click package installs.",
+            "Ubuntu 26.04 Wizard Size & Port Listener Recovery: Updated Ubuntu base installed size to 450MB in the setup wizard, restored active TCP port listening detection for multi-container services with process flag extraction, custom SSH port resolution, stale PID file purging (/proc liveness checks), and 1-tap card refresh."
         )
     ),
     ReleaseChangelog(

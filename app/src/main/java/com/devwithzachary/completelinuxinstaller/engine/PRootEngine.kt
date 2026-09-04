@@ -25,7 +25,33 @@ class PRootEngine(val context: Context) {
 
     private val filesDir: File get() = context.filesDir
     private val binDir: File get() = File(filesDir, "bin").apply { if (!exists()) mkdirs() }
-    val rootfsDir: File get() = File(filesDir, "ubuntu_rootfs")
+    val rootfsDir: File get() {
+        val legacy = File(filesDir, "ubuntu_rootfs")
+        if (ContainerManager.isRealRootfs(legacy)) {
+            return legacy
+        }
+        val containersDir = File(filesDir, "containers")
+        if (containersDir.exists() && containersDir.isDirectory) {
+            val prefs = context.getSharedPreferences("containers_prefs", Context.MODE_PRIVATE)
+            val defaultId = prefs.getString("default_container_id", null)
+            if (defaultId != null) {
+                val defaultDir = File(containersDir, defaultId)
+                val defaultRootfs = File(defaultDir, "rootfs")
+                if (ContainerManager.isRealRootfs(defaultRootfs)) return defaultRootfs
+                if (ContainerManager.isRealRootfs(defaultDir)) return defaultDir
+            }
+            val subdirs = containersDir.listFiles()
+            if (subdirs != null) {
+                for (sub in subdirs) {
+                    val candidate = File(sub, "rootfs")
+                    if (ContainerManager.isRealRootfs(candidate)) return candidate
+                    if (ContainerManager.isRealRootfs(sub)) return sub
+                }
+            }
+        }
+        return legacy
+    }
+
     val tmpDir: File get() = File(filesDir, "tmp").apply { if (!exists()) mkdirs() }
     val prootBinary: File get() {
         val nativeLibDir = File(context.applicationInfo.nativeLibraryDir)
@@ -41,7 +67,21 @@ class PRootEngine(val context: Context) {
     }
 
     fun isRootfsInstalled(dir: File = rootfsDir): Boolean {
-        return ContainerManager.isRealRootfs(dir)
+        if (ContainerManager.isRealRootfs(dir)) return true
+        if (dir == rootfsDir) {
+            val containersDir = File(filesDir, "containers")
+            if (containersDir.exists() && containersDir.isDirectory) {
+                val subdirs = containersDir.listFiles()
+                if (subdirs != null) {
+                    for (sub in subdirs) {
+                        if (ContainerManager.isRealRootfs(sub) || ContainerManager.isRealRootfs(File(sub, "rootfs"))) {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+        return false
     }
 
     suspend fun ensurePRootExecutable(): File = withContext(Dispatchers.IO) {

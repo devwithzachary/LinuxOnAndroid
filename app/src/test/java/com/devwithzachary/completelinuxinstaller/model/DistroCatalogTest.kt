@@ -84,4 +84,12 @@ class DistroCatalogTest {
             }
         }
     }
+
+    @Test
+    fun testUbuntu_installedSizeIs450Mb() {
+        assertEquals(450, DistroCatalog.UBUNTU_26_04.installedSizeMb)
+        assertEquals("450 MB", DistroCatalog.UBUNTU_26_04.formattedInstalledSize)
+        val defaultUbuntu = LinuxDistribution.defaultForArch("aarch64")
+        assertEquals(450, defaultUbuntu.installedSizeMb)
+    }
 }

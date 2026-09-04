@@ -98,7 +98,8 @@ class SystemMonitorManager(
 
         val processes = collectProcesses()
         val containerMemMb = processes.sumOf { it.rssMb }.toLong().coerceAtLeast(getFallbackAppMemoryMb())
-        val listeningPorts = collectListeningPorts(rootfsManager.isInstalled())
+        val isInstalled = rootfsManager.isInstalled() || (containerManager?.getAllContainers()?.any { it.isInstalled } == true)
+        val listeningPorts = collectListeningPorts(isInstalled)
 
         SystemResourceMetrics(
             containerMemoryUsedMb = containerMemMb,
@@ -213,11 +214,11 @@ class SystemMonitorManager(
         }
     }
 
-    fun collectListeningPorts(isInstalled: Boolean): List<ListeningPortInfo> {
+    fun collectListeningPorts(isInstalled: Boolean = true): List<ListeningPortInfo> {
         val portsFound = mutableSetOf<Int>()
         val result = mutableListOf<ListeningPortInfo>()
 
-        // 1. Parse /proc/net/tcp and /proc/net/tcp6 for TCP_LISTEN (state 0A)
+        // 1. Parse /proc/net/tcp and /proc/net/tcp6 for TCP_LISTEN (state 0A) if readable
         for (tcpPath in listOf("/proc/net/tcp", "/proc/net/tcp6")) {
             val tcpFile = File(tcpPath)
             if (tcpFile.canRead()) {
@@ -240,21 +241,54 @@ class SystemMonitorManager(
             }
         }
 
-        // 2. Active probe well-known container service ports if container is installed
+        val savedSshPort = try {
+            context.getSharedPreferences("terminal_theme_prefs", Context.MODE_PRIVATE).getInt("ssh_port", 2222)
+        } catch (_: Exception) { 2222 }
+
+        // 2. Active probe well-known container service ports if containers are present
         if (isInstalled) {
-            val rootfsDir = pRootEngine.rootfsDir
-            if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isVncRunning(rootfsDir)) {
-                portsFound.add(5901)
+            val rootDirsToCheck = mutableListOf<File>()
+            containerManager?.getAllContainers()?.forEach { c ->
+                if (c.isInstalled) rootDirsToCheck.add(c.rootDir)
             }
-            if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isNginxRunning(rootfsDir)) {
-                portsFound.add(80)
-            }
-            if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isSshRunning(rootfsDir, 2222)) {
-                portsFound.add(2222)
+            val pRootDefaultDir = pRootEngine.rootfsDir
+            if (pRootDefaultDir.exists() && rootDirsToCheck.none { it.absolutePath == pRootDefaultDir.absolutePath }) {
+                rootDirsToCheck.add(pRootDefaultDir)
             }
 
-            val probeCandidatePorts = listOf(22, 2222, 5900, 5901, 80, 8080, 3000, 5000, 8000, 8888, 9090)
-            for (candidate in probeCandidatePorts) {
+            val probeCandidatePorts = mutableSetOf(
+                22, 2222, savedSshPort, 5900, 5901, 5902, 80, 443, 8080, 3000, 5000, 8000, 8888, 9090, 5432, 3306, 6379, 27017
+            )
+
+            for (dir in rootDirsToCheck) {
+                if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isVncRunning(dir)) {
+                    probeCandidatePorts.add(5901)
+                }
+                if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isNginxRunning(dir)) {
+                    probeCandidatePorts.add(80)
+                    probeCandidatePorts.add(8080)
+                }
+                if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isSshRunning(dir, savedSshPort)) {
+                    probeCandidatePorts.add(savedSshPort)
+                }
+            }
+
+            // Also inspect running process command lines for explicit port flags (-p, --port, :port)
+            try {
+                val runningProcs = collectProcesses()
+                for (proc in runningProcs) {
+                    val cmd = proc.cmdline
+                    val matches = Regex("""(?:-p|--port|:)\s*(\d{2,5})""").findAll(cmd)
+                    for (m in matches) {
+                        val p = m.groupValues[1].toIntOrNull()
+                        if (p != null && p in 1..65535) {
+                            probeCandidatePorts.add(p)
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            for (candidate in probeCandidatePorts.sorted()) {
                 if (candidate !in portsFound && isPortOpenLocally(candidate)) {
                     portsFound.add(candidate)
                 }
@@ -262,7 +296,7 @@ class SystemMonitorManager(
         }
 
         for (port in portsFound.sorted()) {
-            val (serviceName, isWeb) = resolveServiceName(port)
+            val (serviceName, isWeb) = resolveServiceName(port, savedSshPort)
             result.add(
                 ListeningPortInfo(
                     port = port,
@@ -276,10 +310,10 @@ class SystemMonitorManager(
         return result
     }
 
-    fun resolveServiceName(port: Int): Pair<String, Boolean> {
+    fun resolveServiceName(port: Int, customSshPort: Int = 2222): Pair<String, Boolean> {
         return when (port) {
-            22, 2222 -> "OpenSSH Server" to false
-            5900, 5901, 5902 -> "TigerVNC Desktop (:1)" to false
+            22, 2222, customSshPort -> "OpenSSH Server" to false
+            5900, 5901, 5902 -> "TigerVNC Desktop (:${port - 5900})" to false
             80 -> "HTTP Web Server (NGINX / Apache)" to true
             443 -> "HTTPS Web Server" to true
             8080 -> "HTTP Alternate (NGINX / Tomcat)" to true
@@ -299,7 +333,7 @@ class SystemMonitorManager(
     private fun isPortOpenLocally(port: Int): Boolean {
         return try {
             Socket().use { socket ->
-                socket.connect(InetSocketAddress("127.0.0.1", port), 50)
+                socket.connect(InetSocketAddress("127.0.0.1", port), 100)
                 true
             }
         } catch (_: Exception) {

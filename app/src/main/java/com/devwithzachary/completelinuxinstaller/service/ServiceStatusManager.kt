@@ -54,25 +54,73 @@ object ServiceStatusManager {
         }
     }
 
+    fun isPidAlive(pid: Int, expectedName: String? = null): Boolean {
+        if (pid <= 0) return false
+        val procDir = File("/proc/$pid")
+        if (!procDir.exists() || !procDir.isDirectory) return false
+        if (expectedName != null) {
+            val cmdlineFile = File(procDir, "cmdline")
+            val commFile = File(procDir, "comm")
+            val cmdline = if (cmdlineFile.canRead()) {
+                try { cmdlineFile.readText() } catch (_: Exception) { "" }
+            } else ""
+            val comm = if (commFile.canRead()) {
+                try { commFile.readText().trim() } catch (_: Exception) { "" }
+            } else ""
+            if (!cmdline.contains(expectedName, ignoreCase = true) && !comm.contains(expectedName, ignoreCase = true)) {
+                return false
+            }
+        }
+        return true
+    }
+
     fun isVncRunning(rootfsDir: File?): Boolean {
-        if (rootfsDir == null || !rootfsDir.exists()) return isPortListening(5901)
-        val x11Unix = File(rootfsDir, "tmp/.X11-unix/X1")
+        if (isPortListening(5901)) return true
+        if (rootfsDir == null || !rootfsDir.exists()) return false
         val lock = File(rootfsDir, "tmp/.X1-lock")
-        return (x11Unix.exists() || lock.exists()) || isPortListening(5901)
+        val x11Unix = File(rootfsDir, "tmp/.X11-unix/X1")
+        if (lock.exists()) {
+            val pid = try { lock.readText().trim().toIntOrNull() } catch (_: Exception) { null }
+            if (pid != null && isPidAlive(pid, "Xtigervnc")) {
+                return true
+            } else {
+                try {
+                    lock.delete()
+                    x11Unix.delete()
+                } catch (_: Exception) {}
+            }
+        }
+        return false
     }
 
     fun isNginxRunning(rootfsDir: File?): Boolean {
-        if (rootfsDir == null || !rootfsDir.exists()) return isPortListening(80)
-        val pidFile = File(rootfsDir, "run/nginx.pid")
-        val varPid = File(rootfsDir, "var/run/nginx.pid")
-        return pidFile.exists() || varPid.exists() || isPortListening(80) || isPortListening(8080)
+        if (isPortListening(80) || isPortListening(8080)) return true
+        if (rootfsDir == null || !rootfsDir.exists()) return false
+        val pidFile = File(rootfsDir, "run/nginx.pid").let { if (it.exists()) it else File(rootfsDir, "var/run/nginx.pid") }
+        if (pidFile.exists()) {
+            val pid = try { pidFile.readText().trim().toIntOrNull() } catch (_: Exception) { null }
+            if (pid != null && isPidAlive(pid, "nginx")) {
+                return true
+            } else {
+                try { pidFile.delete() } catch (_: Exception) {}
+            }
+        }
+        return false
     }
 
     fun isSshRunning(rootfsDir: File?, sshPort: Int): Boolean {
-        if (rootfsDir == null || !rootfsDir.exists()) return isPortListening(sshPort)
-        val pidFile = File(rootfsDir, "run/sshd.pid")
-        val varPid = File(rootfsDir, "var/run/sshd.pid")
-        return pidFile.exists() || varPid.exists() || isPortListening(sshPort)
+        if (isPortListening(sshPort)) return true
+        if (rootfsDir == null || !rootfsDir.exists()) return false
+        val pidFile = File(rootfsDir, "run/sshd.pid").let { if (it.exists()) it else File(rootfsDir, "var/run/sshd.pid") }
+        if (pidFile.exists()) {
+            val pid = try { pidFile.readText().trim().toIntOrNull() } catch (_: Exception) { null }
+            if (pid != null && isPidAlive(pid, "sshd")) {
+                return true
+            } else {
+                try { pidFile.delete() } catch (_: Exception) {}
+            }
+        }
+        return false
     }
 
     fun getAppMemoryMb(): Long {

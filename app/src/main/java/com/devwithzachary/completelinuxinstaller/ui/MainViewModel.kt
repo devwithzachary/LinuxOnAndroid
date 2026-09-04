@@ -158,6 +158,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _systemMetrics.value = metrics
     }
 
+    fun triggerMetricsRefresh() {
+        viewModelScope.launch(Dispatchers.IO) {
+            refreshSystemMetrics()
+        }
+    }
+
     private fun startSystemMonitorLoop() {
         viewModelScope.launch(Dispatchers.IO) {
             while (isActive) {

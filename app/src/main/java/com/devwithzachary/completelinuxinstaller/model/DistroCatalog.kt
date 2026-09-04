@@ -82,7 +82,7 @@ object DistroCatalog {
         packageManager = PackageManagerType.APT,
         defaultShell = "/bin/bash",
         downloadSizeMb = 33,
-        installedSizeMb = 1500,
+        installedSizeMb = 450,
         colorHex = 0xFFE95420,
         isRecommended = true,
         downloadUrls = mapOf(
