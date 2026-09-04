@@ -220,23 +220,23 @@ fun ContainerDetailScreen(
         }
 
         val vncInstalled = remember(container.rootDirPath, packages, isVncInstalled) {
-            File(container.rootDir, "usr/bin/vncserver").exists() ||
-            File(container.rootDir, "usr/bin/tigervncserver").exists() ||
-            File(container.rootDir, "usr/bin/startxfce4").exists() ||
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/bin/vncserver") ||
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/bin/tigervncserver") ||
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/bin/startxfce4") ||
             packages.find { it.id == "xfce_desktop" }?.status == InstallStatus.INSTALLED ||
             (container.isDefault && isVncInstalled)
         }
 
         val nginxInstalled = remember(container.rootDirPath, packages, isNginxInstalled) {
-            File(container.rootDir, "usr/sbin/nginx").exists() ||
-            File(container.rootDir, "usr/bin/nginx").exists() ||
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/sbin/nginx") ||
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/bin/nginx") ||
             packages.find { it.id == "nginx_web" }?.status == InstallStatus.INSTALLED ||
             (container.isDefault && isNginxInstalled)
         }
 
         val sshInstalled = remember(container.rootDirPath, packages, isSshInstalled) {
-            File(container.rootDir, "usr/sbin/sshd").exists() ||
-            File(container.rootDir, "usr/bin/sshd").exists() ||
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/sbin/sshd") ||
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/bin/sshd") ||
             packages.find { it.id == "openssh_server" }?.status == InstallStatus.INSTALLED ||
             (container.isDefault && isSshInstalled)
         }

@@ -520,13 +520,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Sync individual package states against rootfs file system package tracking file and binaries
         val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
 
-        val hasVnc = installed && (File(rootfsDir, "usr/bin/vncserver").exists() || File(rootfsDir, "usr/bin/tigervncserver").exists() || File(rootfsDir, "usr/bin/startxfce4").exists() || packageVersions.containsKey("xfce_desktop"))
-        val hasNginx = installed && (File(rootfsDir, "usr/sbin/nginx").exists() || File(rootfsDir, "usr/bin/nginx").exists() || packageVersions.containsKey("nginx_web"))
-        val hasSsh = installed && (File(rootfsDir, "usr/sbin/sshd").exists() || File(rootfsDir, "usr/bin/sshd").exists() || packageVersions.containsKey("openssh_server"))
+        val hasVnc = installed && (
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/vncserver") ||
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/tigervncserver") ||
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/startxfce4") ||
+            packageVersions.containsKey("xfce_desktop")
+        )
+        val hasNginx = installed && (
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/nginx") ||
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/nginx") ||
+            packageVersions.containsKey("nginx_web")
+        )
+        val hasSsh = installed && (
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/sshd") ||
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/sshd") ||
+            packageVersions.containsKey("openssh_server")
+        )
         val users = if (installed) rootfsManager.getContainerUsers() else emptyList()
 
         val syncedPackages = _packages.value.map { pkg ->
-            if (!installed) {
+            if (pkg.status == InstallStatus.INSTALLING) {
+                pkg
+            } else if (!installed) {
                 pkg.copy(
                     status = InstallStatus.NOT_INSTALLED,
                     hasUpgradeAvailable = false,
@@ -534,14 +549,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     installLogs = ""
                 )
             } else {
-                val hasExpectedBinaries = pkg.expectedBinaries.isNotEmpty() && pkg.expectedBinaries.all { File(rootfsDir, it).exists() }
-                val isPkgInstalled = (packageVersions.containsKey(pkg.id) && hasExpectedBinaries) ||
+                val hasExpectedBinaries = pkg.expectedBinaries.isNotEmpty() &&
+                        pkg.expectedBinaries.all { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+                val hasAnyExpectedBinary = pkg.expectedBinaries.isEmpty() ||
+                        pkg.expectedBinaries.any { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+
+                val isPkgInstalled = (packageVersions.containsKey(pkg.id) && hasAnyExpectedBinary) ||
                         hasExpectedBinaries ||
                         (pkg.id.startsWith("custom_") && run {
                             val binaryName = pkg.id.removePrefix("custom_")
-                            File(rootfsDir, "usr/bin/$binaryName").exists() || File(rootfsDir, "usr/sbin/$binaryName").exists() || File(rootfsDir, "bin/$binaryName").exists()
+                            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/$binaryName") ||
+                            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/$binaryName") ||
+                            SoftwarePackage.isBinaryPresent(rootfsDir, "bin/$binaryName")
                         })
-                val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+                val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else pkg.status.takeIf { it == InstallStatus.FAILED } ?: InstallStatus.NOT_INSTALLED
                 val installedVer = if (isPkgInstalled) (packageVersions[pkg.id] ?: 1) else pkg.version
                 val hasUpgrade = isPkgInstalled && (installedVer < pkg.version)
 
@@ -587,6 +608,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         if (installed) {
             triggerAsyncStorageCalculation()
+        }
+    }
+
+    fun getPackagesForContainer(containerId: String): List<SoftwarePackage> {
+        val container = containerManager.getContainer(containerId)
+        val rootfsDir = container?.rootDir ?: return _packages.value
+        val installed = container.isInstalled && rootfsDir.exists()
+        val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
+
+        return _packages.value.map { pkg ->
+            if (pkg.status == InstallStatus.INSTALLING) {
+                pkg
+            } else if (!installed) {
+                pkg.copy(status = InstallStatus.NOT_INSTALLED, hasUpgradeAvailable = false)
+            } else {
+                val hasExpectedBinaries = pkg.expectedBinaries.isNotEmpty() &&
+                        pkg.expectedBinaries.all { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+                val hasAnyExpectedBinary = pkg.expectedBinaries.isEmpty() ||
+                        pkg.expectedBinaries.any { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+
+                val isPkgInstalled = (packageVersions.containsKey(pkg.id) && hasAnyExpectedBinary) ||
+                        hasExpectedBinaries ||
+                        (pkg.id.startsWith("custom_") && run {
+                            val binaryName = pkg.id.removePrefix("custom_")
+                            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/$binaryName") ||
+                            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/$binaryName") ||
+                            SoftwarePackage.isBinaryPresent(rootfsDir, "bin/$binaryName")
+                        })
+                val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else pkg.status.takeIf { it == InstallStatus.FAILED } ?: InstallStatus.NOT_INSTALLED
+                val installedVer = if (isPkgInstalled) (packageVersions[pkg.id] ?: 1) else pkg.version
+                val hasUpgrade = isPkgInstalled && (installedVer < pkg.version)
+
+                pkg.copy(status = actualStatus, hasUpgradeAvailable = hasUpgrade)
+            }
         }
     }
 

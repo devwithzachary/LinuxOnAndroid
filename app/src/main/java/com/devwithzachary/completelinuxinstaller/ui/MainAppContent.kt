@@ -171,10 +171,13 @@ fun MainAppContent(viewModel: MainViewModel) {
                             val initialTab = selectedContainerTarget?.second ?: com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab.OVERVIEW
                             val upgradeState by viewModel.upgradeState.collectAsStateWithLifecycle()
                             val dnsServers by viewModel.dnsServers.collectAsStateWithLifecycle()
+                            val detailPackages = remember(activeDetailContainer.id, packages) {
+                                viewModel.getPackagesForContainer(activeDetailContainer.id)
+                            }
                             ContainerDetailScreen(
                                 container = activeDetailContainer,
                                 metrics = systemMetrics,
-                                packages = packages,
+                                packages = detailPackages,
                                 initialTab = initialTab,
                                 isVncInstalled = dashboardState.isVncInstalled,
                                 isNginxInstalled = dashboardState.isNginxInstalled,

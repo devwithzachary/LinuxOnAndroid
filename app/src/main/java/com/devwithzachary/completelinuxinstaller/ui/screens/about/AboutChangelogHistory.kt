@@ -35,7 +35,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Multi-Container Debug Diagnostics: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and checking required filesystem files.",
             "Ubuntu 26.04 Coreutils & Package Installation Fix: Fixed rust-coreutils binary execution permissions (/usr/lib/cargo/bin/coreutils) and tar hard link resolution preventing python3.14-minimal preinst maintainer script subprocess failures (exit status 127) during 1-click package installs.",
             "Ubuntu 26.04 Wizard Size & Port Listener Recovery: Updated Ubuntu base installed size to 450MB in the setup wizard, restored active TCP port listening detection for multi-container services with process flag extraction, custom SSH port resolution, stale PID file purging (/proc liveness checks), and 1-tap card refresh.",
-            "Service & Preset Command Queuing: Fixed an issue where launching services (SSH, VNC, NGINX) or 1-click presets when a terminal was not open launched an empty terminal without executing the command, adding asynchronous command queuing with shell readiness signaling."
+            "Service & Preset Command Queuing: Fixed an issue where launching services (SSH, VNC, NGINX) or 1-click presets when a terminal was not open launched an empty terminal without executing the command, adding asynchronous command queuing with shell readiness signaling.",
+            "Rootfs Symlink-Aware Package Detection: Resolved an issue where installed packages using update-alternatives (such as XFCE 4 Desktop via /etc/alternatives/vncserver) were not marked as installed, adding container-relative symlink traversal and alias resolution."
         )
     ),
     ReleaseChangelog(
