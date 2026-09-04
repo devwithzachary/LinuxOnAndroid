@@ -195,7 +195,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 },
                                 onKillProcess = { pid -> viewModel.killProcess(pid) },
                                 onRunPresetCommand = { cmd ->
-                                    viewModel.sendTerminalCommand(cmd)
+                                    viewModel.sendTerminalCommand(cmd, activeDetailContainer.id)
                                     currentScreen = AppScreen.TERMINAL
                                 },
                                 onInstallPackage = { pkgId, containerId ->

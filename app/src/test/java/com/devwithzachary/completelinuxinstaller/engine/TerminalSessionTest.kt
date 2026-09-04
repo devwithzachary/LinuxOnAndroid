@@ -108,4 +108,44 @@ class TerminalSessionTest {
             rootDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun testTerminalSession_queueCommand_beforeSessionStart() {
+        val session = TerminalSession(
+            id = "sess_queue",
+            containerId = "container_ubuntu",
+            containerName = "Ubuntu Container",
+            loginUser = "root",
+            initialTitle = "Ubuntu Tab"
+        )
+
+        assertFalse(session.hasPendingCommands)
+        assertEquals(emptyList<String>(), session.pendingCommandsList)
+
+        // Queue valid command
+        session.queueCommand("service ssh start")
+        assertTrue(session.hasPendingCommands)
+        assertEquals(listOf("service ssh start"), session.pendingCommandsList)
+
+        // Blank/whitespace should be ignored
+        session.queueCommand("   ")
+        assertEquals(listOf("service ssh start"), session.pendingCommandsList)
+
+        // Queue second command
+        session.queueCommand("echo ready")
+        assertEquals(listOf("service ssh start", "echo ready"), session.pendingCommandsList)
+    }
+
+    @Test
+    fun testTerminalBridge_sendCommand_createsSessionAndQueues() {
+        val bridge = TerminalBridge(null)
+        assertTrue(bridge.sessions.value.isEmpty())
+
+        bridge.sendCommand("service ssh start")
+        assertEquals(1, bridge.sessions.value.size)
+        val session = bridge.getActiveSession()
+        assertNotNull(session)
+        assertTrue(session!!.hasPendingCommands)
+        assertEquals(listOf("service ssh start"), session.pendingCommandsList)
+    }
 }

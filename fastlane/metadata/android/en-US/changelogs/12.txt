@@ -3,3 +3,4 @@
 • Multi-Distro Wizard: Debian 12, Alpine 3.21, Arch, Kali, Void, Ubuntu (450MB).
 • 3-Tab Container Layout: Scoped Overview, Software Hub, and Settings.
 • Port Listener & Ubuntu Fix: Restored open port detection and fixed Ubuntu 26.04 1-click installs.
+• Service Launcher Fix: Queued command execution for SSH, VNC, and NGINX.

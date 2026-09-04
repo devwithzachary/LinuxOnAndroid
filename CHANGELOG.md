@@ -10,6 +10,7 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Session Renaming & Custom Titles**: Long-press on any tab chip to give it a custom name (e.g. "Web Server", "Database", "Compiler").
 - **Container-Specific Tabs**: Open new terminal tabs bound directly into different installed rootfs environments from a single unified screen.
 - **Independent PTY Subprocesses**: Each tab operates its own isolated pseudo-terminal (PTY) process, buffering output and maintaining full interactive state in the background.
+- **Service & Preset Command Queuing**: Resolved an issue where tapping service launcher buttons (SSH, VNC, NGINX) or 1-click launchers when no terminal was open created an empty terminal tab without executing the command. Added asynchronous command queuing with shell readiness signaling to reliably execute preset commands once the container shell initializes.
 
 ### 🐧 Multiple Rootfs Distributions & Extended Setup Wizard
 - **Multi-Distribution Catalog**: Choose from 6 distinct Linux distributions tailored for different use cases:

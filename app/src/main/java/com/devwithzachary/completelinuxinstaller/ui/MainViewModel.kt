@@ -855,13 +855,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshStatus()
     }
 
-    fun sendTerminalCommand(command: String) {
-        if (!terminalBridge.isRunning.value) {
-            startTerminalSession()
-        } else if (_isKeepAliveEnabled.value) {
+    fun sendTerminalCommand(command: String, containerId: String? = null) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetId = container?.id ?: com.devwithzachary.completelinuxinstaller.engine.ContainerManager.DEFAULT_CONTAINER_ID
+        val targetName = container?.name ?: "Ubuntu"
+        val rootDir = container?.rootDir ?: pRootEngine.rootfsDir
+        val user = container?.defaultUser ?: _defaultTerminalUser.value
+        val shell = container?.defaultShell
+
+        val existingSession = terminalBridge.sessions.value.find { it.containerId == targetId }
+        if (existingSession != null) {
+            terminalBridge.switchActiveSession(existingSession.id)
+            existingSession.queueCommand(command)
+            if (!existingSession.isRunning.value) {
+                existingSession.startSession(pRootEngine, rootDir, shell)
+            }
+        } else {
+            val session = terminalBridge.createSession(
+                containerId = targetId,
+                containerName = targetName,
+                loginUser = user,
+                rootfsDir = rootDir,
+                defaultShell = shell,
+                autoStart = false
+            )
+            session.queueCommand(command)
+            session.startSession(pRootEngine, rootDir, shell)
+        }
+
+        if (_isKeepAliveEnabled.value) {
             PRootForegroundService.start(getApplication())
         }
-        terminalBridge.sendCommand(command)
+        refreshStatus()
     }
 
     fun sendCtrlC() {

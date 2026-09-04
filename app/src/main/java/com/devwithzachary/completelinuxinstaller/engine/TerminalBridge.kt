@@ -215,8 +215,23 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         getActiveSession()?.sendKeyShortcut(key)
     }
 
+    fun queueCommand(command: String, sessionId: String? = null) {
+        val session = if (sessionId != null) {
+            _sessions.value.find { it.id == sessionId }
+        } else {
+            getActiveSession()
+        }
+        session?.queueCommand(command)
+    }
+
     fun sendCommand(command: String) {
-        sendInput(command + "\n")
+        val active = getActiveSession()
+        if (active != null) {
+            active.queueCommand(command)
+        } else {
+            val session = createSession(autoStart = true)
+            session.queueCommand(command)
+        }
     }
 
     fun sendCtrlC() {

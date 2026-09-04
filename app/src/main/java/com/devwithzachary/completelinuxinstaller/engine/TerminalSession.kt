@@ -3,13 +3,17 @@ package com.devwithzachary.completelinuxinstaller.engine
 import android.system.Os
 import android.util.Log
 import java.io.File
+import java.util.concurrent.ConcurrentLinkedQueue
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class TerminalSession(
     val id: String,
@@ -43,12 +47,61 @@ class TerminalSession(
     private var ptyProcess: PtyProcess? = null
     private var sessionJob: Job? = null
 
+    private val pendingCommands = ConcurrentLinkedQueue<String>()
+    private var shellReadySignal = CompletableDeferred<Unit>()
+    private var dispatchJob: Job? = null
+
+    val hasPendingCommands: Boolean
+        get() = pendingCommands.isNotEmpty()
+
+    val pendingCommandsList: List<String>
+        get() = pendingCommands.toList()
+
+    fun queueCommand(command: String) {
+        val trimmed = command.trim()
+        if (trimmed.isEmpty()) return
+
+        if (_isRunning.value && ptyProcess != null && shellReadySignal.isCompleted) {
+            sendCommand(trimmed)
+        } else {
+            pendingCommands.offer(trimmed)
+            if (_isRunning.value) {
+                schedulePendingCommandsDispatch()
+            }
+        }
+    }
+
+    private fun schedulePendingCommandsDispatch() {
+        if (dispatchJob?.isActive == true) return
+        dispatchJob = sessionScope.launch(Dispatchers.IO) {
+            try {
+                withTimeoutOrNull(2000) {
+                    shellReadySignal.await()
+                }
+            } catch (_: Exception) {}
+            delay(400)
+            while (_isRunning.value && pendingCommands.isNotEmpty()) {
+                val cmd = pendingCommands.poll() ?: break
+                sendCommand(cmd)
+                delay(200)
+            }
+        }
+    }
+
+    fun sendCommand(command: String) {
+        sendInput(command + "\n")
+    }
+
     fun startSession(
         pRootEngine: PRootEngine,
         rootfsDir: File = pRootEngine.rootfsDir,
         defaultShell: String? = null
     ) {
         if (_isRunning.value) return
+
+        if (shellReadySignal.isCompleted) {
+            shellReadySignal = CompletableDeferred()
+        }
 
         sessionJob = sessionScope.launch {
             try {
@@ -115,6 +168,10 @@ class TerminalSession(
 
                 Log.d(TAG, "PTY Subprocess [$id - ${title.value}] launched successfully with PID ${outPid[0]}")
 
+                if (pendingCommands.isNotEmpty()) {
+                    schedulePendingCommandsDispatch()
+                }
+
                 val buffer = ByteArray(4096)
                 while (_isRunning.value) {
                     val bytesRead = try {
@@ -127,12 +184,21 @@ class TerminalSession(
 
                     emulator.appendBytes(buffer, bytesRead)
                     _refreshTrigger.value = System.currentTimeMillis()
+
+                    if (!shellReadySignal.isCompleted) {
+                        shellReadySignal.complete(Unit)
+                    }
                 }
 
                 PtyNative.waitForProcess(outPid[0])
             } catch (e: Exception) {
                 Log.e(TAG, "Error in PTY session $id", e)
             } finally {
+                if (!shellReadySignal.isCompleted) {
+                    shellReadySignal.complete(Unit)
+                }
+                dispatchJob?.cancel()
+                dispatchJob = null
                 _isRunning.value = false
                 ptyProcess = null
                 _refreshTrigger.value = System.currentTimeMillis()
@@ -142,6 +208,11 @@ class TerminalSession(
 
     fun stopSession() {
         _isRunning.value = false
+        if (!shellReadySignal.isCompleted) {
+            shellReadySignal.complete(Unit)
+        }
+        dispatchJob?.cancel()
+        dispatchJob = null
         try {
             ptyProcess?.let { proc ->
                 try {
@@ -166,7 +237,15 @@ class TerminalSession(
         emulator.scrollToBottom()
         sessionScope.launch(writeDispatcher) {
             try {
-                val proc = ptyProcess
+                var proc = ptyProcess
+                if (proc == null && _isRunning.value) {
+                    var waited = 0
+                    while (proc == null && _isRunning.value && waited < 1000) {
+                        delay(50)
+                        waited += 50
+                        proc = ptyProcess
+                    }
+                }
                 if (proc != null && _isRunning.value) {
                     val bytes = input.toByteArray(Charsets.UTF_8)
                     Os.write(proc.parcelFd.fileDescriptor, bytes, 0, bytes.size)
