@@ -97,7 +97,8 @@ class TerminalSession(
     fun startSession(
         pRootEngine: PRootEngine,
         rootfsDir: File = pRootEngine.rootfsDir,
-        defaultShell: String? = null
+        defaultShell: String? = null,
+        candidateShells: List<String>? = null
     ) {
         if (_isRunning.value) return
 
@@ -113,25 +114,38 @@ class TerminalSession(
                     tmpDir = pRootEngine.tmpDir
                 )
 
-                val candidateShells = listOfNotNull(
+                fun isValidShell(relPath: String): Boolean {
+                    val file = File(rootfsDir, relPath.removePrefix("/"))
+                    if (!file.exists()) return false
+                    if (relPath.contains("bash")) {
+                        try {
+                            val canonical = file.canonicalPath
+                            if (canonical.endsWith("/busybox") || canonical.endsWith("/sh")) {
+                                return false
+                            }
+                        } catch (_: Exception) {}
+                    }
+                    return true
+                }
+
+                val candidates = candidateShells ?: listOfNotNull(
                     defaultShell,
-                    "/usr/bin/bash",
                     "/bin/bash",
-                    "/usr/bin/dash",
+                    "/usr/bin/bash",
                     "/bin/dash",
-                    "/usr/bin/ash",
+                    "/usr/bin/dash",
                     "/bin/ash",
-                    "/usr/bin/sh",
-                    "/bin/sh"
+                    "/usr/bin/ash",
+                    "/bin/sh",
+                    "/usr/bin/sh"
                 )
-                val effectiveShell = candidateShells.firstOrNull { shell ->
-                    File(rootfsDir, shell.removePrefix("/")).exists()
-                } ?: "/bin/sh"
+                val effectiveShell = candidates.firstOrNull { isValidShell(it) } ?: defaultShell ?: "/bin/sh"
 
                 val cmdList = pRootEngine.buildPRootCommand(
                     config = customConfig,
                     command = listOf(effectiveShell, "-l"),
-                    loginUser = loginUser
+                    loginUser = loginUser,
+                    candidateShells = candidates
                 )
                 val cmdPath = cmdList[0]
                 val args = cmdList.toTypedArray()

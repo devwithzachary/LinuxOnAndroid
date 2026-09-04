@@ -1,7 +1,8 @@
-• Tabbed Terminal: Run multiple interactive terminal tabs concurrently.
-• Multi-Distro Rootfs: Install Debian, Alpine, Arch, Kali, Void, Ubuntu.
-• 3-Tab Container Layout: Scoped Overview, Software Hub, and Settings.
-• Process & Port Isolation: Scopes active processes and ports per container.
-• Terminal Keyboard Fix: Preserves scrollback and prompt on keyboard open.
-• OpenSSH & SFTP Subsystem Fix: Deduplicates Subsystem sftp configuration.
-• Debian XFCE & VNC Fix: Bundles tigervnc-tools and fixes VNC launcher.
+• Tabbed Terminal: Run multiple terminal tabs concurrently.
+• Multi-Distro Rootfs: Install Debian, Alpine, Arch, Kali, Void.
+• Container Layout: Scoped Overview, Software, and Settings tabs.
+• Isolation: Scopes active processes and ports per container.
+• Keyboard Fix: Preserves prompt when soft keyboard opens.
+• OpenSSH Fix: Resolves duplicate SFTP subsystem conflict.
+• Debian XFCE Fix: Bundles tigervnc-tools and fixes launcher.
+• Alpine Terminal Fix: Resolves bash applet error on login.

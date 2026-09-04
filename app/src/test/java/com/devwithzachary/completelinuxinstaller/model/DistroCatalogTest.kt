@@ -123,4 +123,31 @@ class DistroCatalogTest {
         assertNull("Ubuntu should not override expected binaries by default", ubuntu.getSoftwarePackageExpectedBinaries("xfce_desktop"))
         assertNull("Ubuntu should not override version by default", ubuntu.getSoftwarePackageVersion("xfce_desktop"))
     }
+
+    @Test
+    fun testAlpine321_candidateShells_prefersShAndAsh() {
+        val alpine = DistroCatalog.ALPINE_3_21
+        assertEquals("/bin/sh", alpine.defaultShell)
+        assertEquals(
+            listOf("/bin/sh", "/bin/ash", "/bin/bash", "/usr/bin/bash"),
+            alpine.candidateShells
+        )
+    }
+
+    @Test
+    fun testUbuntuAndDebian_candidateShells_useStandardBashHierarchy() {
+        val expected = listOf("/bin/bash", "/usr/bin/bash", "/bin/sh")
+        assertEquals(expected, DistroCatalog.UBUNTU_26_04.candidateShells)
+        assertEquals(expected, DistroCatalog.DEBIAN_12.candidateShells)
+    }
+
+    @Test
+    fun testAlpine321_firstLaunchScript_doesNotCreateBrokenBusyboxBashSymlink() {
+        val alpine = DistroCatalog.ALPINE_3_21
+        val script = alpine.buildFirstLaunchSetupScript("root123", "alpine", "alpine123", true)
+        // Must clean up any bad symlinks if present and not create broken /bin/bash -> /bin/sh
+        assertFalse("Script must not link /bin/sh to /bin/bash", script.contains("ln -sf /bin/sh /bin/bash"))
+        assertFalse("Script must not link /bin/sh to /usr/bin/bash", script.contains("ln -sf /bin/sh /usr/bin/bash"))
+        assertTrue("Script must link /bin/bash to /usr/bin/bash once bash is installed", script.contains("ln -sf /bin/bash /usr/bin/bash"))
+    }
 }

@@ -30,6 +30,7 @@ data class DistroDefinition(
     val description: String,
     val packageManager: PackageManagerType,
     val defaultShell: String = "/bin/bash",
+    val candidateShells: List<String> = listOf("/bin/bash", "/usr/bin/bash", "/bin/sh"),
     val downloadSizeMb: Int = 33,
     val installedSizeMb: Int = 1500,
     val downloadUrls: Map<SystemArchitecture, String>,
@@ -240,6 +241,7 @@ object DistroCatalog {
         description = "Ultra-lightweight musl and BusyBox environment. Boots instantly with minimal memory footprint and fast APK package manager.",
         packageManager = PackageManagerType.APK,
         defaultShell = "/bin/sh",
+        candidateShells = listOf("/bin/sh", "/bin/ash", "/bin/bash", "/usr/bin/bash"),
         downloadSizeMb = 3,
         installedSizeMb = 32,
         colorHex = 0xFF0D597F,
@@ -251,8 +253,8 @@ object DistroCatalog {
         firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                     "mkdir -p /etc/sudoers.d /etc/pam.d /home/$username 2>/dev/null; " +
-                    "[ -e /bin/bash ] || ln -sf /bin/sh /bin/bash 2>/dev/null || true; " +
-                    "[ -e /usr/bin/bash ] || ln -sf /bin/sh /usr/bin/bash 2>/dev/null || true; " +
+                    "([ -L /usr/bin/bash ] && [ \"\$(readlink /usr/bin/bash 2>/dev/null)\" = \"/bin/sh\" ] && rm -f /usr/bin/bash 2>/dev/null || true); " +
+                    "([ -L /bin/bash ] && [ \"\$(readlink /bin/bash 2>/dev/null)\" = \"/bin/sh\" ] && rm -f /bin/bash 2>/dev/null || true); " +
                     "(grep -q ^$username: /etc/passwd || echo \"$username:x:1000:1000:$username:/home/$username:/bin/sh\" >> /etc/passwd); " +
                     "(grep -q ^$username: /etc/group || echo \"$username:x:1000:\" >> /etc/group); " +
                     "(grep -q ^wheel: /etc/group && sed -i 's/^wheel:.*/&,$username/' /etc/group || echo \"wheel:x:10:root,$username\" >> /etc/group); " +
@@ -263,6 +265,7 @@ object DistroCatalog {
                     "printf 'auth sufficient pam_permit.so\\naccount sufficient pam_permit.so\\nsession sufficient pam_permit.so\\npassword sufficient pam_permit.so\\n' > /etc/pam.d/su 2>/dev/null || true; " +
                     "apk update 2>/dev/null; " +
                     "apk add --no-cache bash sudo shadow coreutils curl wget procps nano dialog 2>/dev/null || true; " +
+                    "[ -x /bin/bash ] && ln -sf /bin/bash /usr/bin/bash 2>/dev/null || true; " +
                     "echo \"root:$rootPassword\" | chpasswd 2>/dev/null; passwd -u root 2>/dev/null || true; " +
                     "echo \"$username:$userPassword\" | chpasswd 2>/dev/null; passwd -u $username 2>/dev/null || true"
         },

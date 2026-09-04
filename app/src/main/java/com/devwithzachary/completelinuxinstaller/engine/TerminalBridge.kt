@@ -91,7 +91,8 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         title: String? = null,
         rootfsDir: File? = pRootEngine?.rootfsDir,
         defaultShell: String? = null,
-        autoStart: Boolean = true
+        autoStart: Boolean = true,
+        candidateShells: List<String>? = null
     ): TerminalSession {
         val tabNum = _sessions.value.size + 1
         val sessionTitle = title ?: "Tab $tabNum: ${containerName.take(10)}"
@@ -110,7 +111,7 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         _activeSessionId.value = sessionId
 
         if (autoStart && pRootEngine != null && rootfsDir != null) {
-            session.startSession(pRootEngine, rootfsDir, defaultShell)
+            session.startSession(pRootEngine, rootfsDir, defaultShell, candidateShells)
         }
 
         return session
@@ -151,14 +152,15 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         containerId: String = "ubuntu_default",
         containerName: String = "Ubuntu",
         rootfsDir: File? = pRootEngine?.rootfsDir,
-        defaultShell: String? = null
+        defaultShell: String? = null,
+        candidateShells: List<String>? = null
     ) {
         val engine = pRootEngine ?: return
         val dir = rootfsDir ?: engine.rootfsDir
         val active = getActiveSession()
         if (active != null) {
             if (!active.isRunning.value) {
-                active.startSession(engine, dir, defaultShell)
+                active.startSession(engine, dir, defaultShell, candidateShells)
             }
         } else {
             createSession(
@@ -167,7 +169,8 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
                 loginUser = loginUser ?: "root",
                 rootfsDir = dir,
                 defaultShell = defaultShell,
-                autoStart = true
+                autoStart = true,
+                candidateShells = candidateShells
             )
         }
     }

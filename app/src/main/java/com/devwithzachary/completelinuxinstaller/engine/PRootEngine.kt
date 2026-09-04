@@ -138,7 +138,8 @@ class PRootEngine(val context: Context) {
     fun buildPRootCommand(
         config: PRootConfig = PRootConfig(rootfsDir = rootfsDir, tmpDir = tmpDir),
         command: List<String> = listOf("/bin/bash", "-l"),
-        loginUser: String? = null
+        loginUser: String? = null,
+        candidateShells: List<String>? = null
     ): List<String> {
         val cmdList = mutableListOf<String>()
         val prootExec = prootBinary
@@ -149,19 +150,44 @@ class PRootEngine(val context: Context) {
         val targetRootfs = config.rootfsDir
         val targetUser = loginUser?.takeIf { it.isNotBlank() }
 
-        val candidateShells = listOf(
-            "/usr/bin/bash",
+        // Heal stale /usr/bin/bash -> /bin/sh symlinks if real GNU bash is present at /bin/bash
+        val binBash = File(targetRootfs, "bin/bash")
+        val usrBinBash = File(targetRootfs, "usr/bin/bash")
+        if (binBash.exists() && binBash.length() > 10000L) {
+            try {
+                val canonical = if (usrBinBash.exists()) usrBinBash.canonicalPath else ""
+                if (!usrBinBash.exists() || canonical.endsWith("/sh") || canonical.endsWith("/busybox")) {
+                    usrBinBash.delete()
+                    java.nio.file.Files.createSymbolicLink(usrBinBash.toPath(), java.nio.file.Paths.get("/bin/bash"))
+                }
+            } catch (_: Exception) {}
+        }
+
+        fun isValidShell(relPath: String): Boolean {
+            val file = File(targetRootfs, relPath.removePrefix("/"))
+            if (!file.exists()) return false
+            if (relPath.contains("bash")) {
+                try {
+                    val canonical = file.canonicalPath
+                    if (canonical.endsWith("/busybox") || canonical.endsWith("/sh")) {
+                        return false
+                    }
+                } catch (_: Exception) {}
+            }
+            return true
+        }
+
+        val defaultCandidates = candidateShells ?: listOf(
             "/bin/bash",
-            "/usr/bin/dash",
+            "/usr/bin/bash",
             "/bin/dash",
-            "/usr/bin/ash",
+            "/usr/bin/dash",
             "/bin/ash",
-            "/usr/bin/sh",
-            "/bin/sh"
+            "/usr/bin/ash",
+            "/bin/sh",
+            "/usr/bin/sh"
         )
-        val guestShell = candidateShells.firstOrNull { relPath ->
-            File(targetRootfs, relPath.removePrefix("/")).exists()
-        } ?: "/bin/sh"
+        val guestShell = defaultCandidates.firstOrNull { isValidShell(it) } ?: "/bin/sh"
 
         val etcDir = File(targetRootfs, "etc").apply { if (!exists()) mkdirs() }
         val profileD = File(etcDir, "profile.d").apply { if (!exists()) mkdirs() }
@@ -321,8 +347,12 @@ class PRootEngine(val context: Context) {
         }
 
         val effectiveCommand = if (targetUser != null && targetUser != "root") {
-            listOf(suBin, "-s", guestShell, "-", targetUser)
-        } else if (command.isNotEmpty() && command[0].startsWith("/") && !File(targetRootfs, command[0].removePrefix("/")).exists()) {
+            val requestedShell = command.firstOrNull()?.takeIf {
+                it.startsWith("/") && isValidShell(it)
+            }
+            val shellToUse = requestedShell ?: guestShell
+            listOf(suBin, "-s", shellToUse, "-", targetUser)
+        } else if (command.isNotEmpty() && command[0].startsWith("/") && !isValidShell(command[0])) {
             listOf(guestShell) + command.drop(1)
         } else {
             command

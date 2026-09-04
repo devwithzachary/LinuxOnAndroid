@@ -37,6 +37,7 @@ import com.devwithzachary.completelinuxinstaller.engine.RootfsMigrationManager
 import com.devwithzachary.completelinuxinstaller.engine.RootfsVersionInfo
 import com.devwithzachary.completelinuxinstaller.engine.UpgradeState
 import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
+import com.devwithzachary.completelinuxinstaller.model.DistroCatalog
 import com.devwithzachary.completelinuxinstaller.service.PRootForegroundService
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
 
@@ -866,6 +867,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val rootDir = targetContainer?.rootDir ?: pRootEngine.rootfsDir
         val user = loginUser ?: targetContainer?.defaultUser ?: _defaultTerminalUser.value
         val shell = targetContainer?.defaultShell
+        val distro = targetContainer?.let { DistroCatalog.getById(it.distroId) }
+        val candidateShells = distro?.candidateShells
 
         terminalBridge.createSession(
             containerId = targetId,
@@ -874,7 +877,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             title = title,
             rootfsDir = rootDir,
             defaultShell = shell,
-            autoStart = true
+            autoStart = true,
+            candidateShells = candidateShells
         )
 
         if (_isKeepAliveEnabled.value) {
@@ -921,12 +925,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val rootDir = container?.rootDir ?: pRootEngine.rootfsDir
         val user = loginUser ?: container?.defaultUser ?: _defaultTerminalUser.value
         val shell = container?.defaultShell
+        val distro = container?.let { DistroCatalog.getById(it.distroId) }
+        val candidateShells = distro?.candidateShells
 
         val existingSession = terminalBridge.sessions.value.find { it.containerId == targetId }
         if (existingSession != null) {
             terminalBridge.switchActiveSession(existingSession.id)
             if (!existingSession.isRunning.value) {
-                existingSession.startSession(pRootEngine, rootDir, shell)
+                existingSession.startSession(pRootEngine, rootDir, shell, candidateShells)
             }
         } else {
             terminalBridge.createSession(
@@ -935,7 +941,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 loginUser = user,
                 rootfsDir = rootDir,
                 defaultShell = shell,
-                autoStart = true
+                autoStart = true,
+                candidateShells = candidateShells
             )
         }
 
@@ -974,13 +981,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val rootDir = container?.rootDir ?: pRootEngine.rootfsDir
         val user = container?.defaultUser ?: _defaultTerminalUser.value
         val shell = container?.defaultShell
+        val distro = container?.let { DistroCatalog.getById(it.distroId) }
+        val candidateShells = distro?.candidateShells
 
         val existingSession = terminalBridge.sessions.value.find { it.containerId == targetId }
         if (existingSession != null) {
             terminalBridge.switchActiveSession(existingSession.id)
             existingSession.queueCommand(command)
             if (!existingSession.isRunning.value) {
-                existingSession.startSession(pRootEngine, rootDir, shell)
+                existingSession.startSession(pRootEngine, rootDir, shell, candidateShells)
             }
         } else {
             val session = terminalBridge.createSession(
@@ -989,10 +998,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 loginUser = user,
                 rootfsDir = rootDir,
                 defaultShell = shell,
-                autoStart = false
+                autoStart = false,
+                candidateShells = candidateShells
             )
             session.queueCommand(command)
-            session.startSession(pRootEngine, rootDir, shell)
+            session.startSession(pRootEngine, rootDir, shell, candidateShells)
         }
 
         if (_isKeepAliveEnabled.value) {
