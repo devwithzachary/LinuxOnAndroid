@@ -3,4 +3,4 @@
 • 3-Tab Container Layout: Scoped Overview, Software Hub, and Settings.
 • Process & Port Isolation: Scopes active processes and ports per container.
 • Terminal Keyboard Fix: Preserves scrollback and prompt on keyboard open.
-• NGINX & Service Runner: Universal service shim and port 8080 binding.
+• OpenSSH & SFTP Subsystem Fix: Deduplicates Subsystem sftp configuration.

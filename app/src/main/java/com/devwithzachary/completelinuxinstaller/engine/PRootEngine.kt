@@ -217,7 +217,10 @@ class PRootEngine(val context: Context) {
                     fi
                     if [ "${'$'}NAME" = "ssh" ] || [ "${'$'}NAME" = "sshd" ]; then
                         case "${'$'}ACTION" in
-                            start) exec /usr/sbin/sshd "${'$'}@" ;;
+                            start)
+                                sed -i 's/^Subsystem.*sftp/#&/' /etc/ssh/sshd_config 2>/dev/null || true
+                                exec /usr/sbin/sshd "${'$'}@"
+                                ;;
                             stop) pkill -f sshd ;;
                             status) ps aux | grep -v grep | grep sshd ;;
                         esac
@@ -225,6 +228,16 @@ class PRootEngine(val context: Context) {
                     """.trimIndent() + "\n"
                 )
                 serviceShim.setExecutable(true, false)
+            } catch (_: Exception) {}
+        }
+
+        val sshConfigFile = File(targetRootfs, "etc/ssh/sshd_config")
+        if (sshConfigFile.exists()) {
+            try {
+                val content = sshConfigFile.readText()
+                if (content.contains(Regex("(?m)^Subsystem\\s+sftp"))) {
+                    sshConfigFile.writeText(content.replace(Regex("(?m)^Subsystem\\s+sftp"), "#Subsystem sftp"))
+                }
             } catch (_: Exception) {}
         }
 
