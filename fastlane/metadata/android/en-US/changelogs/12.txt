@@ -1,6 +1,6 @@
 • Tabbed Terminal: Run multiple interactive terminal tabs concurrently.
-• Multi-Rootfs Containers: Install multiple Linux distros side-by-side.
-• Multi-Distro Wizard: Debian 12, Alpine 3.21, Arch, Kali, Void, Ubuntu (450MB).
+• Multi-Distro Rootfs: Install Debian, Alpine, Arch, Kali, Void, Ubuntu.
 • 3-Tab Container Layout: Scoped Overview, Software Hub, and Settings.
-• Terminal Keyboard Fix: Preserves scrollback and prompt when keyboard opens.
-• NGINX & Service Fix: Port 8080 unprivileged support and universal service wrapper.
+• Process & Port Isolation: Scopes active processes and ports per container.
+• Terminal Keyboard Fix: Preserves scrollback and prompt on keyboard open.
+• NGINX & Service Runner: Universal service shim and port 8080 binding.

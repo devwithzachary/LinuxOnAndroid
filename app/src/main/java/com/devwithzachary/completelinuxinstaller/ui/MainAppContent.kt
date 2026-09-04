@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.ui.screens.about.AboutScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.dashboard.DashboardScreen
@@ -41,6 +42,7 @@ fun MainAppContent(viewModel: MainViewModel) {
     val packages by viewModel.packages.collectAsStateWithLifecycle()
     val requestedScreen by viewModel.requestedScreen.collectAsStateWithLifecycle()
     val systemMetrics by viewModel.systemMetrics.collectAsStateWithLifecycle()
+    val containerMetrics by viewModel.containerMetrics.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
@@ -174,9 +176,11 @@ fun MainAppContent(viewModel: MainViewModel) {
                             val detailPackages = remember(activeDetailContainer.id, packages) {
                                 viewModel.getPackagesForContainer(activeDetailContainer.id)
                             }
+                            val activeContainerMetrics = containerMetrics[activeDetailContainer.id]
+                                ?: SystemResourceMetrics(storageUsedMb = activeDetailContainer.storageUsedMb)
                             ContainerDetailScreen(
                                 container = activeDetailContainer,
-                                metrics = systemMetrics,
+                                metrics = activeContainerMetrics,
                                 packages = detailPackages,
                                 initialTab = initialTab,
                                 isVncInstalled = dashboardState.isVncInstalled,
@@ -252,6 +256,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                             DashboardScreen(
                                 state = dashboardState,
                                 metrics = systemMetrics,
+                                containerMetrics = containerMetrics,
                                 onInstallClick = {
                                     viewModel.resetWizardState()
                                     currentScreen = AppScreen.WIZARD

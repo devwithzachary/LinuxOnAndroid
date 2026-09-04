@@ -38,7 +38,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Service & Preset Command Queuing: Fixed an issue where launching services (SSH, VNC, NGINX) or 1-click presets when a terminal was not open launched an empty terminal without executing the command, adding asynchronous command queuing with shell readiness signaling.",
             "Rootfs Symlink-Aware Package Detection: Resolved an issue where installed packages using update-alternatives (such as XFCE 4 Desktop via /etc/alternatives/vncserver) were not marked as installed, adding container-relative symlink traversal and alias resolution.",
             "Terminal Viewport & Keyboard Resize Preservation: Resolved an issue where opening the soft keyboard wiped terminal lines below the keyboard and drew a detached prompt, introducing viewport scrolling preservation and bidirectional scrollback buffer synchronization.",
-            "Web Server (NGINX) & Universal Service Runner: Fixed 'service: command not found' errors by ensuring full /usr/sbin and /sbin PATH accessibility across all shells and logins, deploying a universal service runner shim across distros, configuring NGINX for unprivileged port 8080 binding on Android, and ensuring directory write permissions."
+            "Web Server (NGINX) & Universal Service Runner: Fixed 'service: command not found' errors by ensuring full /usr/sbin and /sbin PATH accessibility across all shells and logins, deploying a universal service runner shim across distros, configuring NGINX for unprivileged port 8080 binding on Android, and ensuring directory write permissions.",
+            "Per-Container Process & Port Isolation: Fixed an issue where viewing a second container displayed all processes and open ports running in the first container. Added process tree hierarchy tracing and rootfs scoping so process lists and open network ports are strictly isolated to their own container."
         )
     ),
     ReleaseChangelog(

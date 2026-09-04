@@ -30,6 +30,7 @@ import com.devwithzachary.completelinuxinstaller.ui.components.PatreonBanner
 fun DashboardScreen(
     state: DashboardUiState,
     metrics: SystemResourceMetrics = SystemResourceMetrics(),
+    containerMetrics: Map<String, SystemResourceMetrics> = emptyMap(),
     onInstallClick: () -> Unit,
     onOpenTerminalClick: () -> Unit,
     onOpenContainerTerminalClick: (String) -> Unit = {},
@@ -215,6 +216,22 @@ fun DashboardScreen(
 
                         HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
 
+                        val cMetrics = containerMetrics[container.id]
+                        val ramText = if (cMetrics != null) {
+                            if (cMetrics.processes.isNotEmpty()) "${cMetrics.containerMemoryUsedMb} MB" else "Idle (0 MB)"
+                        } else if (isRunning) {
+                            "${metrics.containerMemoryUsedMb} MB"
+                        } else {
+                            "Idle (0 MB)"
+                        }
+                        val procText = if (cMetrics != null) {
+                            if (cMetrics.processes.isNotEmpty()) "${cMetrics.processes.size} active" else "Stopped"
+                        } else if (isRunning) {
+                            "${metrics.processes.size} active"
+                        } else {
+                            "Stopped"
+                        }
+
                         // Resource Usage Overview Grid (RAM, Storage, CPU/Processes, Status)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -223,7 +240,7 @@ fun DashboardScreen(
                             // RAM Usage
                             ContainerMetricItem(
                                 label = "RAM Used",
-                                value = if (isRunning) "${metrics.containerMemoryUsedMb} MB" else "Idle (0 MB)",
+                                value = ramText,
                                 icon = Icons.Default.Memory,
                                 modifier = Modifier.weight(1f)
                             )
@@ -239,7 +256,7 @@ fun DashboardScreen(
                             // Active Processes
                             ContainerMetricItem(
                                 label = "Processes",
-                                value = if (isRunning) "${metrics.processes.size} active" else "Stopped",
+                                value = procText,
                                 icon = Icons.Default.Speed,
                                 modifier = Modifier.weight(1f)
                             )

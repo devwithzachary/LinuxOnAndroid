@@ -88,7 +88,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val softwareInstaller = SoftwareInstaller(pRootEngine)
     val terminalBridge = TerminalBridge(pRootEngine)
     val diagnosticsManager = DiagnosticsManager(application, pRootEngine, rootfsManager, containerManager)
-    val systemMonitorManager = SystemMonitorManager(application, pRootEngine, rootfsManager, containerManager)
+    val systemMonitorManager = SystemMonitorManager(application, pRootEngine, rootfsManager, containerManager, terminalBridge)
     val gitHubReleaseManager = GitHubReleaseManager(application)
 
     val containers: StateFlow<List<com.devwithzachary.completelinuxinstaller.model.ContainerInstance>> = containerManager.containers
@@ -146,6 +146,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _systemMetrics = MutableStateFlow(SystemResourceMetrics())
     val systemMetrics: StateFlow<SystemResourceMetrics> = _systemMetrics.asStateFlow()
 
+    private val _containerMetrics = MutableStateFlow<Map<String, SystemResourceMetrics>>(emptyMap())
+    val containerMetrics: StateFlow<Map<String, SystemResourceMetrics>> = _containerMetrics.asStateFlow()
+
     fun killProcess(pid: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             systemMonitorManager.killProcess(pid)
@@ -154,8 +157,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun refreshSystemMetrics() {
-        val metrics = systemMonitorManager.collectMetrics(terminalBridge.isRunning.value)
-        _systemMetrics.value = metrics
+        val globalMetrics = systemMonitorManager.collectMetrics(terminalBridge.isRunning.value, null)
+        _systemMetrics.value = globalMetrics
+
+        val allContainers = containerManager.getAllContainers()
+        val cMap = mutableMapOf<String, SystemResourceMetrics>()
+        for (container in allContainers) {
+            val isContainerTerminalRunning = terminalBridge.sessions.value.any { 
+                it.containerId == container.id && it.isRunning.value 
+            }
+            val metrics = systemMonitorManager.collectMetrics(
+                isSessionRunning = isContainerTerminalRunning,
+                targetRootDir = container.rootDir
+            )
+            cMap[container.id] = metrics
+        }
+        if (allContainers.isEmpty() && rootfsManager.isInstalled()) {
+            val metrics = systemMonitorManager.collectMetrics(
+                isSessionRunning = terminalBridge.isRunning.value,
+                targetRootDir = pRootEngine.rootfsDir
+            )
+            cMap[com.devwithzachary.completelinuxinstaller.engine.ContainerManager.DEFAULT_CONTAINER_ID] = metrics
+        }
+        _containerMetrics.value = cMap
+    }
+
+    fun getMetricsForContainer(containerId: String): SystemResourceMetrics {
+        return _containerMetrics.value[containerId] ?: run {
+            val container = containerManager.getContainer(containerId)
+            SystemResourceMetrics(storageUsedMb = container?.storageUsedMb ?: 0L)
+        }
     }
 
     fun triggerMetricsRefresh() {

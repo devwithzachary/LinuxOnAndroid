@@ -45,6 +45,8 @@ class TerminalSession(
     val refreshTrigger: StateFlow<Long> = _refreshTrigger.asStateFlow()
 
     private var ptyProcess: PtyProcess? = null
+    val processPid: Int?
+        get() = ptyProcess?.pid
     private var sessionJob: Job? = null
 
     private val pendingCommands = ConcurrentLinkedQueue<String>()

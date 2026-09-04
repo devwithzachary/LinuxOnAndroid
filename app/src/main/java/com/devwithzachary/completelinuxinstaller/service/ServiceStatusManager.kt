@@ -74,9 +74,15 @@ object ServiceStatusManager {
         return true
     }
 
-    fun isVncRunning(rootfsDir: File?): Boolean {
-        if (isPortListening(5901)) return true
-        if (rootfsDir == null || !rootfsDir.exists()) return false
+    fun isVncRunning(rootfsDir: File?, containerProcesses: List<com.devwithzachary.completelinuxinstaller.engine.ContainerProcessInfo>? = null): Boolean {
+        if (rootfsDir == null || !rootfsDir.exists()) {
+            return isPortListening(5901)
+        }
+        if (containerProcesses != null && containerProcesses.any { 
+            it.name.contains("TigerVNC", ignoreCase = true) || it.cmdline.contains("Xtigervnc", ignoreCase = true) || it.cmdline.contains("vncserver", ignoreCase = true)
+        }) {
+            return true
+        }
         val lock = File(rootfsDir, "tmp/.X1-lock")
         val x11Unix = File(rootfsDir, "tmp/.X11-unix/X1")
         if (lock.exists()) {
@@ -93,9 +99,15 @@ object ServiceStatusManager {
         return false
     }
 
-    fun isNginxRunning(rootfsDir: File?): Boolean {
-        if (isPortListening(80) || isPortListening(8080)) return true
-        if (rootfsDir == null || !rootfsDir.exists()) return false
+    fun isNginxRunning(rootfsDir: File?, containerProcesses: List<com.devwithzachary.completelinuxinstaller.engine.ContainerProcessInfo>? = null): Boolean {
+        if (rootfsDir == null || !rootfsDir.exists()) {
+            return isPortListening(80) || isPortListening(8080)
+        }
+        if (containerProcesses != null && containerProcesses.any { 
+            it.name.contains("NGINX", ignoreCase = true) || it.cmdline.contains("nginx", ignoreCase = true)
+        }) {
+            return isPortListening(80) || isPortListening(8080)
+        }
         val pidFile = File(rootfsDir, "run/nginx.pid").let { if (it.exists()) it else File(rootfsDir, "var/run/nginx.pid") }
         if (pidFile.exists()) {
             val pid = try { pidFile.readText().trim().toIntOrNull() } catch (_: Exception) { null }
@@ -108,9 +120,15 @@ object ServiceStatusManager {
         return false
     }
 
-    fun isSshRunning(rootfsDir: File?, sshPort: Int): Boolean {
-        if (isPortListening(sshPort)) return true
-        if (rootfsDir == null || !rootfsDir.exists()) return false
+    fun isSshRunning(rootfsDir: File?, sshPort: Int, containerProcesses: List<com.devwithzachary.completelinuxinstaller.engine.ContainerProcessInfo>? = null): Boolean {
+        if (rootfsDir == null || !rootfsDir.exists()) {
+            return isPortListening(sshPort)
+        }
+        if (containerProcesses != null && containerProcesses.any { 
+            it.name.contains("OpenSSH", ignoreCase = true) || it.cmdline.contains("sshd", ignoreCase = true)
+        }) {
+            return isPortListening(sshPort)
+        }
         val pidFile = File(rootfsDir, "run/sshd.pid").let { if (it.exists()) it else File(rootfsDir, "var/run/sshd.pid") }
         if (pidFile.exists()) {
             val pid = try { pidFile.readText().trim().toIntOrNull() } catch (_: Exception) { null }
