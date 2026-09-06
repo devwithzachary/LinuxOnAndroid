@@ -1,7 +1,5 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.settings
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -18,26 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudDownload
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PersonAdd
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Upload
-import androidx.compose.material.icons.filled.Upgrade
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,7 +35,6 @@ import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
-import com.devwithzachary.completelinuxinstaller.ui.BackupState
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
 import com.devwithzachary.completelinuxinstaller.ui.components.DebugReportDialog
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
@@ -65,12 +43,9 @@ import kotlinx.coroutines.launch
 enum class SettingsCategory(val displayName: String, val icon: ImageVector) {
     ALL("All", Icons.Default.Apps),
     UPDATES("Updates", Icons.Default.CloudDownload),
-    CONTAINER("Container", Icons.Default.Upgrade),
-    BACKGROUND("Background", Icons.Default.PlayArrow),
-    NETWORK("Network & DNS", Icons.Default.Dns),
     TERMINAL("Terminal", Icons.Default.Palette),
-    SECURITY("Security", Icons.Default.Person),
-    STORAGE("Storage & Reset", Icons.Default.Folder)
+    BACKGROUND("Background", Icons.Default.PlayArrow),
+    DIAGNOSTICS("Diagnostics", Icons.Default.BugReport)
 }
 
 @Composable
@@ -170,28 +145,14 @@ fun CollapsibleSettingsCard(
 @Composable
 fun SettingsScreen(
     state: DashboardUiState,
-    backupState: BackupState = BackupState.Idle,
     terminalTheme: TerminalTheme = TerminalTheme.DRACULA,
-    defaultTerminalUser: String = "root",
     terminalFontSize: Int = 13,
     terminalFontFamily: String = "Monospace",
     onSelectTheme: (String) -> Unit = {},
     onUpdateCustomTheme: (Color, Color, Color, Color, List<Color>) -> Unit = { _, _, _, _, _ -> },
     onSetTerminalFontSize: (Int) -> Unit = {},
     onSetTerminalFontFamily: (String) -> Unit = {},
-    onSetDefaultTerminalUser: (String) -> Unit = {},
-    onSetDnsServers: (List<String>) -> Unit = {},
-    onToggleBindSdCard: () -> Unit,
-    onWipeRootfsClick: () -> Unit,
-    onRefreshStatusClick: () -> Unit,
-    onChangeRootPassword: (String) -> Unit = {},
-    onCreateUser: (String, String) -> Unit = { _, _ -> },
-    onDeleteUser: (String) -> Unit = {},
-    onExportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
-    onImportContainer: (android.content.ContentResolver, android.net.Uri) -> Unit = { _, _ -> },
-    onUpgradeRootfsClick: () -> Unit = {},
     onGenerateDebugReport: suspend () -> String = { "" },
-    onDismissBackupStatus: () -> Unit = {},
     isKeepAliveEnabled: Boolean = true,
     onToggleKeepAlive: () -> Unit = {},
     isKeepScreenOnEnabled: Boolean = true,
@@ -203,7 +164,6 @@ fun SettingsScreen(
     onCheckForUpdatesClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val contentResolver = context.contentResolver
     val coroutineScope = rememberCoroutineScope()
 
     var showDebugReportDialog by remember { mutableStateOf(false) }
@@ -214,160 +174,52 @@ fun SettingsScreen(
     var expandedCards by remember {
         mutableStateOf(
             mapOf(
-                "updates" to false,
-                "upgrade" to false,
-                "diagnostics" to false,
+                "updates" to true,
+                "theme" to true,
                 "background" to false,
-                "backup" to false,
-                "dns" to false,
-                "theme" to false,
-                "users" to false,
-                "storage" to false,
-                "maintenance" to false
+                "diagnostics" to false
             )
         )
     }
 
-    fun isCardExpanded(id: String): Boolean = expandedCards[id] ?: false
+    fun isCardExpanded(id: String) = expandedCards[id] ?: false
     fun toggleCard(id: String) {
         expandedCards = expandedCards.toMutableMap().apply {
-            put(id, !(this[id] ?: false))
-        }
-    }
-
-    val allExpanded = expandedCards.values.all { it }
-    fun toggleAllExpanded() {
-        val newState = !allExpanded
-        expandedCards = expandedCards.keys.associateWith { newState }
-    }
-
-    var showWipeConfirm by remember { mutableStateOf(false) }
-    var showImportConfirm by remember { mutableStateOf(false) }
-    var showRootPasswordDialog by remember { mutableStateOf(false) }
-    var showAddUserDialog by remember { mutableStateOf(false) }
-
-    var newRootPassword by remember { mutableStateOf("") }
-    var newUsername by remember { mutableStateOf("") }
-    var newUserPassword by remember { mutableStateOf("") }
-    var userToDelete by remember { mutableStateOf<String?>(null) }
-    var changePasswordUser by remember { mutableStateOf<String?>(null) }
-    var changePasswordUserNewPass by remember { mutableStateOf("") }
-
-    var customDnsInput by remember(state.dnsServers) {
-        mutableStateOf(state.dnsServers.joinToString(", "))
-    }
-    var showDnsSavedNotice by remember { mutableStateOf(false) }
-
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/gzip")
-    ) { uri ->
-        if (uri != null) {
-            onExportContainer(contentResolver, uri)
-        }
-    }
-
-    val importLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            onImportContainer(contentResolver, uri)
+            this[id] = !(this[id] ?: false)
         }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header & Expand/Collapse Toggle
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Settings",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
+        Text(
+            text = stringResource(R.string.nav_settings),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
 
-            TextButton(
-                onClick = { toggleAllExpanded() },
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                Icon(
-                    imageVector = if (allExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(if (allExpanded) "Collapse All" else "Expand All", fontSize = 12.sp)
-            }
-        }
-
-        // Category Filter Chips
+        // Settings Category Filter Tabs
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
-            items(SettingsCategory.entries) { cat ->
-                val isSelected = selectedCategory == cat
+            items(SettingsCategory.entries) { category ->
+                val isSelected = selectedCategory == category
                 FilterChip(
                     selected = isSelected,
-                    onClick = {
-                        selectedCategory = cat
-                        if (cat != SettingsCategory.ALL) {
-                            when (cat) {
-                                SettingsCategory.CONTAINER -> {
-                                    expandedCards = expandedCards.toMutableMap().apply {
-                                        put("upgrade", true)
-                                        put("diagnostics", true)
-                                        put("backup", true)
-                                    }
-                                }
-
-                                SettingsCategory.BACKGROUND -> {
-                                    expandedCards = expandedCards.toMutableMap().apply {
-                                        put("background", true)
-                                    }
-                                }
-
-                                SettingsCategory.NETWORK -> {
-                                    expandedCards = expandedCards.toMutableMap().apply {
-                                        put("dns", true)
-                                    }
-                                }
-
-                                SettingsCategory.TERMINAL -> {
-                                    expandedCards = expandedCards.toMutableMap().apply {
-                                        put("theme", true)
-                                    }
-                                }
-
-                                SettingsCategory.SECURITY -> {
-                                    expandedCards = expandedCards.toMutableMap().apply {
-                                        put("users", true)
-                                    }
-                                }
-
-                                SettingsCategory.STORAGE -> {
-                                    expandedCards = expandedCards.toMutableMap().apply {
-                                        put("storage", true)
-                                        put("maintenance", true)
-                                    }
-                                }
-
-                                else -> {}
-                            }
-                        }
-                    },
+                    onClick = { selectedCategory = category },
+                    label = { Text(category.displayName) },
                     leadingIcon = {
-                        Icon(cat.icon, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(
+                            imageVector = category.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                     },
-                    label = { Text(cat.displayName, fontSize = 12.sp) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -376,8 +228,8 @@ fun SettingsScreen(
             }
         }
 
-        // 0. Updates & Release Channel Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.UPDATES || selectedCategory == SettingsCategory.CONTAINER) {
+        // 1. Updates & Release Channel Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.UPDATES) {
             CollapsibleSettingsCard(
                 title = stringResource(R.string.github_updates_card_title),
                 subtitle = stringResource(R.string.github_updates_card_subtitle),
@@ -499,488 +351,7 @@ fun SettingsScreen(
             }
         }
 
-        // 1. RootFS Container Maintenance & Upgrade Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.CONTAINER) {
-            CollapsibleSettingsCard(
-                title = "RootFS Upgrade",
-                subtitle = if (state.isInstalled) {
-                    val v = state.rootfsVersion
-                    if (v != null) "${v.versionName} (Build ${v.versionCode})" else "v1.0.0 (Legacy)"
-                } else "Not Installed",
-                icon = Icons.Default.Upgrade,
-                isExpanded = isCardExpanded("upgrade"),
-                onToggleExpand = { toggleCard("upgrade") },
-                badge = {
-                    if (state.isInstalled) {
-                        Surface(
-                            color = if (state.isUpgradeAvailable) MaterialTheme.colorScheme.primaryContainer else Color(
-                                0xFF1E3A1E
-                            ),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(
-                                text = if (state.isUpgradeAvailable) "Upgrade Available" else "Up to Date",
-                                color = if (state.isUpgradeAvailable) MaterialTheme.colorScheme.onPrimaryContainer else Color(
-                                    0xFF4CAF50
-                                ),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-            ) {
-                Text(
-                    text = "Track which app version built your Linux File System and 'upgrade' it to the latest version here to benefit from incremental system improvements.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                if (state.isInstalled) {
-                    val currentVer = state.rootfsVersion
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                            .padding(10.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "Container Build:",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = if (currentVer != null) "${currentVer.versionName} (Build ${currentVer.versionCode})" else "v1.0.0 (Legacy Build 1)",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "Latest App Build:",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    Button(
-                        onClick = onUpgradeRootfsClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = if (state.isUpgradeAvailable) {
-                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                        } else {
-                            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                        }
-                    ) {
-                        Icon(Icons.Default.Upgrade, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (state.isUpgradeAvailable) "Upgrade RootFS to v${BuildConfig.VERSION_NAME}" else "Re-verify & Repair RootFS")
-                    }
-                }
-            }
-        }
-
-        // 2. Diagnostics Debug Report Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.CONTAINER) {
-            CollapsibleSettingsCard(
-                title = "Diagnostics",
-                subtitle = "Generate a debug report for bug reports",
-                icon = Icons.Default.BugReport,
-                isExpanded = isCardExpanded("diagnostics"),
-                onToggleExpand = { toggleCard("diagnostics") }
-            ) {
-                Text(
-                    text = "Generate a technical summary of your installation (app version, device, container health, storage and memory) to paste into GitHub issues or Discord when asking for help.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            isGeneratingDebugReport = true
-                            try {
-                                debugReportText = onGenerateDebugReport()
-                                showDebugReportDialog = true
-                            } finally {
-                                isGeneratingDebugReport = false
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isGeneratingDebugReport,
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    if (isGeneratingDebugReport) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
-                    }
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Generate Debug Report")
-                }
-            }
-        }
-
-        // 2. 1-Tap RootFS Container Backup & Restore Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.CONTAINER) {
-            CollapsibleSettingsCard(
-                title = "Container Backup & Restore",
-                subtitle = "Export or import container archive (.tar.gz)",
-                icon = Icons.Default.Upload,
-                isExpanded = isCardExpanded("backup"),
-                onToggleExpand = { toggleCard("backup") }
-            ) {
-                Text(
-                    text = "Create a 1-tap backup archive (.tar.gz) of your complete Linux rootfs environment or restore an existing container archive from device storage.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            val defaultName = "linux_on_android_backup_${System.currentTimeMillis() / 1000}.tar.gz"
-                            exportLauncher.launch(defaultName)
-                        },
-                        modifier = Modifier.weight(1f),
-                        enabled = state.isInstalled && backupState is BackupState.Idle,
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Default.Upload, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Export Container")
-                    }
-
-                    OutlinedButton(
-                        onClick = { showImportConfirm = true },
-                        modifier = Modifier.weight(1f),
-                        enabled = backupState is BackupState.Idle,
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Import Container")
-                    }
-                }
-            }
-        }
-
-        // 3. Background Execution & Power Management Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.BACKGROUND || selectedCategory == SettingsCategory.CONTAINER) {
-            CollapsibleSettingsCard(
-                title = stringResource(R.string.setting_keep_alive_title),
-                subtitle = if (isKeepAliveEnabled) "Foreground Service & WakeLock Active" else "Standard Background Limits",
-                icon = Icons.Default.PlayArrow,
-                isExpanded = isCardExpanded("background"),
-                onToggleExpand = { toggleCard("background") },
-                badge = {
-                    Surface(
-                        color = if (isKeepAliveEnabled) Color(0xFF1E3A1E) else MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = if (isKeepAliveEnabled) "WakeLock Active" else "Disabled",
-                            color = if (isKeepAliveEnabled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            ) {
-                Text(
-                    text = "Controls whether LinuxOnAndroid keeps the PRoot environment alive in the background when the app is minimized or the screen is turned off.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Enable Foreground Service & WakeLock", fontWeight = FontWeight.SemiBold)
-                        Text(
-                            stringResource(R.string.setting_keep_alive_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = isKeepAliveEnabled,
-                        onCheckedChange = { onToggleKeepAlive() }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.setting_keep_screen_on_title),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            stringResource(R.string.setting_keep_screen_on_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = isKeepScreenOnEnabled,
-                        onCheckedChange = { onSetKeepScreenOn(it) }
-                    )
-                }
-
-                if (isKeepAliveEnabled) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(
-                                text = "🛡️ Protection Status:",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Text(
-                                text = "• Partial CPU WakeLock held during active sessions\n• Ongoing low-priority notification with quick actions\n• Resilient against Android Doze and Phantom Process Killer",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                    var isNotifGranted by remember {
-                        mutableStateOf(
-                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                context,
-                                android.Manifest.permission.POST_NOTIFICATIONS
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        )
-                    }
-                    val notifLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-                        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-                    ) { granted ->
-                        isNotifGranted = granted
-                    }
-
-                    if (!isNotifGranted) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Warning,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "Notification Permission Disabled",
-                                        fontWeight = FontWeight.Bold,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = MaterialTheme.colorScheme.onErrorContainer
-                                    )
-                                }
-                                Text(
-                                    text = "Android 13+ requires notification permission to display the foreground service status and prevent background terminations.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Button(
-                                    onClick = { notifLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS) },
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                                ) {
-                                    Text("Grant Notification Permission")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Network & DNS Configuration Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.NETWORK) {
-            CollapsibleSettingsCard(
-                title = "Network & DNS Configuration",
-                subtitle = "DNS: " + state.dnsServers.joinToString(", "),
-                icon = Icons.Default.Dns,
-                isExpanded = isCardExpanded("dns"),
-                onToggleExpand = { toggleCard("dns") },
-                badge = {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "${state.dnsServers.size} DNS Active",
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-            ) {
-                Text(
-                    text = "Configure nameservers used by your Linux rootfs container for APT package downloads, web access, and CLI networking tools. Applied directly to /etc/resolv.conf.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                // Current Active DNS Display
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                        .padding(10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "Active Nameservers (/etc/resolv.conf):",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = state.dnsServers.joinToString("  •  "),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Text(
-                    text = "Quick DNS Provider Presets:",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                // Preset DNS Providers
-                val dnsPresets = listOf(
-                    "Google (8.8.8.8, 8.8.4.4)" to listOf("8.8.8.8", "8.8.4.4"),
-                    "Cloudflare (1.1.1.1, 1.0.0.1)" to listOf("1.1.1.1", "1.0.0.1"),
-                    "Quad9 Secure (9.9.9.9)" to listOf("9.9.9.9", "149.112.112.112"),
-                    "AdGuard AdBlock (94.140.14.14)" to listOf("94.140.14.14", "94.140.15.15"),
-                    "OpenDNS (208.67.222.222)" to listOf("208.67.222.222", "208.67.220.220")
-                )
-
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(dnsPresets) { (name, ips) ->
-                        val isSelected = state.dnsServers == ips
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = {
-                                customDnsInput = ips.joinToString(", ")
-                                onSetDnsServers(ips)
-                                showDnsSavedNotice = true
-                            },
-                            label = { Text(name, fontSize = 12.sp) },
-                            leadingIcon = if (isSelected) {
-                                {
-                                    Icon(
-                                        Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            } else null
-                        )
-                    }
-                }
-
-                Text(
-                    text = "Custom DNS Nameservers:",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                OutlinedTextField(
-                    value = customDnsInput,
-                    onValueChange = {
-                        customDnsInput = it
-                        showDnsSavedNotice = false
-                    },
-                    label = { Text("DNS IP Addresses (comma or space separated)") },
-                    placeholder = { Text("e.g. 1.1.1.1, 8.8.8.8, 9.9.9.9") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                    )
-                )
-
-                Button(
-                    onClick = {
-                        val parsed = customDnsInput.split(',', ' ', '\n')
-                            .map { it.trim() }
-                            .filter { it.isNotBlank() }
-                        if (parsed.isNotEmpty()) {
-                            onSetDnsServers(parsed)
-                            showDnsSavedNotice = true
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Default.Dns, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Apply DNS Configuration")
-                }
-
-                if (showDnsSavedNotice) {
-                    Text(
-                        text = "✓ DNS servers successfully updated in /etc/resolv.conf",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF4CAF50),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        // 4. Terminal Color Theme Pack Card
+        // 2. Terminal Appearance & Theme Pack Card
         var showCustomThemeDialog by remember { mutableStateOf(false) }
         var editingColorTarget by remember { mutableStateOf<String?>(null) }
         var colorHexInput by remember { mutableStateOf("") }
@@ -1170,7 +541,7 @@ fun SettingsScreen(
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = toPreviewText("ubuntu@localhost:~$ uname -a"),
+                            text = toPreviewText("user@localhost:~$ uname -a"),
                             color = terminalTheme.defaultFg,
                             fontFamily = previewFontFamily,
                             fontWeight = previewFontWeight,
@@ -1184,14 +555,14 @@ fun SettingsScreen(
                             fontSize = terminalFontSize.sp
                         )
                         Text(
-                            text = toPreviewText("ubuntu@localhost:~$ cat /etc/issue"),
+                            text = toPreviewText("user@localhost:~$ cat /etc/issue"),
                             color = terminalTheme.defaultFg,
                             fontFamily = previewFontFamily,
                             fontWeight = previewFontWeight,
                             fontSize = terminalFontSize.sp
                         )
                         Text(
-                            text = toPreviewText("Ubuntu 26.04 LTS \\n \\l"),
+                            text = toPreviewText("LinuxOnAndroid Environment \\n \\l"),
                             color = terminalTheme.ansiColors[4],
                             fontFamily = previewFontFamily,
                             fontWeight = previewFontWeight,
@@ -1386,151 +757,148 @@ fun SettingsScreen(
             )
         }
 
-        // 5. Users & Account Management Card
-        if ((selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.SECURITY) && state.isInstalled) {
+        // 3. Background Execution & Power Management Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.BACKGROUND) {
             CollapsibleSettingsCard(
-                title = "User & Account Management",
-                subtitle = "${state.containerUsers.size + 1} Users (${defaultTerminalUser} default)",
-                icon = Icons.Default.Person,
-                isExpanded = isCardExpanded("users"),
-                onToggleExpand = { toggleCard("users") }
+                title = stringResource(R.string.setting_keep_alive_title),
+                subtitle = if (isKeepAliveEnabled) "Foreground Service & WakeLock Active" else "Standard Background Limits",
+                icon = Icons.Default.PlayArrow,
+                isExpanded = isCardExpanded("background"),
+                onToggleExpand = { toggleCard("background") },
+                badge = {
+                    Surface(
+                        color = if (isKeepAliveEnabled) Color(0xFF1E3A1E) else MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = if (isKeepAliveEnabled) "WakeLock Active" else "Disabled",
+                            color = if (isKeepAliveEnabled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
             ) {
+                Text(
+                    text = "Controls whether LinuxOnAndroid keeps background processes alive when the app is minimized or the screen is turned off.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Root User Password", fontWeight = FontWeight.SemiBold)
+                        Text("Enable Foreground Service & WakeLock", fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Set or reset the system administrator (root) password.",
+                            stringResource(R.string.setting_keep_alive_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    OutlinedButton(onClick = { showRootPasswordDialog = true }) {
-                        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Change")
-                    }
-                }
-
-                HorizontalDivider()
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Default Terminal Login User", fontWeight = FontWeight.SemiBold)
-                    Text(
-                        text = "Select which user account logs into interactive terminal sessions by default.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    Switch(
+                        checked = isKeepAliveEnabled,
+                        onCheckedChange = { onToggleKeepAlive() }
                     )
-
-                    val loginUsers = listOf("root") + state.containerUsers
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        loginUsers.forEach { u ->
-                            val isSelected = u == defaultTerminalUser
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { onSetDefaultTerminalUser(u) },
-                                label = { Text(if (u == "root") "root (Admin)" else u) },
-                                leadingIcon = if (isSelected) {
-                                    {
-                                        Icon(
-                                            Icons.Default.CheckCircle,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    }
-                                } else null,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            )
-                        }
-                    }
                 }
-
-                HorizontalDivider()
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Regular Users (${state.containerUsers.size})", fontWeight = FontWeight.SemiBold)
-                    Button(
-                        onClick = { showAddUserDialog = true },
-                        shape = RoundedCornerShape(10.dp)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.setting_keep_screen_on_title),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            stringResource(R.string.setting_keep_screen_on_desc),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isKeepScreenOnEnabled,
+                        onCheckedChange = { onSetKeepScreenOn(it) }
+                    )
+                }
+
+                if (isKeepAliveEnabled) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add User")
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "🛡️ Protection Status:",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "• Partial CPU WakeLock held during active terminal & server sessions\n• Ongoing low-priority notification with quick actions\n• Resilient against Android Doze and Phantom Process Killer",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
-                if (state.containerUsers.isEmpty()) {
-                    Text(
-                        text = "No non-root users found. Add a user to connect via SSH safely.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        state.containerUsers.forEach { user ->
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Person,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Column {
-                                            Text(user, fontWeight = FontWeight.Bold)
-                                            Text(
-                                                "Sudo User (/bin/bash)",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    var isNotifGranted by remember {
+                        mutableStateOf(
+                            androidx.core.content.ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.POST_NOTIFICATIONS
+                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        )
+                    }
+                    val notifLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                        contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+                    ) { granted ->
+                        isNotifGranted = granted
+                    }
 
-                                    Row {
-                                        IconButton(onClick = {
-                                            changePasswordUser = user
-                                            changePasswordUserNewPass = ""
-                                        }) {
-                                            Icon(
-                                                Icons.Default.Lock,
-                                                contentDescription = "Change Password",
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                        IconButton(onClick = { onDeleteUser(user) }) {
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                contentDescription = "Delete User",
-                                                tint = MaterialTheme.colorScheme.error
-                                            )
-                                        }
-                                    }
+                    if (!isNotifGranted) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "Notification Permission Disabled",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                }
+                                Text(
+                                    text = "Android 13+ requires notification permission to display the foreground service status and prevent background terminations.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                                Button(
+                                    onClick = { notifLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS) },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                                ) {
+                                    Text("Grant Notification Permission")
                                 }
                             }
                         }
@@ -1539,174 +907,47 @@ fun SettingsScreen(
             }
         }
 
-        // 6. Storage & Bind Mount Options
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.STORAGE) {
+        // 4. Diagnostics & Debug Report Card
+        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.DIAGNOSTICS) {
             CollapsibleSettingsCard(
-                title = "Storage & Mount Points",
-                subtitle = if (state.bindSdCard) "SD Card Bound" else "Host Storage Isolated",
-                icon = Icons.Default.Folder,
-                isExpanded = isCardExpanded("storage"),
-                onToggleExpand = { toggleCard("storage") }
+                title = "Diagnostics & Debug Report",
+                subtitle = "Generate a technical debug report for bug reports",
+                icon = Icons.Default.BugReport,
+                isExpanded = isCardExpanded("diagnostics"),
+                onToggleExpand = { toggleCard("diagnostics") }
             ) {
-                var isStorageGranted by remember {
-                    mutableStateOf(
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                context,
-                                android.Manifest.permission.READ_MEDIA_IMAGES
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-                                    androidx.core.content.ContextCompat.checkSelfPermission(
-                                        context,
-                                        android.Manifest.permission.READ_MEDIA_VIDEO
-                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        } else {
-                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                context,
-                                android.Manifest.permission.READ_EXTERNAL_STORAGE
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        }
-                    )
-                }
-
-                val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-                    contract = androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-                ) { _ ->
-                    isStorageGranted =
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                context,
-                                android.Manifest.permission.READ_MEDIA_IMAGES
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
-                                    androidx.core.content.ContextCompat.checkSelfPermission(
-                                        context,
-                                        android.Manifest.permission.READ_MEDIA_VIDEO
-                                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        } else {
-                            androidx.core.content.ContextCompat.checkSelfPermission(
-                                context,
-                                android.Manifest.permission.READ_EXTERNAL_STORAGE
-                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                        }
-                }
-
-                // Storage Information Card
-                Surface(
-                    color = if (isStorageGranted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (isStorageGranted) Icons.Default.CheckCircle else Icons.Default.Folder,
-                                contentDescription = null,
-                                tint = if (isStorageGranted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-                            )
-                            Text(
-                                text = "Device File & Storage Permission",
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Text(
-                            text = "LinuxOnAndroid exposes host storage (/sdcard, /storage/emulated/0, and ~/Downloads) inside the Linux container. Backup exports & imports use standard Storage Access Framework (SAF) document pickers.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        if (isStorageGranted) {
-                            Text(
-                                text = "✓ Storage & Media Access Enabled",
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF4CAF50),
-                                fontSize = 12.sp
-                            )
-                        } else {
-                            Button(
-                                onClick = {
-                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                        permissionLauncher.launch(
-                                            arrayOf(
-                                                android.Manifest.permission.READ_MEDIA_IMAGES,
-                                                android.Manifest.permission.READ_MEDIA_VIDEO,
-                                                android.Manifest.permission.READ_MEDIA_AUDIO
-                                            )
-                                        )
-                                    } else {
-                                        permissionLauncher.launch(
-                                            arrayOf(
-                                                android.Manifest.permission.READ_EXTERNAL_STORAGE,
-                                                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                            )
-                                        )
-                                    }
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Grant Storage & Media Access")
-                            }
-                        }
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Bind Mount /sdcard & Downloads", fontWeight = FontWeight.SemiBold)
-                        Text(
-                            "Expose host storage inside /sdcard, /storage/emulated/0, and ~/Downloads in PRoot.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(
-                        checked = state.bindSdCard,
-                        onCheckedChange = { onToggleBindSdCard() }
-                    )
-                }
-            }
-        }
-
-        // 7. Maintenance & Reset Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.STORAGE) {
-            CollapsibleSettingsCard(
-                title = "Container Maintenance & Danger Zone",
-                subtitle = "Refresh status or wipe container",
-                icon = Icons.Default.Warning,
-                isExpanded = isCardExpanded("maintenance"),
-                onToggleExpand = { toggleCard("maintenance") }
-            ) {
-                OutlinedButton(
-                    onClick = onRefreshStatusClick,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Refresh System & Storage Status")
-                }
+                Text(
+                    text = "Generate a technical summary of your installation (app version, device hardware, container health, storage and memory metrics) to paste into GitHub issues or Discord when asking for help.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 Button(
-                    onClick = { showWipeConfirm = true },
+                    onClick = {
+                        coroutineScope.launch {
+                            isGeneratingDebugReport = true
+                            try {
+                                debugReportText = onGenerateDebugReport()
+                                showDebugReportDialog = true
+                            } finally {
+                                isGeneratingDebugReport = false
+                            }
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    enabled = !isGeneratingDebugReport,
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Wipe & Reset Ubuntu RootFS")
+                    if (isGeneratingDebugReport) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Generate Debug Report")
                 }
             }
         }
@@ -1717,266 +958,6 @@ fun SettingsScreen(
         DebugReportDialog(
             report = debugReportText,
             onDismiss = { showDebugReportDialog = false }
-        )
-    }
-
-    // Confirmation for Container Import
-    if (showImportConfirm) {
-        AlertDialog(
-            onDismissRequest = { showImportConfirm = false },
-            title = { Text("Import RootFS Container?") },
-            text = { Text("Restoring a backup container will replace your current active RootFS and all installed software. Are you sure you want to select a backup file to restore?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showImportConfirm = false
-                        importLauncher.launch(
-                            arrayOf(
-                                "application/gzip",
-                                "application/x-gzip",
-                                "application/x-tar",
-                                "*/*"
-                            )
-                        )
-                    }
-                ) {
-                    Text("Proceed & Select Backup")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showImportConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // Backup Processing / Success / Error Modal Dialog
-    if (backupState !is BackupState.Idle) {
-        AlertDialog(
-            onDismissRequest = {
-                if (backupState !is BackupState.Processing) {
-                    onDismissBackupStatus()
-                }
-            },
-            title = {
-                Text(
-                    when (backupState) {
-                        is BackupState.Processing -> "Container Backup Operation"
-                        is BackupState.Success -> "Backup Succeeded"
-                        is BackupState.Error -> "Backup Operation Failed"
-                        else -> "Backup"
-                    }
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    when (backupState) {
-                        is BackupState.Processing -> {
-                            Text(backupState.message)
-                            if (backupState.progressPercent >= 0) {
-                                LinearProgressIndicator(
-                                    progress = { backupState.progressPercent / 100f },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                Text("${backupState.progressPercent}%", style = MaterialTheme.typography.bodySmall)
-                            } else {
-                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                            }
-                        }
-
-                        is BackupState.Success -> {
-                            Text(backupState.message, color = Color(0xFF4CAF50))
-                        }
-
-                        is BackupState.Error -> {
-                            Text(backupState.message, color = MaterialTheme.colorScheme.error)
-                        }
-
-                        else -> {}
-                    }
-                }
-            },
-            confirmButton = {
-                if (backupState !is BackupState.Processing) {
-                    TextButton(onClick = { onDismissBackupStatus() }) {
-                        Text("OK")
-                    }
-                }
-            }
-        )
-    }
-
-    // Confirmation for RootFS Wipe Dialog
-    if (showWipeConfirm) {
-        AlertDialog(
-            onDismissRequest = { showWipeConfirm = false },
-            title = { Text("Wipe Ubuntu Container?") },
-            text = { Text("This will permanently delete your rootfs environment and all installed applications. This action cannot be undone.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showWipeConfirm = false
-                        onWipeRootfsClick()
-                    }
-                ) {
-                    Text("Wipe Container", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showWipeConfirm = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // Root Password Change Dialog
-    if (showRootPasswordDialog) {
-        AlertDialog(
-            onDismissRequest = { showRootPasswordDialog = false },
-            title = { Text("Set Root User Password") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter a new password for the system administrator ('root') account:")
-                    OutlinedTextField(
-                        value = newRootPassword,
-                        onValueChange = { newRootPassword = it },
-                        label = { Text("New Password") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (newRootPassword.isNotBlank()) {
-                            onChangeRootPassword(newRootPassword)
-                            newRootPassword = ""
-                            showRootPasswordDialog = false
-                        }
-                    },
-                    enabled = newRootPassword.isNotBlank()
-                ) {
-                    Text("Update Password")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRootPasswordDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // Add User Dialog
-    if (showAddUserDialog) {
-        AlertDialog(
-            onDismissRequest = { showAddUserDialog = false },
-            title = { Text("Add New Container User") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Create a new standard sudo user for terminal and SSH sessions:")
-                    OutlinedTextField(
-                        value = newUsername,
-                        onValueChange = { newUsername = it },
-                        label = { Text("Username") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = newUserPassword,
-                        onValueChange = { newUserPassword = it },
-                        label = { Text("Password") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (newUsername.isNotBlank() && newUserPassword.isNotBlank()) {
-                            onCreateUser(newUsername.trim(), newUserPassword)
-                            newUsername = ""
-                            newUserPassword = ""
-                            showAddUserDialog = false
-                        }
-                    },
-                    enabled = newUsername.isNotBlank() && newUserPassword.isNotBlank()
-                ) {
-                    Text("Create User")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddUserDialog = false }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // Change Regular User Password Dialog
-    changePasswordUser?.let { targetUser ->
-        AlertDialog(
-            onDismissRequest = { changePasswordUser = null },
-            title = { Text("Change Password for '$targetUser'") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter a new password for user '$targetUser':")
-                    OutlinedTextField(
-                        value = changePasswordUserNewPass,
-                        onValueChange = { changePasswordUserNewPass = it },
-                        label = { Text("New Password") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (changePasswordUserNewPass.isNotBlank()) {
-                            onCreateUser(targetUser, changePasswordUserNewPass)
-                            changePasswordUser = null
-                            changePasswordUserNewPass = ""
-                        }
-                    },
-                    enabled = changePasswordUserNewPass.isNotBlank()
-                ) {
-                    Text("Update Password")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { changePasswordUser = null }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    }
-
-    // Delete User Confirmation Dialog
-    userToDelete?.let { user ->
-        AlertDialog(
-            onDismissRequest = { userToDelete = null },
-            title = { Text("Delete User '$user'?") },
-            text = { Text("Are you sure you want to delete user '$user' and remove their home directory?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onDeleteUser(user)
-                        userToDelete = null
-                    }
-                ) {
-                    Text("Delete User", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { userToDelete = null }) {
-                    Text("Cancel")
-                }
-            }
         )
     }
 }
@@ -1990,28 +971,29 @@ private fun ColorSwatchPickerRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
             .clickable { onClick() }
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(title, style = MaterialTheme.typography.bodyMedium)
+        Text(title, fontSize = 13.sp)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = TerminalTheme.colorToHex(color),
-                style = MaterialTheme.typography.bodySmall,
+                fontSize = 12.sp,
                 fontFamily = FontFamily.Monospace,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Box(
                 modifier = Modifier
-                    .size(28.dp)
-                    .clip(RoundedCornerShape(6.dp))
+                    .size(24.dp)
+                    .clip(RoundedCornerShape(4.dp))
                     .background(color)
-                    .border(1.dp, Color.White.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(4.dp))
             )
         }
     }

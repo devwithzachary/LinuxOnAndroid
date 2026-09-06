@@ -1,8 +1,8 @@
 package com.devwithzachary.completelinuxinstaller.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
@@ -15,9 +15,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.ui.screens.about.AboutScreen
+import com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.dashboard.DashboardScreen
-import com.devwithzachary.completelinuxinstaller.ui.screens.hub.SoftwareHubScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.SettingsScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.splash.SplashScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalScreen
@@ -28,7 +29,6 @@ enum class AppScreen(val titleRes: Int) {
     DASHBOARD(R.string.nav_dashboard),
     WIZARD(R.string.app_title),
     TERMINAL(R.string.nav_terminal),
-    SOFTWARE_HUB(R.string.hub_title),
     SETTINGS(R.string.nav_settings),
     ABOUT(R.string.nav_about)
 }
@@ -42,11 +42,13 @@ fun MainAppContent(viewModel: MainViewModel) {
     val packages by viewModel.packages.collectAsStateWithLifecycle()
     val requestedScreen by viewModel.requestedScreen.collectAsStateWithLifecycle()
     val systemMetrics by viewModel.systemMetrics.collectAsStateWithLifecycle()
+    val containerMetrics by viewModel.containerMetrics.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
     val splashDismissed = dashboardState.splashDismissed
     var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
+    var selectedContainerTarget by remember { mutableStateOf<Pair<String, com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab>?>(null) }
 
     LaunchedEffect(requestedScreen) {
         requestedScreen?.let { target ->
@@ -79,7 +81,10 @@ fun MainAppContent(viewModel: MainViewModel) {
                     NavigationBar {
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.DASHBOARD,
-                            onClick = { currentScreen = AppScreen.DASHBOARD },
+                            onClick = {
+                                selectedContainerTarget = null
+                                currentScreen = AppScreen.DASHBOARD
+                            },
                             icon = {
                                 Icon(
                                     Icons.Default.Home,
@@ -98,17 +103,6 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 )
                             },
                             label = { Text(stringResource(R.string.nav_terminal)) }
-                        )
-                        NavigationBarItem(
-                            selected = currentScreen == AppScreen.SOFTWARE_HUB,
-                            onClick = { currentScreen = AppScreen.SOFTWARE_HUB },
-                            icon = {
-                                Icon(
-                                    Icons.Default.Apps,
-                                    contentDescription = stringResource(R.string.nav_software)
-                                )
-                            },
-                            label = { Text(stringResource(R.string.nav_software)) }
                         )
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.SETTINGS,
@@ -148,32 +142,141 @@ fun MainAppContent(viewModel: MainViewModel) {
                     AppScreen.WIZARD -> {
                         WizardScreen(
                             downloadState = downloadState,
-                            onStartInstallClick = {
-                                viewModel.installUbuntu()
+                            hasExistingContainers = isInstalled || dashboardState.containers.isNotEmpty(),
+                            onStartInstallDistro = { distroDef, containerName, rootPass, user, userPass ->
+                                viewModel.installDistro(distroDef, containerName, rootPass, user, userPass)
                             },
                             onConfigureAccountsClick = { rootPass, user, userPass ->
                                 viewModel.configureWizardAccounts(rootPass, user, userPass)
                             },
-                            onFinishWizardClick = { currentScreen = AppScreen.DASHBOARD }
+                            onFinishWizardClick = {
+                                viewModel.resetWizardState()
+                                currentScreen = AppScreen.DASHBOARD
+                            },
+                            onCancel = {
+                                viewModel.resetWizardState()
+                                currentScreen = AppScreen.DASHBOARD
+                            }
                         )
                     }
 
                     AppScreen.DASHBOARD -> {
-                        DashboardScreen(
-                            state = dashboardState,
-                            metrics = systemMetrics,
-                            onKillProcess = { pid -> viewModel.killProcess(pid) },
-                            onInstallClick = { currentScreen = AppScreen.WIZARD },
-                            onOpenTerminalClick = {
-                                viewModel.startTerminalSession()
-                                currentScreen = AppScreen.TERMINAL
-                            },
-                            onStopSessionClick = { viewModel.stopTerminalSession() },
-                            onRunPresetClick = { cmd ->
-                                viewModel.sendTerminalCommand(cmd)
-                                currentScreen = AppScreen.TERMINAL
+                        val activeDetailContainer = selectedContainerTarget?.let { (id, _) ->
+                            dashboardState.containers.find { it.id == id }
+                        }
+
+                        if (activeDetailContainer != null) {
+                            BackHandler {
+                                selectedContainerTarget = null
                             }
-                        )
+                            val sshPort by viewModel.sshPort.collectAsStateWithLifecycle()
+                            val initialTab = selectedContainerTarget?.second ?: com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab.OVERVIEW
+                            val upgradeState by viewModel.upgradeState.collectAsStateWithLifecycle()
+                            val dnsServers by viewModel.dnsServers.collectAsStateWithLifecycle()
+                            val detailPackages = remember(activeDetailContainer.id, packages) {
+                                viewModel.getPackagesForContainer(activeDetailContainer.id)
+                            }
+                            val activeContainerMetrics = containerMetrics[activeDetailContainer.id]
+                                ?: SystemResourceMetrics(storageUsedMb = activeDetailContainer.storageUsedMb)
+                            ContainerDetailScreen(
+                                container = activeDetailContainer,
+                                metrics = activeContainerMetrics,
+                                packages = detailPackages,
+                                initialTab = initialTab,
+                                isVncInstalled = dashboardState.isVncInstalled,
+                                isNginxInstalled = dashboardState.isNginxInstalled,
+                                isSshInstalled = dashboardState.isSshInstalled,
+                                sshPort = sshPort,
+                                bindSdCard = dashboardState.bindSdCard,
+                                dnsServers = dnsServers,
+                                containerUsers = viewModel.getContainerUsers(activeDetailContainer.id),
+                                upgradeState = upgradeState,
+                                backupState = backupState,
+                                onBack = { selectedContainerTarget = null },
+                                onOpenTerminal = { containerId ->
+                                    viewModel.startTerminalSessionForContainer(containerId)
+                                    currentScreen = AppScreen.TERMINAL
+                                },
+                                onSetDefault = { containerId ->
+                                    viewModel.setDefaultContainer(containerId)
+                                },
+                                onKillProcess = { pid -> viewModel.killProcess(pid) },
+                                onRunPresetCommand = { cmd ->
+                                    viewModel.sendTerminalCommand(cmd, activeDetailContainer.id)
+                                    currentScreen = AppScreen.TERMINAL
+                                },
+                                onInstallPackage = { pkgId, containerId ->
+                                    viewModel.installSoftwarePackage(pkgId, containerId)
+                                },
+                                onInstallCustomPackage = { pkgName, containerId ->
+                                    viewModel.installCustomPackage(pkgName, containerId)
+                                },
+                                onDeleteContainer = { containerId ->
+                                    viewModel.deleteContainer(containerId)
+                                    selectedContainerTarget = null
+                                },
+                                onUpgradeRootfs = { containerId ->
+                                    viewModel.upgradeRootfs(containerId)
+                                },
+                                onDismissUpgradeState = {
+                                    viewModel.dismissUpgradeState()
+                                },
+                                onExportContainer = { cr, uri, containerId ->
+                                    viewModel.exportContainer(cr, uri, containerId)
+                                },
+                                onImportContainer = { cr, uri, containerId ->
+                                    viewModel.importContainer(cr, uri, containerId)
+                                },
+                                onDismissBackupStatus = {
+                                    viewModel.dismissBackupStatus()
+                                },
+                                onToggleBindSdCard = {
+                                    viewModel.toggleBindSdCard()
+                                },
+                                onChangeRootPassword = { pwd, containerId ->
+                                    viewModel.changeRootPassword(pwd, containerId)
+                                },
+                                onCreateUser = { u, p, sudo, containerId ->
+                                    viewModel.createUser(u, p, sudo, containerId)
+                                },
+                                onDeleteUser = { u, containerId ->
+                                    viewModel.deleteUser(u, containerId)
+                                },
+                                onSetDefaultUser = { u, containerId ->
+                                    viewModel.setContainerDefaultUser(u, containerId)
+                                },
+                                onSetDnsServers = { s, containerId ->
+                                    viewModel.setDnsServers(s, containerId)
+                                },
+                                onRefreshMetrics = {
+                                    viewModel.triggerMetricsRefresh()
+                                }
+                            )
+                        } else {
+                            DashboardScreen(
+                                state = dashboardState,
+                                metrics = systemMetrics,
+                                containerMetrics = containerMetrics,
+                                onInstallClick = {
+                                    viewModel.resetWizardState()
+                                    currentScreen = AppScreen.WIZARD
+                                },
+                                onOpenTerminalClick = {
+                                    viewModel.startTerminalSession()
+                                    currentScreen = AppScreen.TERMINAL
+                                },
+                                onOpenContainerTerminalClick = { containerId ->
+                                    viewModel.startTerminalSessionForContainer(containerId)
+                                    currentScreen = AppScreen.TERMINAL
+                                },
+                                onContainerClick = { containerId, tab ->
+                                    selectedContainerTarget = Pair(containerId, tab)
+                                },
+                                onSetDefaultContainerClick = { containerId ->
+                                    viewModel.setDefaultContainer(containerId)
+                                }
+                            )
+                        }
                     }
 
                     AppScreen.TERMINAL -> {
@@ -183,8 +286,14 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val isKeepScreenOnEnabled by viewModel.isKeepScreenOnEnabled.collectAsState()
                         TerminalScreen(
                             terminalBridge = viewModel.terminalBridge,
+                            containers = dashboardState.containers,
+                            defaultContainerId = dashboardState.defaultContainerId,
                             onStartSession = { viewModel.startTerminalSession() },
                             onStopSession = { viewModel.stopTerminalSession() },
+                            onCreateTab = { containerId, user, title -> viewModel.createNewTab(containerId, user, title) },
+                            onSwitchTab = { sessionId -> viewModel.switchTab(sessionId) },
+                            onCloseTab = { sessionId -> viewModel.closeTab(sessionId) },
+                            onRenameTab = { sessionId, newTitle -> viewModel.renameTab(sessionId, newTitle) },
                             defaultLoginUser = defaultUser,
                             fontSizeSp = fontSize,
                             fontFamilyName = fontFamily,
@@ -192,28 +301,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                         )
                     }
 
-                    AppScreen.SOFTWARE_HUB -> {
-                        val sshPort by viewModel.sshPort.collectAsStateWithLifecycle()
-                        SoftwareHubScreen(
-                            packages = packages,
-                            sshPort = sshPort,
-                            onSetSshPort = { port -> viewModel.setSshPort(port) },
-                            onInstallPackageClick = { pkgId ->
-                                viewModel.installSoftwarePackage(pkgId)
-                            },
-                            onInstallCustomPackageClick = { packageName ->
-                                viewModel.installCustomPackage(packageName)
-                            },
-                            onLaunchPackageClick = { cmd ->
-                                viewModel.sendTerminalCommand(cmd)
-                                currentScreen = AppScreen.TERMINAL
-                            }
-                        )
-                    }
-
                     AppScreen.SETTINGS -> {
                         val terminalTheme by viewModel.terminalTheme.collectAsState()
-                        val defaultUser by viewModel.defaultTerminalUser.collectAsState()
                         val fontSize by viewModel.terminalFontSize.collectAsState()
                         val fontFamily by viewModel.terminalFontFamily.collectAsState()
                         val isKeepAliveEnabled by viewModel.isKeepAliveEnabled.collectAsState()
@@ -223,34 +312,20 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
                         SettingsScreen(
                             state = dashboardState,
-                            backupState = backupState,
                             terminalTheme = terminalTheme,
-                            defaultTerminalUser = defaultUser,
                             terminalFontSize = fontSize,
                             terminalFontFamily = fontFamily,
-                            isKeepAliveEnabled = isKeepAliveEnabled,
-                            onToggleKeepAlive = { viewModel.toggleKeepAlive() },
-                            isKeepScreenOnEnabled = isKeepScreenOnEnabled,
-                            onSetKeepScreenOn = { enabled -> viewModel.setKeepScreenOnEnabled(enabled) },
                             onSelectTheme = { themeId -> viewModel.setTerminalTheme(themeId) },
                             onUpdateCustomTheme = { fg, bg, cursor, sel, ansi ->
                                 viewModel.updateCustomTheme(fg, bg, cursor, sel, ansi)
                             },
                             onSetTerminalFontSize = { size -> viewModel.setTerminalFontSize(size) },
                             onSetTerminalFontFamily = { family -> viewModel.setTerminalFontFamily(family) },
-                            onSetDefaultTerminalUser = { user -> viewModel.setDefaultTerminalUser(user) },
-                            onSetDnsServers = { servers -> viewModel.setDnsServers(servers) },
-                            onToggleBindSdCard = { viewModel.toggleBindSdCard() },
-                            onWipeRootfsClick = { viewModel.wipeRootfs() },
-                            onRefreshStatusClick = { viewModel.refreshStatus() },
-                            onUpgradeRootfsClick = { viewModel.upgradeRootfs() },
-                            onChangeRootPassword = { pass -> viewModel.changeRootPassword(pass) },
-                            onCreateUser = { user, pass -> viewModel.createUser(user, pass) },
-                            onDeleteUser = { user -> viewModel.deleteUser(user) },
-                            onExportContainer = { cr, uri -> viewModel.exportContainer(cr, uri) },
-                            onImportContainer = { cr, uri -> viewModel.importContainer(cr, uri) },
                             onGenerateDebugReport = { viewModel.generateDebugReport() },
-                            onDismissBackupStatus = { viewModel.dismissBackupStatus() },
+                            isKeepAliveEnabled = isKeepAliveEnabled,
+                            onToggleKeepAlive = { viewModel.toggleKeepAlive() },
+                            isKeepScreenOnEnabled = isKeepScreenOnEnabled,
+                            onSetKeepScreenOn = { enabled -> viewModel.setKeepScreenOnEnabled(enabled) },
                             isGitHubUpdateCheckEnabled = isGitHubUpdateCheckEnabled,
                             onSetGitHubUpdateCheckEnabled = { enabled -> viewModel.setGitHubUpdateCheckEnabled(enabled) },
                             isCheckingForUpdates = isCheckingForUpdates,
@@ -271,44 +346,17 @@ fun MainAppContent(viewModel: MainViewModel) {
                 }
             }
         }
-
-        val upgradeState by viewModel.upgradeState.collectAsStateWithLifecycle()
-        com.devwithzachary.completelinuxinstaller.ui.components.RootfsUpgradeDialog(
-            upgradeState = upgradeState,
-            onDismiss = { viewModel.dismissUpgradeState() }
-        )
-
-        val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
-        if (updateCheckResult is com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult.UpdateAvailable) {
-            val update = updateCheckResult as com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult.UpdateAvailable
-            com.devwithzachary.completelinuxinstaller.ui.components.GitHubUpdateDialog(
-                release = update.release,
-                currentVersion = update.currentVersion,
-                onDismiss = { viewModel.clearUpdateCheckResult() },
-                onRemindLater = { viewModel.dismissGitHubUpdate(dontAskAgain = false) },
-                onDontAskAgain = { viewModel.dismissGitHubUpdate(dontAskAgain = true, releaseTag = update.release.tagName) }
-            )
-        }
-
-        if (isInstalled) {
-            val context = androidx.compose.ui.platform.LocalContext.current
-            com.devwithzachary.completelinuxinstaller.ui.components.NotificationPermissionRationaleHandler(
-                onPermissionGranted = {
-                    if (viewModel.isKeepAliveEnabled.value && viewModel.isSessionRunning.value) {
-                        com.devwithzachary.completelinuxinstaller.service.PRootForegroundService.start(context)
-                    }
-                }
-            )
-        }
     }
 }
 
 @Composable
-private fun SplashRoute(viewModel: MainViewModel, state: DashboardUiState) {
+private fun SplashRoute(
+    viewModel: MainViewModel,
+    dashboardState: DashboardUiState
+) {
     SplashScreen(
-        statusText = stringResource(state.initStep.stringResId),
-        initSlow = state.isInitSlow,
-        elapsedSeconds = (state.initElapsedMs / 1000L).toInt(),
+        initSlow = dashboardState.isInitSlow,
+        elapsedSeconds = (dashboardState.initElapsedMs / 1000).toInt(),
         onRetry = { viewModel.retryInit() },
         onContinueAnyway = { viewModel.dismissSplash() }
     )

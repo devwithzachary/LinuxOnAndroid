@@ -2,6 +2,47 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.5.0] - 2026-09-01
+
+### 📑 Tabbed Multi-Window Terminal System
+- **Concurrent Multi-Tab Terminal**: Launch, run, switch, and manage multiple independent interactive terminal sessions simultaneously within your container rootfs.
+- **Dynamic Tab Strip UI**: Scrollable top tab strip with live status indicators (running / stopped), active session highlights, close tab shortcuts (`✕`), and quick `+` new tab creation.
+- **Session Renaming & Custom Titles**: Long-press on any tab chip to give it a custom name (e.g. "Web Server", "Database", "Compiler").
+- **Container-Specific Tabs**: Open new terminal tabs bound directly into different installed rootfs environments from a single unified screen.
+- **Independent PTY Subprocesses**: Each tab operates its own isolated pseudo-terminal (PTY) process, buffering output and maintaining full interactive state in the background.
+- **Service & Preset Command Queuing**: Resolved an issue where tapping service launcher buttons (SSH, VNC, NGINX) or 1-click launchers when no terminal was open created an empty terminal tab without executing the command. Added asynchronous command queuing with shell readiness signaling to reliably execute preset commands once the container shell initializes.
+- **Terminal Keyboard Resize & Viewport Preservation**: Fixed an issue where opening the software keyboard wiped lines below the keyboard and drew an orphaned prompt. Implemented viewport-preserving terminal resizing that scrolls lines into the scrollback buffer when the visible height shrinks and pulls lines back when the keyboard closes, keeping the active cursor line and prompt visible.
+
+### 🐧 Multiple Rootfs Distributions & Extended Setup Wizard
+- **Multi-Distribution Catalog**: Choose from 6 distinct Linux distributions tailored for different use cases:
+  - **Ubuntu 26.04 LTS**: Official LTS base rootfs with APT package manager for general development.
+  - **Debian 12**: Ultra-stable lightweight alternative with vast package repositories.
+  - **Alpine Linux 3.21**: Minimalist musl/busybox environment (~10MB rootfs) booting instantly with tiny memory footprint.
+  - **Arch Linux ARM**: Rolling release distribution featuring the pacman package manager and bleeding-edge software.
+  - **Kali Linux CLI Tools**: Security auditing and network forensics environment with Kali Linux repositories.
+  - **Void Linux**: Independent general-purpose distribution with XBPS package manager and fast boot times.
+- **Multi-Package Manager Engine**: Native bootstrap setup and package manager support for `apt`, `apk`, `pacman`, `dnf`, and `xbps`.
+- **Rootfs Symlink & File Extraction Safety**: Preserves and safely unlinks rootfs symlinks without recursive deletion across archive extractions and software package installations.
+- **Cross-Distribution User Account Provisioning**: Robust fallback user record generation (`/etc/passwd`, `/etc/group`, `/etc/shadow`) and multi-path `su` binary resolution ensuring seamless terminal logins on Busybox and shadow environments (Alpine, Arch, Void, Debian, Ubuntu).
+- **High-Capacity Archive Extraction Engine**: Streamlined in-memory logging and hardened Tar extractor handling large distributions (e.g. Arch Linux ARM ~790MB archive, ~2.2GB rootfs) with hard-link resolution and heap protection.
+- **Ubuntu 26.04 Coreutils & Package Installation Fix**: Resolved an issue where Ubuntu 26.04's default `rust-coreutils` binaries in `/usr/lib/cargo/bin/coreutils/` lacked execution permissions due to Android SELinux hardlink restrictions. Hardened the archive extractor to link via relative symlinks and enforce `+rx` permissions, eliminating `python3.14-minimal` maintainer script failures (exit status 127) during 1-click package installs and accurately propagating subprocess exit codes in `SoftwareInstaller`.
+- **Ubuntu 26.04 Wizard Size & Port Listener Recovery**: Updated Ubuntu 26.04 base installed size in the setup wizard to 450 MB (previously 1500 MB), restored active TCP port listener detection in Container Overview by dynamically resolving multi-container root directories, inspecting running processes for listening port flags (e.g. `-p 2222`), probing local candidate ports, and eliminating false-positive port reports by validating PID liveness (`/proc/<pid>/cmdline`), purging stale PID files (e.g. `/run/sshd.pid`), and adding a 1-tap refresh button to the Open Ports card.
+- **Rootfs Symlink-Aware Package Detection**: Fixed an issue where installed packages using update-alternatives (e.g. XFCE 4 Desktop & TigerVNC via /etc/alternatives/vncserver symlinks) were not marked as installed in the Software list. Added container-relative symlink traversal and binary alias resolution so symlinked binaries on the Android host are correctly detected.
+- **Web Server (NGINX) & Universal Service Runner**: Resolved `service: command not found` when launching the web server preset. Ensured complete `$PATH` accessibility (`/usr/local/sbin`, `/usr/sbin`, `/sbin`) across all logins and shells, installed a cross-distribution `/usr/local/bin/service` delegation shim, configured NGINX for unprivileged port 8080 binding on Android, and ensured `/run`, `/var/log/nginx`, and `/var/lib/nginx` write permissions.
+- **OpenSSH Server & SFTP Subsystem Conflict Resolution**: Fixed a fatal configuration error (`sshd_config line 115: Subsystem sftp already defined`) on Debian and Ubuntu distributions caused by duplicate SFTP subsystem declarations across `/etc/ssh/sshd_config.d/00-linuxonandroid.conf` and `/etc/ssh/sshd_config`. Sanitized default subsystem declarations to reliably use `internal-sftp` across package installs, service runners, and container startup hooks.
+- **Debian XFCE Desktop & TigerVNC 1-Click Installation Fix**: Resolved Debian 12 package installation and service launch errors (`vncpasswd not found`, missing `/usr/bin/bwrap`, missing `/etc/vnc/xstartup`, and `vncserver: couldn't find "tigervncpasswd"`). Added `tigervnc-tools`, `tigervnc-common`, and `x11-utils` to Debian's package commands, introduced distribution-specific launch commands and binary verification checklists without modifying Ubuntu's configuration, generated `/usr/bin/bwrap` and `/etc/vnc/xstartup` reliably via `printf`, and added Debian-tailored VNC startup scripts supporting both `vncpasswd` and `tigervncpasswd`.
+- **Alpine Linux Terminal Shell Resolution Fix**: Resolved an issue where launching an Alpine Linux terminal session failed with `bash: applet not found` due to BusyBox dispatching on bash applet names and broken symlinks. Introduced distribution-specific candidate shell hierarchies (prioritizing `/bin/sh` and `/bin/ash` on Alpine while preserving bash defaults on Ubuntu and Debian), validated guest shells against broken BusyBox bash symlinks, honored caller-requested shells for non-root users in PRoot commands, and automatically healed stale `/usr/bin/bash` symlinks on Alpine rootfs.
+
+### 🎛️ Installed Containers Dashboard & Per-Container Overview
+- **Three-Tab Container Detail Layout**: Split container details into dedicated "Overview", "Software", and "Settings" tabs with seamless sliding animations and swipe gestures.
+  - **Overview Tab**: Live RAM and storage dials, intelligent one-touch service launchers (VNC, NGINX, SSH) with installation checks and 1-tap setup guidance, live process table (`ps aux`), and open listening ports.
+  - **Software Tab**: Scoped package installer with category filters, custom package command prompt (`apt`, `apk`, `pacman`, `dnf`), and preset software cards with logs.
+  - **Settings Tab**: Scoped rootfs upgrade mechanism with live build version status and inspection logs dialog, container backup and restore (.tar.gz export/import), storage mount (/sdcard bind) configuration, user/account management (root password, add/delete user, default login user selection, sudo permissions), custom network/DNS settings (/etc/resolv.conf), and safe container deletion.
+- **Accurate Per-Container Storage & Gauge Isolation**: Resolved multi-container storage miscalculations by parsing true filesystem allocation (`du -sk`) across hard links, isolating per-container storage in Container Details, and summing total container storage on the main Dashboard.
+- **Per-Container Process & Network Port Isolation**: Fixed an issue where opening a second or inactive container displayed all active processes and open listening ports running in the first container. Implemented container rootfs and process tree hierarchy tracing to attribute processes strictly to their originating container, and isolated network listener detection to ensure stopped containers show 0 active processes and 0 open ports.
+- **Streamlined Global App Settings**: Focused exclusively on app-wide preferences including GitHub update checks, terminal fonts and 16-color theme palette customization, background keep-alive/WakeLock policies, and diagnostics debug reporting.
+- **Multi-Container Diagnostics & Integrity Verification**: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and verifying essential filesystem components (/bin/sh, /etc/os-release, /etc/resolv.conf, /etc/passwd, /etc/group, /etc/hosts, and proot runtime binaries).
+
 ## [1.4.0] - 2026-08-28
 
 ### 🚀 GitHub Release Update Checker & Play Store Migration Guide

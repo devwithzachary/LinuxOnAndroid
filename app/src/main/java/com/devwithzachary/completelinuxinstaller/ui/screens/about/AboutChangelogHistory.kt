@@ -23,9 +23,32 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
+        version = "v1.5.0",
+        date = "September 1, 2026",
+        initialExpanded = true,
+        highlights = listOf(
+            "Tabbed Multi-Window Terminal: Open, run, switch, rename, and manage multiple concurrent interactive terminal tabs within your Linux rootfs environments.",
+            "Multi-Rootfs Container Management: Install, run, and manage multiple distinct Linux distributions side-by-side on disk with per-container storage tracking, custom container names, and dynamic shell hostnames (e.g. user@ContainerName).",
+            "Multi-Distro Setup Wizard: Extended setup catalog allowing you to choose and install Debian 12, Alpine Linux 3.21 (ultra-fast ~10MB rootfs), Arch Linux ARM, Kali Linux CLI Tools, Void Linux, or Ubuntu 26.04 LTS.",
+            "Interactive Dashboard & Per-Container Overview: Real-time container cards displaying installed distributions, RAM and disk usage, plus full per-container system overview screens.",
+            "Filesystem & Software Hub Hardening: Safe rootfs symlink and file extraction without recursive deletion, robust cross-distro user account provisioning (/etc/passwd, /etc/group), high-capacity archive extractor for large rootfs distributions (Arch Linux ARM), automated setup wizard reset, accurate per-container storage tracking across hard links, and tailored 1-click software package scripts for all supported distributions.",
+            "Multi-Container Debug Diagnostics: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and checking required filesystem files.",
+            "Ubuntu 26.04 Coreutils & Package Installation Fix: Fixed rust-coreutils binary execution permissions (/usr/lib/cargo/bin/coreutils) and tar hard link resolution preventing python3.14-minimal preinst maintainer script subprocess failures (exit status 127) during 1-click package installs.",
+            "Ubuntu 26.04 Wizard Size & Port Listener Recovery: Updated Ubuntu base installed size to 450MB in the setup wizard, restored active TCP port listening detection for multi-container services with process flag extraction, custom SSH port resolution, stale PID file purging (/proc liveness checks), and 1-tap card refresh.",
+            "Service & Preset Command Queuing: Fixed an issue where launching services (SSH, VNC, NGINX) or 1-click presets when a terminal was not open launched an empty terminal without executing the command, adding asynchronous command queuing with shell readiness signaling.",
+            "Rootfs Symlink-Aware Package Detection: Resolved an issue where installed packages using update-alternatives (such as XFCE 4 Desktop via /etc/alternatives/vncserver) were not marked as installed, adding container-relative symlink traversal and alias resolution.",
+            "Terminal Viewport & Keyboard Resize Preservation: Resolved an issue where opening the soft keyboard wiped terminal lines below the keyboard and drew a detached prompt, introducing viewport scrolling preservation and bidirectional scrollback buffer synchronization.",
+            "Web Server (NGINX) & Universal Service Runner: Fixed 'service: command not found' errors by ensuring full /usr/sbin and /sbin PATH accessibility across all shells and logins, deploying a universal service runner shim across distros, configuring NGINX for unprivileged port 8080 binding on Android, and ensuring directory write permissions.",
+            "Per-Container Process & Port Isolation: Fixed an issue where viewing a second container displayed all processes and open ports running in the first container. Added process tree hierarchy tracing and rootfs scoping so process lists and open network ports are strictly isolated to their own container.",
+            "OpenSSH Server & SFTP Subsystem Conflict Resolution: Resolved a fatal error ('sshd_config line 115: Subsystem sftp already defined') in Debian and Ubuntu containers by sanitizing duplicate Subsystem sftp configuration directives across /etc/ssh/sshd_config and /etc/ssh/sshd_config.d/00-linuxonandroid.conf to reliably use internal-sftp.",
+            "Debian XFCE Desktop & TigerVNC 1-Click Fix: Resolved Debian 12 package installation and service launch errors (vncpasswd not found, missing bwrap and xstartup, and missing tigervncpasswd). Added tigervnc-tools and x11-utils, introduced distro-specific launch commands and binary verification checklists without modifying Ubuntu, and added Debian-tailored VNC startup scripts.",
+            "Alpine Linux Terminal Shell Resolution Fix: Resolved an issue where launching an Alpine Linux terminal session failed with 'bash: applet not found' due to BusyBox dispatching on bash applet names and broken symlinks. Introduced distribution-specific candidate shell hierarchies (prioritizing /bin/sh and /bin/ash on Alpine while preserving bash defaults on Ubuntu and Debian), validated guest shells against broken BusyBox bash symlinks, honored caller-requested shells for non-root users in PRoot commands, and healed stale /usr/bin/bash symlinks on Alpine rootfs."
+        )
+    ),
+    ReleaseChangelog(
         version = "v1.4.0",
         date = "August 28, 2026",
-        initialExpanded = true,
+        initialExpanded = false,
         highlights = listOf(
             "GitHub Release Update Checker & Play Store Migration Guide: Automated in-app GitHub release checks notifying users of cutting-edge updates, with full step-by-step guidance on migrating from Google Play Store builds to GitHub developer-signed APKs.",
             "Real-Time Container Dashboard & System Monitor: Live visual RAM and storage gauges, real-time process table (ps aux) with 1-tap kill confirmation, and active TCP network port listener with 1-tap browser launcher.",

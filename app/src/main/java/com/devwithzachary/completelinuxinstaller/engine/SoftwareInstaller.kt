@@ -21,12 +21,18 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
         private const val TAG = "SoftwareInstaller"
     }
 
-    fun installPackage(pkg: SoftwarePackage): Flow<InstallStepState> = flow {
+    fun installPackage(
+        pkg: SoftwarePackage,
+        targetDir: java.io.File = pRootEngine.rootfsDir,
+        distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition? = null,
+        sshPort: Int = 2222
+    ): Flow<InstallStepState> = flow {
+        val effectiveCommand = distroDef?.getSoftwarePackageInstallCommand(pkg.id, sshPort) ?: pkg.installCommand
         emit(InstallStepState.Progress(pkg.id, "Starting installation of ${pkg.name}..."))
-        emit(InstallStepState.Progress(pkg.id, "Executing script: ${pkg.installCommand}"))
+        emit(InstallStepState.Progress(pkg.id, "Executing script: $effectiveCommand"))
 
         try {
-            val policyRcd = java.io.File(pRootEngine.rootfsDir, "usr/sbin/policy-rc.d")
+            val policyRcd = java.io.File(targetDir, "usr/sbin/policy-rc.d")
             if (!policyRcd.exists()) {
                 try {
                     policyRcd.parentFile?.mkdirs()
@@ -38,14 +44,11 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
 
             val systemdStubs = listOf(
                 "usr/bin/systemd-tmpfiles",
-                "bin/systemd-tmpfiles",
                 "usr/bin/systemd-sysusers",
-                "bin/systemd-sysusers",
-                "usr/bin/systemd-detect-virt",
-                "bin/systemd-detect-virt"
+                "usr/bin/systemd-detect-virt"
             )
             for (stubPath in systemdStubs) {
-                val stubFile = java.io.File(pRootEngine.rootfsDir, stubPath)
+                val stubFile = java.io.File(targetDir, stubPath)
                 try {
                     stubFile.parentFile?.mkdirs()
                     stubFile.writeText("#!/bin/sh\nexit 0\n")
@@ -54,7 +57,7 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
                 } catch (_: Exception) {}
             }
 
-            val dpkgPreconfigure = java.io.File(pRootEngine.rootfsDir, "usr/sbin/dpkg-preconfigure")
+            val dpkgPreconfigure = java.io.File(targetDir, "usr/sbin/dpkg-preconfigure")
             if (!dpkgPreconfigure.exists()) {
                 try {
                     dpkgPreconfigure.parentFile?.mkdirs()
@@ -64,27 +67,48 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
                 } catch (_: Exception) {}
             }
 
-            val sanitizedCommand = "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
-                    "chmod 755 /usr /usr/local /usr/bin /usr/sbin /etc 2>/dev/null; " +
-                    "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; " +
-                    "rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /var/lib/dpkg/lock* /usr/bin/*.dpkg-new /usr/lib/*.dpkg-new 2>/dev/null; " +
-                    "mkdir -p /etc/dpkg/dpkg.cfg.d && echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-overwrite >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confold >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confdef >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid; " +
-                    "mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; " +
-                    "chmod 666 /var/lib/dpkg/status* 2>/dev/null; " + pkg.installCommand +
-                    " ; chown -R 0:0 /etc/sudoers /etc/sudoers.d /etc/sudo.conf /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true; chmod 0440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true;"
+            val isApt = (distroDef?.packageManager == com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT) || (distroDef == null)
+            val postSudoFix = "chown -R 0:0 /etc/sudoers /etc/sudoers.d /etc/sudo.conf /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true; chmod 0440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true"
+            val sanitizedCommand = if (isApt) {
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "chmod 755 /usr /usr/local /usr/bin /usr/sbin /etc 2>/dev/null; " +
+                        "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
+                        "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; " +
+                        "rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /var/lib/dpkg/lock* /usr/bin/*.dpkg-new /usr/lib/*.dpkg-new 2>/dev/null; " +
+                        "mkdir -p /etc/dpkg/dpkg.cfg.d && echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-overwrite >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confold >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confdef >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid; " +
+                        "mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; " +
+                        "chmod 666 /var/lib/dpkg/status* 2>/dev/null; " +
+                        "_LOA_ERR=0; ( " + effectiveCommand + " ) || _LOA_ERR=\$?; " +
+                        postSudoFix + "; exit \$_LOA_ERR;"
+            } else {
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "chmod 755 /usr /usr/local /usr/bin /usr/sbin /etc 2>/dev/null; " +
+                        "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
+                        "mkdir -p /etc/sudoers.d /etc/pam.d /tmp 2>/dev/null; " +
+                        "_LOA_ERR=0; ( " + effectiveCommand + " ) || _LOA_ERR=\$?; " +
+                        postSudoFix + "; exit \$_LOA_ERR;"
+            }
+
+            val shellPath = when {
+                java.io.File(targetDir, "usr/bin/dash").exists() || java.io.File(targetDir, "bin/dash").exists() -> "/usr/bin/dash"
+                java.io.File(targetDir, "usr/bin/bash").exists() || java.io.File(targetDir, "bin/bash").exists() -> "/bin/bash"
+                else -> "/bin/sh"
+            }
 
             val cmd = pRootEngine.buildPRootCommand(
-                command = listOf("/bin/sh", "-c", sanitizedCommand)
+                config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir),
+                command = listOf(shellPath, "-c", sanitizedCommand)
             )
 
             val pb = ProcessBuilder(cmd)
-            pb.directory(pRootEngine.rootfsDir)
+            pb.directory(targetDir)
             
             val env = pb.environment()
             env.putAll(pRootEngine.getEnvironmentVariables())
             env["PROOT_NO_SECCOMP"] = "1"
             env["PROOT_FORCE_SETID"] = "1"
             env["PROOT_LINK2SYMLINK"] = "1"
+            env["HOSTNAME"] = ContainerManager.formatContainerHostname(distroDef?.name ?: "Linux")
             env["TMPDIR"] = "/tmp"
             env["TMP"] = "/tmp"
             env["DEBIAN_FRONTEND"] = "noninteractive"
@@ -114,7 +138,8 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
             reader.close()
 
             if (exitCode == 0) {
-                RootfsMigrationManager.writePackageVersion(pRootEngine.rootfsDir, pkg.id, pkg.version)
+                val effectiveVersion = distroDef?.getSoftwarePackageVersion(pkg.id) ?: pkg.version
+                RootfsMigrationManager.writePackageVersion(targetDir, pkg.id, effectiveVersion)
                 emit(InstallStepState.Progress(pkg.id, "Installation completed successfully!"))
                 emit(InstallStepState.Success(pkg.id, pkg.postInstallNotes))
             } else {

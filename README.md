@@ -96,18 +96,28 @@ Interactive terminal applications (like `vim`, `htop`, `tmux`, `bash`) require a
 
 ---
 
-## 📦 Bundled Native Binaries & Credits
+## 📦 Upstream Distribution RootFS & Component Credits
 
-This project relies on several key open-source native components. We gratefully acknowledge the authors and maintainers of these projects:
+Complete Linux Installer provisions environments using official root filesystem images directly from upstream Linux distribution project maintainers. We gratefully acknowledge the developers and maintainers of these projects:
 
-| Binary / Library | Description & Purpose | License / Source |
+| Linux Distribution | Maintainer / Project | Description | Source / Reference |
+| :--- | :--- | :--- | :--- |
+| **Ubuntu Base** | **Canonical Ltd.** | Official minimal base rootfs tarballs for Ubuntu Linux. | [Ubuntu Base Releases](https://cdimage.ubuntu.com/ubuntu-base/) |
+| **Debian** | **Debian Project / debuerreotype** | Reproducible, official Debian container rootfs pipeline maintained by the Debian cloud team. | [debuerreotype Releases](https://github.com/debuerreotype/docker-debian-artifacts) / [Debian](https://www.debian.org/) |
+| **Alpine Linux** | **Alpine Linux Development Team** | Official ultra-lightweight Alpine Linux minirootfs tarballs. | [Alpine Linux Releases](https://alpinelinux.org/downloads/) |
+| **Arch Linux ARM** | **Arch Linux ARM Project** | Official rolling base rootfs images for ARM architectures. | [Arch Linux ARM](https://archlinuxarm.org/) |
+| **Kali Linux** | **Offensive Security / Kali Linux Team** | Official NetHunter minimal rootfs images with Kali Linux repositories. | [Kali Linux](https://www.kali.org/) / [Kali NetHunter Images](https://kali.download/nethunter-images/) |
+| **Void Linux** | **Void Linux Project** | Official independent rootfs tarballs featuring the XBPS package system. | [Void Linux Downloads](https://voidlinux.org/download/) |
+
+### Open-Source Libraries & Subsystems
+
+| Component | Description & Purpose | License / Upstream |
 | :--- | :--- | :--- |
 | **PRoot (`libproot.so`)** | User-space implementation of `chroot`, `mount --bind`, and root emulation using `ptrace`. | [PRoot Project](https://proot-me.github.io/) / [GPL-2.0](https://www.gnu.org/licenses/gpl-2.0.html) |
-| **libandroid-shmem (`libandroid-shmem.so`)** | System V shared memory emulation library wrapper for Android's ashmem/memfd kernel interfaces. | [libandroid-shmem](https://github.com/termux/libandroid-shmem) |
+| **libandroid-shmem (`libandroid-shmem.so`)** | System V shared memory emulation wrapper for Android ashmem/memfd kernel interfaces. | [libandroid-shmem](https://github.com/termux/libandroid-shmem) |
 | **talloc (`libtalloc.so`)** | Hierarchical pool-based memory allocator developed by the Samba project, required by PRoot. | [Samba talloc](https://talloc.samba.org/) / [LGPL-3.0](https://www.gnu.org/licenses/lgpl-3.0.html) |
-| **Ubuntu Base** | Official minimal root filesystem tarballs provided by Canonical Ltd. | [Ubuntu Base Releases](https://cdimage.ubuntu.com/ubuntu-base/) / Canonical Ltd. |
-| **Termux Project** | Architectural references and patches for running PRoot and PTY subprocesses on Android. | [Termux](https://github.com/termux) / [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) |
-| **JetBrains Mono** | Bundled monospace font used by the terminal renderer. | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) / [SIL OFL 1.1](licenses/fonts/JetBrainsMono-OFL-1.1.txt) |
+| **Termux Project** | Architectural references for PRoot execution and PTY subprocess management on Android. | [Termux](https://github.com/termux) / [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) |
+| **JetBrains Mono** | Bundled monospace font used in the terminal renderer. | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) / [SIL OFL 1.1](licenses/fonts/JetBrainsMono-OFL-1.1.txt) |
 | **Ubuntu Mono** | Bundled monospace font option for the terminal. | [Ubuntu Font Family](https://design.ubuntu.com/font/) / [Ubuntu Font Licence](licenses/fonts/UbuntuFontLicence.txt) |
 
 ---

@@ -32,9 +32,12 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.engine.ContainerManager
 import com.devwithzachary.completelinuxinstaller.engine.RootfsMigrationManager
 import com.devwithzachary.completelinuxinstaller.engine.RootfsVersionInfo
 import com.devwithzachary.completelinuxinstaller.engine.UpgradeState
+import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
+import com.devwithzachary.completelinuxinstaller.model.DistroCatalog
 import com.devwithzachary.completelinuxinstaller.service.PRootForegroundService
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
 
@@ -64,7 +67,9 @@ data class DashboardUiState(
     val rootfsVersion: RootfsVersionInfo? = null,
     val isUpgradeAvailable: Boolean = false,
     val dnsServers: List<String> = listOf("8.8.8.8", "1.1.1.1", "8.8.4.4"),
-    val containerUsers: List<String> = emptyList()
+    val containerUsers: List<String> = emptyList(),
+    val containers: List<com.devwithzachary.completelinuxinstaller.model.ContainerInstance> = emptyList(),
+    val defaultContainerId: String = com.devwithzachary.completelinuxinstaller.engine.ContainerManager.DEFAULT_CONTAINER_ID
 ) {
     val isInitSlow: Boolean get() = initElapsedMs >= INIT_SLOW_THRESHOLD_MS
 }
@@ -80,11 +85,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val pRootEngine = PRootEngine(application)
     val rootfsManager = RootfsManager(application, pRootEngine)
+    val containerManager = ContainerManager(application)
     val softwareInstaller = SoftwareInstaller(pRootEngine)
     val terminalBridge = TerminalBridge(pRootEngine)
-    val diagnosticsManager = DiagnosticsManager(application, pRootEngine, rootfsManager)
-    val systemMonitorManager = SystemMonitorManager(application, pRootEngine, rootfsManager)
+    val diagnosticsManager = DiagnosticsManager(application, pRootEngine, rootfsManager, containerManager)
+    val systemMonitorManager = SystemMonitorManager(application, pRootEngine, rootfsManager, containerManager, terminalBridge)
     val gitHubReleaseManager = GitHubReleaseManager(application)
+
+    val containers: StateFlow<List<com.devwithzachary.completelinuxinstaller.model.ContainerInstance>> = containerManager.containers
+    val defaultContainerId: StateFlow<String> = containerManager.defaultContainerId
+    val sessions: StateFlow<List<com.devwithzachary.completelinuxinstaller.engine.TerminalSession>> = terminalBridge.sessions
+    val activeSessionId: StateFlow<String?> = terminalBridge.activeSessionId
 
     private val _isGitHubUpdateCheckEnabled = MutableStateFlow(gitHubReleaseManager.isUpdateCheckEnabled())
     val isGitHubUpdateCheckEnabled: StateFlow<Boolean> = _isGitHubUpdateCheckEnabled.asStateFlow()
@@ -136,6 +147,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _systemMetrics = MutableStateFlow(SystemResourceMetrics())
     val systemMetrics: StateFlow<SystemResourceMetrics> = _systemMetrics.asStateFlow()
 
+    private val _containerMetrics = MutableStateFlow<Map<String, SystemResourceMetrics>>(emptyMap())
+    val containerMetrics: StateFlow<Map<String, SystemResourceMetrics>> = _containerMetrics.asStateFlow()
+
     fun killProcess(pid: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             systemMonitorManager.killProcess(pid)
@@ -144,8 +158,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun refreshSystemMetrics() {
-        val metrics = systemMonitorManager.collectMetrics(terminalBridge.isRunning.value)
-        _systemMetrics.value = metrics
+        val globalMetrics = systemMonitorManager.collectMetrics(terminalBridge.isRunning.value, null)
+        _systemMetrics.value = globalMetrics
+
+        val allContainers = containerManager.getAllContainers()
+        val cMap = mutableMapOf<String, SystemResourceMetrics>()
+        for (container in allContainers) {
+            val isContainerTerminalRunning = terminalBridge.sessions.value.any { 
+                it.containerId == container.id && it.isRunning.value 
+            }
+            val metrics = systemMonitorManager.collectMetrics(
+                isSessionRunning = isContainerTerminalRunning,
+                targetRootDir = container.rootDir
+            )
+            cMap[container.id] = metrics
+        }
+        if (allContainers.isEmpty() && rootfsManager.isInstalled()) {
+            val metrics = systemMonitorManager.collectMetrics(
+                isSessionRunning = terminalBridge.isRunning.value,
+                targetRootDir = pRootEngine.rootfsDir
+            )
+            cMap[com.devwithzachary.completelinuxinstaller.engine.ContainerManager.DEFAULT_CONTAINER_ID] = metrics
+        }
+        _containerMetrics.value = cMap
+    }
+
+    fun getMetricsForContainer(containerId: String): SystemResourceMetrics {
+        return _containerMetrics.value[containerId] ?: run {
+            val container = containerManager.getContainer(containerId)
+            SystemResourceMetrics(storageUsedMb = container?.storageUsedMb ?: 0L)
+        }
+    }
+
+    fun triggerMetricsRefresh() {
+        viewModelScope.launch(Dispatchers.IO) {
+            refreshSystemMetrics()
+        }
     }
 
     private fun startSystemMonitorLoop() {
@@ -248,15 +296,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val isSessionRunning = terminalBridge.isRunning
 
-    fun setDnsServers(servers: List<String>) {
-        rootfsManager.setDnsServers(servers)
-        _dnsServers.value = rootfsManager.getDnsServers()
-        _dashboardState.value = _dashboardState.value.copy(dnsServers = _dnsServers.value)
+    fun setDnsServers(servers: List<String>, containerId: String? = null) {
+        setContainerDns(servers, containerId)
     }
 
-    fun upgradeRootfs() {
+    fun upgradeRootfs(containerId: String? = null) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
         viewModelScope.launch {
-            rootfsManager.upgradeRootfs().collect { state ->
+            rootfsManager.upgradeRootfs(targetDir).collect { state ->
                 _upgradeState.value = state
                 if (state is UpgradeState.Success) {
                     refreshStatus()
@@ -494,19 +542,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun refreshStatusInternal() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        val installed = rootfsManager.isInstalled()
-        val rootfsDir = pRootEngine.rootfsDir
+        containerManager.loadAndMigrateContainers()
+        val allContainers = containerManager.getAllContainers()
+        val defaultContainer = containerManager.getDefaultContainer()
+        val defaultDir = defaultContainer?.rootDir ?: pRootEngine.rootfsDir
+        val installed = (allContainers.any { it.isInstalled }) || rootfsManager.isInstalled()
+        val rootfsDir = defaultDir
 
-        // Sync individual package states against rootfs file system package tracking file
+        // Sync individual package states against rootfs file system package tracking file and binaries
         val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
 
-        val hasVnc = installed && packageVersions.containsKey("xfce_desktop")
-        val hasNginx = installed && packageVersions.containsKey("nginx_web")
-        val hasSsh = installed && packageVersions.containsKey("openssh_server")
+        val hasVnc = installed && (
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/vncserver") ||
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/tigervncserver") ||
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/startxfce4") ||
+            packageVersions.containsKey("xfce_desktop")
+        )
+        val hasNginx = installed && (
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/nginx") ||
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/nginx") ||
+            packageVersions.containsKey("nginx_web")
+        )
+        val hasSsh = installed && (
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/sshd") ||
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/sshd") ||
+            packageVersions.containsKey("openssh_server")
+        )
         val users = if (installed) rootfsManager.getContainerUsers() else emptyList()
 
         val syncedPackages = _packages.value.map { pkg ->
-            if (!installed) {
+            if (pkg.status == InstallStatus.INSTALLING) {
+                pkg
+            } else if (!installed) {
                 pkg.copy(
                     status = InstallStatus.NOT_INSTALLED,
                     hasUpgradeAvailable = false,
@@ -514,11 +581,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     installLogs = ""
                 )
             } else {
-                val isPkgInstalled = packageVersions.containsKey(pkg.id) || (pkg.id.startsWith("custom_") && run {
-                    val binaryName = pkg.id.removePrefix("custom_")
-                    File(rootfsDir, "usr/bin/$binaryName").exists() || File(rootfsDir, "usr/sbin/$binaryName").exists()
-                })
-                val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else InstallStatus.NOT_INSTALLED
+                val hasExpectedBinaries = pkg.expectedBinaries.isNotEmpty() &&
+                        pkg.expectedBinaries.all { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+                val hasAnyExpectedBinary = pkg.expectedBinaries.isEmpty() ||
+                        pkg.expectedBinaries.any { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+
+                val isPkgInstalled = (packageVersions.containsKey(pkg.id) && hasAnyExpectedBinary) ||
+                        hasExpectedBinaries ||
+                        (pkg.id.startsWith("custom_") && run {
+                            val binaryName = pkg.id.removePrefix("custom_")
+                            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/$binaryName") ||
+                            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/$binaryName") ||
+                            SoftwarePackage.isBinaryPresent(rootfsDir, "bin/$binaryName")
+                        })
+                val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else pkg.status.takeIf { it == InstallStatus.FAILED } ?: InstallStatus.NOT_INSTALLED
                 val installedVer = if (isPkgInstalled) (packageVersions[pkg.id] ?: 1) else pkg.version
                 val hasUpgrade = isPkgInstalled && (installedVer < pkg.version)
 
@@ -527,14 +603,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         _packages.value = syncedPackages
 
+        val defaultUserForContainer = defaultContainer?.defaultUser ?: users.firstOrNull() ?: "root"
         val savedUser = prefs.getString("default_terminal_user", null)
-        if (savedUser.isNullOrBlank()) {
-            val autoDefault = users.firstOrNull() ?: "root"
-            _defaultTerminalUser.value = autoDefault
-        } else if (savedUser != "root" && !users.contains(savedUser)) {
-            val autoDefault = users.firstOrNull() ?: "root"
-            prefs.edit().putString("default_terminal_user", autoDefault).apply()
-            _defaultTerminalUser.value = autoDefault
+        if (savedUser.isNullOrBlank() || (savedUser != "root" && !users.contains(savedUser))) {
+            prefs.edit().putString("default_terminal_user", defaultUserForContainer).apply()
+            _defaultTerminalUser.value = defaultUserForContainer
+        } else if (defaultContainer != null && defaultContainer.defaultUser.isNotBlank()) {
+            _defaultTerminalUser.value = defaultContainer.defaultUser
         }
 
         val rootfsVersion = if (installed) rootfsManager.getRootfsVersion() else null
@@ -542,7 +617,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val currentDns = rootfsManager.getDnsServers()
         _dnsServers.value = currentDns
 
-        val cachedStorage = if (installed) rootfsManager.getCachedStorageUsedMb() else 0L
+        val totalContainerStorage = allContainers.sumOf { it.storageUsedMb }.takeIf { it > 0L }
+            ?: defaultContainer?.storageUsedMb?.takeIf { it > 0L }
+            ?: (if (installed) rootfsManager.getCachedStorageUsedMb() else 0L)
 
         _dashboardState.value = _dashboardState.value.copy(
             isInstalled = installed,
@@ -555,11 +632,74 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isUpgradeAvailable = isUpgradeAvail,
             dnsServers = currentDns,
             containerUsers = users,
-            storageUsedMb = cachedStorage
+            storageUsedMb = totalContainerStorage,
+            containers = allContainers,
+            defaultContainerId = containerManager.defaultContainerId.value,
+            distroName = defaultContainer?.distroName ?: "Ubuntu 26.04 LTS"
         )
 
         if (installed) {
             triggerAsyncStorageCalculation()
+        }
+    }
+
+    fun getPackagesForContainer(containerId: String): List<SoftwarePackage> {
+        val container = containerManager.getContainer(containerId)
+        val rootfsDir = container?.rootDir ?: return _packages.value
+        val installed = container.isInstalled && rootfsDir.exists()
+        val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
+        val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(container.distroId.ifBlank { container.distroName })
+
+        return _packages.value.map { pkg ->
+            val effectiveLaunchCommand = distroDef.getSoftwarePackageLaunchCommand(pkg.id, _sshPort.value) ?: pkg.launchCommand
+            val effectiveBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) ?: pkg.expectedBinaries
+            val effectiveVersion = distroDef.getSoftwarePackageVersion(pkg.id) ?: pkg.version
+            val hasDistroSpecificBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) != null
+
+            if (pkg.status == InstallStatus.INSTALLING) {
+                pkg.copy(
+                    launchCommand = effectiveLaunchCommand,
+                    expectedBinaries = effectiveBinaries,
+                    version = effectiveVersion
+                )
+            } else if (!installed) {
+                pkg.copy(
+                    status = InstallStatus.NOT_INSTALLED,
+                    hasUpgradeAvailable = false,
+                    launchCommand = effectiveLaunchCommand,
+                    expectedBinaries = effectiveBinaries,
+                    version = effectiveVersion
+                )
+            } else {
+                val hasExpectedBinaries = effectiveBinaries.isNotEmpty() &&
+                        effectiveBinaries.all { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+                val hasAnyExpectedBinary = effectiveBinaries.isEmpty() ||
+                        effectiveBinaries.any { SoftwarePackage.isBinaryPresent(rootfsDir, it) }
+
+                val isPkgInstalled = if (hasDistroSpecificBinaries) {
+                    hasExpectedBinaries
+                } else {
+                    (packageVersions.containsKey(pkg.id) && hasAnyExpectedBinary) ||
+                            hasExpectedBinaries ||
+                            (pkg.id.startsWith("custom_") && run {
+                                val binaryName = pkg.id.removePrefix("custom_")
+                                SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/$binaryName") ||
+                                SoftwarePackage.isBinaryPresent(rootfsDir, "usr/sbin/$binaryName") ||
+                                SoftwarePackage.isBinaryPresent(rootfsDir, "bin/$binaryName")
+                            })
+                }
+                val actualStatus = if (isPkgInstalled) InstallStatus.INSTALLED else pkg.status.takeIf { it == InstallStatus.FAILED } ?: InstallStatus.NOT_INSTALLED
+                val installedVer = if (isPkgInstalled) (packageVersions[pkg.id] ?: 1) else effectiveVersion
+                val hasUpgrade = isPkgInstalled && (installedVer < effectiveVersion)
+
+                pkg.copy(
+                    status = actualStatus,
+                    hasUpgradeAvailable = hasUpgrade,
+                    launchCommand = effectiveLaunchCommand,
+                    expectedBinaries = effectiveBinaries,
+                    version = effectiveVersion
+                )
+            }
         }
     }
 
@@ -568,13 +708,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun triggerAsyncStorageCalculation() {
         storageCalculationJob?.cancel()
         storageCalculationJob = viewModelScope.launch(Dispatchers.IO) {
-            val installed = rootfsManager.isInstalled()
-            if (installed) {
-                val freshStorageMb = rootfsManager.getStorageUsedMb()
-                _dashboardState.value = _dashboardState.value.copy(storageUsedMb = freshStorageMb)
-            } else {
-                _dashboardState.value = _dashboardState.value.copy(storageUsedMb = 0L)
-            }
+            containerManager.refreshContainerStorage(rootfsManager)
+            val updatedContainers = containerManager.getAllContainers()
+            val totalFreshStorageMb = updatedContainers.sumOf { it.storageUsedMb }.takeIf { it > 0L }
+                ?: (containerManager.getDefaultContainer()?.storageUsedMb ?: 0L)
+            _dashboardState.value = _dashboardState.value.copy(
+                containers = updatedContainers,
+                storageUsedMb = totalFreshStorageMb
+            )
+            refreshSystemMetrics()
         }
     }
 
@@ -596,6 +738,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun installDistro(
+        distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition,
+        containerName: String = "",
+        rootPassword: String = "root",
+        username: String = "user",
+        userPassword: String = "user"
+    ) {
+        viewModelScope.launch {
+            val containerId = "container_" + System.currentTimeMillis()
+            val finalName = containerName.ifBlank { distroDef.name }
+            val container = containerManager.createContainerEntry(
+                id = containerId,
+                name = finalName,
+                distroId = distroDef.id,
+                defaultUser = username.ifBlank { "user" },
+                defaultShell = distroDef.defaultShell
+            )
+            rootfsManager.downloadAndInstallDistro(
+                targetDir = container.rootDir,
+                distroDef = distroDef,
+                containerName = finalName,
+                rootPassword = rootPassword,
+                username = username,
+                userPassword = userPassword
+            ).collect { state ->
+                _downloadState.value = state
+                if (state is DownloadState.Success) {
+                    containerManager.setDefaultContainer(containerId)
+                    refreshStatus()
+                }
+            }
+        }
+    }
+
+    fun resetWizardState() {
+        _downloadState.value = DownloadState.Idle
+    }
+
     fun configureWizardAccounts(rootPassword: String, username: String, userPassword: String) {
         viewModelScope.launch {
             val cleanUsername = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { "ubuntu" }
@@ -610,73 +790,257 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun changeRootPassword(newPassword: String) {
+    fun changeRootPassword(newPassword: String, containerId: String? = null) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
         viewModelScope.launch {
-            rootfsManager.setRootPassword(newPassword)
+            rootfsManager.setRootPassword(newPassword, targetDir)
             refreshStatus()
         }
     }
 
-    fun createUser(username: String, password: String) {
+    fun createUser(username: String, password: String, isSudo: Boolean = true, containerId: String? = null) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
         viewModelScope.launch {
-            rootfsManager.createOrUpdateUser(username, password)
+            rootfsManager.createOrUpdateUser(username, password, isSudo, targetDir)
             refreshStatus()
         }
     }
 
-    fun deleteUser(username: String) {
+    fun deleteUser(username: String, containerId: String? = null) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
         viewModelScope.launch {
-            rootfsManager.deleteUser(username)
+            rootfsManager.deleteUser(username, targetDir)
             if (_defaultTerminalUser.value == username) {
-                val remainingUsers = rootfsManager.getContainerUsers().filter { it != username }
+                val remainingUsers = rootfsManager.getContainerUsers(targetDir).filter { it != username }
                 setDefaultTerminalUser(remainingUsers.firstOrNull() ?: "root")
             }
             refreshStatus()
         }
     }
 
-    fun startTerminalSession() {
-        terminalBridge.startSession(loginUser = _defaultTerminalUser.value)
+    fun setContainerDefaultUser(username: String, containerId: String? = null) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val cId = container?.id ?: containerId ?: return
+        containerManager.setContainerDefaultUser(cId, username)
+        if (container?.isDefault == true || cId == _dashboardState.value.defaultContainerId) {
+            _defaultTerminalUser.value = username
+            prefs.edit().putString("default_terminal_user", username).apply()
+        }
+        refreshStatus()
+    }
+
+    fun getContainerUsers(containerId: String? = null): List<String> {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        return rootfsManager.getContainerUsers(targetDir)
+    }
+
+    fun getContainerDns(containerId: String? = null): List<String> {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        return rootfsManager.getDnsServers(targetDir)
+    }
+
+    fun setContainerDns(servers: List<String>, containerId: String? = null) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        rootfsManager.setDnsServers(servers, targetDir)
+        _dnsServers.value = rootfsManager.getDnsServers(targetDir)
+        _dashboardState.value = _dashboardState.value.copy(dnsServers = _dnsServers.value)
+    }
+
+    fun createNewTab(
+        containerId: String? = null,
+        loginUser: String? = null,
+        title: String? = null
+    ) {
+        val targetContainer = if (containerId != null) {
+            containerManager.getContainer(containerId)
+        } else {
+            containerManager.getDefaultContainer()
+        }
+        val targetId = targetContainer?.id ?: com.devwithzachary.completelinuxinstaller.engine.ContainerManager.DEFAULT_CONTAINER_ID
+        val targetName = targetContainer?.name ?: "Ubuntu"
+        val rootDir = targetContainer?.rootDir ?: pRootEngine.rootfsDir
+        val user = loginUser ?: targetContainer?.defaultUser ?: _defaultTerminalUser.value
+        val shell = targetContainer?.defaultShell
+        val distro = targetContainer?.let { DistroCatalog.getById(it.distroId) }
+        val candidateShells = distro?.candidateShells
+
+        terminalBridge.createSession(
+            containerId = targetId,
+            containerName = targetName,
+            loginUser = user,
+            title = title,
+            rootfsDir = rootDir,
+            defaultShell = shell,
+            autoStart = true,
+            candidateShells = candidateShells
+        )
+
         if (_isKeepAliveEnabled.value) {
             PRootForegroundService.start(getApplication())
         }
         refreshStatus()
     }
 
-    fun stopTerminalSession() {
-        terminalBridge.stopSession()
-        PRootForegroundService.stop(getApplication())
+    fun switchTab(sessionId: String) {
+        terminalBridge.switchActiveSession(sessionId)
         refreshStatus()
     }
 
-    fun sendTerminalCommand(command: String) {
-        if (!terminalBridge.isRunning.value) {
-            startTerminalSession()
-        } else if (_isKeepAliveEnabled.value) {
+    fun closeTab(sessionId: String) {
+        terminalBridge.closeSession(sessionId)
+        if (!terminalBridge.isAnySessionRunning.value) {
+            PRootForegroundService.stop(getApplication())
+        }
+        refreshStatus()
+    }
+
+    fun renameTab(sessionId: String, newTitle: String) {
+        terminalBridge.renameSession(sessionId, newTitle)
+    }
+
+    fun setDefaultContainer(containerId: String) {
+        containerManager.setDefaultContainer(containerId)
+        refreshStatus()
+    }
+
+    fun deleteContainer(containerId: String) {
+        viewModelScope.launch {
+            val tabs = terminalBridge.sessions.value.filter { it.containerId == containerId }
+            tabs.forEach { terminalBridge.closeSession(it.id) }
+            containerManager.deleteContainer(containerId)
+            refreshStatus()
+        }
+    }
+
+    fun startTerminalSessionForContainer(containerId: String, loginUser: String? = null) {
+        val container = containerManager.getContainer(containerId) ?: containerManager.getDefaultContainer()
+        val targetId = container?.id ?: com.devwithzachary.completelinuxinstaller.engine.ContainerManager.DEFAULT_CONTAINER_ID
+        val targetName = container?.name ?: "Ubuntu"
+        val rootDir = container?.rootDir ?: pRootEngine.rootfsDir
+        val user = loginUser ?: container?.defaultUser ?: _defaultTerminalUser.value
+        val shell = container?.defaultShell
+        val distro = container?.let { DistroCatalog.getById(it.distroId) }
+        val candidateShells = distro?.candidateShells
+
+        val existingSession = terminalBridge.sessions.value.find { it.containerId == targetId }
+        if (existingSession != null) {
+            terminalBridge.switchActiveSession(existingSession.id)
+            if (!existingSession.isRunning.value) {
+                existingSession.startSession(pRootEngine, rootDir, shell, candidateShells)
+            }
+        } else {
+            terminalBridge.createSession(
+                containerId = targetId,
+                containerName = targetName,
+                loginUser = user,
+                rootfsDir = rootDir,
+                defaultShell = shell,
+                autoStart = true,
+                candidateShells = candidateShells
+            )
+        }
+
+        if (_isKeepAliveEnabled.value) {
             PRootForegroundService.start(getApplication())
         }
-        terminalBridge.sendCommand(command)
+        refreshStatus()
+    }
+
+    fun startTerminalSession() {
+        val defaultContainer = containerManager.getDefaultContainer()
+        val targetUser = defaultContainer?.defaultUser ?: _defaultTerminalUser.value
+        if (defaultContainer != null) {
+            startTerminalSessionForContainer(defaultContainer.id, targetUser)
+        } else {
+            terminalBridge.startSession(loginUser = targetUser)
+            if (_isKeepAliveEnabled.value) {
+                PRootForegroundService.start(getApplication())
+            }
+            refreshStatus()
+        }
+    }
+
+    fun stopTerminalSession() {
+        terminalBridge.stopSession()
+        if (!terminalBridge.isAnySessionRunning.value) {
+            PRootForegroundService.stop(getApplication())
+        }
+        refreshStatus()
+    }
+
+    fun sendTerminalCommand(command: String, containerId: String? = null) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetId = container?.id ?: com.devwithzachary.completelinuxinstaller.engine.ContainerManager.DEFAULT_CONTAINER_ID
+        val targetName = container?.name ?: "Ubuntu"
+        val rootDir = container?.rootDir ?: pRootEngine.rootfsDir
+        val user = container?.defaultUser ?: _defaultTerminalUser.value
+        val shell = container?.defaultShell
+        val distro = container?.let { DistroCatalog.getById(it.distroId) }
+        val candidateShells = distro?.candidateShells
+
+        val existingSession = terminalBridge.sessions.value.find { it.containerId == targetId }
+        if (existingSession != null) {
+            terminalBridge.switchActiveSession(existingSession.id)
+            existingSession.queueCommand(command)
+            if (!existingSession.isRunning.value) {
+                existingSession.startSession(pRootEngine, rootDir, shell, candidateShells)
+            }
+        } else {
+            val session = terminalBridge.createSession(
+                containerId = targetId,
+                containerName = targetName,
+                loginUser = user,
+                rootfsDir = rootDir,
+                defaultShell = shell,
+                autoStart = false,
+                candidateShells = candidateShells
+            )
+            session.queueCommand(command)
+            session.startSession(pRootEngine, rootDir, shell, candidateShells)
+        }
+
+        if (_isKeepAliveEnabled.value) {
+            PRootForegroundService.start(getApplication())
+        }
+        refreshStatus()
     }
 
     fun sendCtrlC() {
         terminalBridge.sendCtrlC()
     }
 
-    fun installCustomPackage(packageName: String) {
+    fun installCustomPackage(packageName: String, containerId: String? = null) {
         val cleanName = packageName.trim()
         if (cleanName.isEmpty()) return
+
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val pm = container?.packageManager ?: com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT
 
         val pkgId = "custom_" + cleanName.lowercase().replace(" ", "_")
         val currentList = _packages.value.toMutableList()
 
         val existingIdx = currentList.indexOfFirst { it.id == pkgId }
+        val installCmd = when (pm) {
+            com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APK -> "apk update && apk add $cleanName"
+            com.devwithzachary.completelinuxinstaller.model.PackageManagerType.PACMAN -> "pacman -Sy --noconfirm $cleanName"
+            com.devwithzachary.completelinuxinstaller.model.PackageManagerType.DNF -> "dnf install -y $cleanName"
+            com.devwithzachary.completelinuxinstaller.model.PackageManagerType.XBPS -> "xbps-install -S && xbps-install -y $cleanName"
+            com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT -> "export DEBIAN_FRONTEND=noninteractive && dpkg --configure -a && apt-get update && apt-get install -y -o Dpkg::Options::=\"--force-overwrite\" $cleanName"
+        }
+
         val customPkg = SoftwarePackage(
             id = pkgId,
-            name = "Apt Package: $cleanName",
+            name = "${pm.name} Package: $cleanName",
             category = SoftwareCategory.UTILITIES,
-            description = "Custom Ubuntu package '$cleanName' installed via apt-get.",
+            description = "Custom ${container?.distroName ?: "Linux"} package '$cleanName' installed via ${pm.name.lowercase()}.",
             iconName = "Terminal",
-            installCommand = "export DEBIAN_FRONTEND=noninteractive && dpkg --configure -a && apt-get update && apt-get install -y -o Dpkg::Options::=\"--force-overwrite\" $cleanName"
+            installCommand = installCmd
         )
 
         if (existingIdx != -1) {
@@ -686,10 +1050,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         _packages.value = currentList
-        installSoftwarePackage(pkgId)
+        installSoftwarePackage(pkgId, containerId)
     }
 
-    fun installSoftwarePackage(packageId: String) {
+    fun installSoftwarePackage(packageId: String, containerId: String? = null) {
         if (_isKeepAliveEnabled.value) {
             PRootForegroundService.start(getApplication())
         }
@@ -697,16 +1061,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val index = currentPackages.indexOfFirst { it.id == packageId }
         if (index == -1) return
 
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(container?.distroId ?: container?.distroName ?: "")
+        val currentSshPort = _sshPort.value
+
         val pkg = currentPackages[index]
-        currentPackages[index] = pkg.copy(
+        val effectiveCommand = distroDef.getSoftwarePackageInstallCommand(pkg.id, currentSshPort) ?: pkg.installCommand
+        val effectiveVersion = distroDef.getSoftwarePackageVersion(pkg.id) ?: pkg.version
+        val targetPkg = pkg.copy(version = effectiveVersion)
+        currentPackages[index] = targetPkg.copy(
             status = InstallStatus.INSTALLING,
             progressMessage = "Initializing installation...",
-            installLogs = "Starting installation of ${pkg.name}...\nExecuting script: ${pkg.installCommand}\n"
+            installLogs = "Starting installation of ${pkg.name} into ${container?.name ?: "container"}...\nExecuting script: $effectiveCommand\n"
         )
         _packages.value = currentPackages
 
         viewModelScope.launch {
-            softwareInstaller.installPackage(pkg).collect { step ->
+            softwareInstaller.installPackage(targetPkg, targetDir, distroDef, currentSshPort).collect { step ->
                 val list = _packages.value.toMutableList()
                 val idx = list.indexOfFirst { it.id == packageId }
                 if (idx != -1) {
@@ -761,18 +1133,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun exportContainer(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
+    fun exportContainer(
+        contentResolver: android.content.ContentResolver,
+        uri: android.net.Uri,
+        containerId: String? = null
+    ) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        val name = container?.name ?: "RootFS"
         viewModelScope.launch {
-            _backupState.value = BackupState.Processing("Exporting RootFS container archive...", 0)
+            _backupState.value = BackupState.Processing("Exporting $name container archive...", 0)
             try {
                 contentResolver.openOutputStream(uri)?.use { outputStream ->
-                    val success = rootfsManager.exportContainerToStream(outputStream) { msg, percent ->
+                    val success = rootfsManager.exportContainerToStream(outputStream, targetDir) { msg, percent ->
                         _backupState.value = BackupState.Processing(msg, percent)
                     }
                     if (success) {
-                        _backupState.value = BackupState.Success("RootFS container exported successfully!")
+                        _backupState.value = BackupState.Success("$name container exported successfully!")
                     } else {
-                        _backupState.value = BackupState.Error("Failed to export RootFS container archive.")
+                        _backupState.value = BackupState.Error("Failed to export $name container archive.")
                     }
                 } ?: run {
                     _backupState.value = BackupState.Error("Unable to open destination file stream.")
@@ -784,18 +1163,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun importContainer(contentResolver: android.content.ContentResolver, uri: android.net.Uri) {
+    fun importContainer(
+        contentResolver: android.content.ContentResolver,
+        uri: android.net.Uri,
+        containerId: String? = null
+    ) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        val name = container?.name ?: "RootFS"
         viewModelScope.launch {
             terminalBridge.stopSession()
-            _backupState.value = BackupState.Processing("Importing RootFS container archive...", 0)
+            _backupState.value = BackupState.Processing("Importing archive into $name container...", 0)
             try {
                 contentResolver.openInputStream(uri)?.use { inputStream ->
-                    val success = rootfsManager.importContainerFromStream(inputStream) { msg, percent ->
+                    val success = rootfsManager.importContainerFromStream(inputStream, targetDir) { msg, percent ->
                         _backupState.value = BackupState.Processing(msg, percent)
                     }
                     if (success) {
                         refreshStatus()
-                        _backupState.value = BackupState.Success("RootFS container restored successfully!")
+                        _backupState.value = BackupState.Success("$name container restored successfully!")
                     } else {
                         _backupState.value = BackupState.Error("Failed to import container archive.")
                     }

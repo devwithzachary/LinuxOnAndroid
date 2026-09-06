@@ -65,7 +65,7 @@ class PackageTestRunner(
         // Verify expected binaries in rootfs
         val rootfsDir = pRootEngine.rootfsDir
         val missing = pkg.expectedBinaries.filter { relPath ->
-            !File(rootfsDir, relPath).exists()
+            !SoftwarePackage.isBinaryPresent(rootfsDir, relPath)
         }
 
         val finalPassed = isSuccess && missing.isEmpty()
