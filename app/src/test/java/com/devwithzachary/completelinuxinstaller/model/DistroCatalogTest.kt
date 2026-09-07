@@ -117,6 +117,37 @@ class DistroCatalogTest {
     }
 
     @Test
+    fun testArchArm_pacmanAndSoftwarePackageOverrides() {
+        val arch = DistroCatalog.ARCH_ARM
+        val setupScript = arch.buildFirstLaunchSetupScript("root123", "archuser", "user123", true)
+        assertTrue("Arch first launch script must sanitize pacman.conf", setupScript.contains("DownloadUser"))
+        assertTrue("Arch first launch script must disable sandbox", setupScript.contains("DisableSandbox"))
+        assertTrue("Arch first launch script must set SigLevel to Never", setupScript.contains("SigLevel = Never"))
+
+        val xfceInstallCmd = arch.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Arch xfce_desktop install command must exist", xfceInstallCmd)
+        assertTrue("Arch install command must force refresh databases (-Syy)", xfceInstallCmd!!.contains("-Syy"))
+        assertTrue("Arch install command must disable sandbox before pacman", xfceInstallCmd.contains("DisableSandbox"))
+        assertTrue("Arch install command must create /etc/vnc/xstartup via printf", xfceInstallCmd.contains("> /etc/vnc/xstartup"))
+        assertFalse("Arch install command should not use heredoc", xfceInstallCmd.contains("cat << 'EOF'"))
+
+        val launchCmd = arch.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Arch must define a launch command for xfce_desktop", launchCmd)
+        assertTrue("Arch launch command must use arch password", launchCmd!!.contains("echo arch | vncpasswd"))
+        assertTrue("Arch launch command must kill previous display", launchCmd.contains("vncserver -kill :1"))
+        assertTrue("Arch launch command must launch display :1", launchCmd.contains("vncserver :1"))
+
+        val expectedBinaries = arch.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Arch must define expected binaries for xfce_desktop", expectedBinaries)
+        assertTrue("Arch expected binaries must include startxfce4", expectedBinaries!!.contains("usr/bin/startxfce4"))
+        assertTrue("Arch expected binaries must include vncserver", expectedBinaries.contains("usr/bin/vncserver"))
+        assertTrue("Arch expected binaries must include vncpasswd", expectedBinaries.contains("usr/bin/vncpasswd"))
+        assertTrue("Arch expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
+
+        assertEquals("Arch xfce_desktop version must be 5", 5, arch.getSoftwarePackageVersion("xfce_desktop"))
+    }
+
+    @Test
     fun testUbuntu2604_softwarePackageOverridesAreUnchanged() {
         val ubuntu = DistroCatalog.UBUNTU_26_04
         assertNull("Ubuntu should not override launch command by default", ubuntu.getSoftwarePackageLaunchCommand("xfce_desktop"))
