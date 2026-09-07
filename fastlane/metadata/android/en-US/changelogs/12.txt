@@ -2,8 +2,8 @@
 • Multi-Distro: Debian, Alpine, Arch, Kali, Void.
 • Container UI: Scoped Overview, Software, Settings.
 • Isolation: Scoped processes and ports per container.
-• Terminal: Preserves prompt on soft keyboard resize.
+• 1-Click Presets: XFCE, VNC, NGINX, and SSH setups.
+• Ubuntu 26.04: Fixes coreutils and port detection.
 • OpenSSH: Fixes duplicate SFTP subsystem conflict.
-• XFCE & VNC: Fixes setup on Debian, Arch, Kali, Void.
-• Onboarding & UI: Adds welcome screen and deletion view.
-• Fixes: Sandbox, DNS, xbps, install logs, bash applet.
+• Onboarding & UI: Adds welcome and deletion screens.
+• Fixes: Keyboard resize, command queue, logs.
