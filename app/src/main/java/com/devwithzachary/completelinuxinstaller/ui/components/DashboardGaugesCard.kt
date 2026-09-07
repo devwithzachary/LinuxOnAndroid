@@ -83,8 +83,8 @@ fun DashboardGaugesCard(
                     icon = Icons.Default.Memory,
                     title = "RAM Usage",
                     primaryValue = "${metrics.containerMemoryUsedMb} MB",
-                    primaryLabel = "Container RSS",
-                    secondaryText = if (metrics.systemTotalRamMb > 0) "${metrics.systemUsedRamMb}/${metrics.systemTotalRamMb} MB Total" else "Device RAM",
+                    primaryLabel = "Container Memory",
+                    secondaryText = if (metrics.systemTotalRamMb > 0) "Device: ${metrics.systemUsedRamMb}/${metrics.systemTotalRamMb} MB" else "Device RAM",
                     progress = metrics.ramUsagePercent,
                     modifier = Modifier.weight(1f)
                 )
@@ -95,7 +95,7 @@ fun DashboardGaugesCard(
                     icon = Icons.Default.Storage,
                     title = "RootFS Disk",
                     primaryValue = "${metrics.storageUsedMb} MB",
-                    primaryLabel = "Allocated",
+                    primaryLabel = "Container Storage",
                     secondaryText = "$freeGb GB Free on Device",
                     progress = (metrics.storageUsedMb.toFloat() / 4096f).coerceIn(0.05f, 1f),
                     modifier = Modifier.weight(1f)

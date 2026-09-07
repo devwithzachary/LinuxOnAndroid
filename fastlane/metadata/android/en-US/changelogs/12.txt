@@ -1,0 +1,9 @@
+• Tabbed Terminal: Run multiple concurrent tabs.
+• Multi-Distro: Debian, Alpine, Arch, Kali, Void.
+• Container UI: Scoped Overview, Software, Settings.
+• Isolation: Scoped processes and ports per container.
+• 1-Click Presets: XFCE, VNC, NGINX, and SSH setups.
+• Ubuntu 26.04: Fixes coreutils and port detection.
+• OpenSSH: Fixes duplicate SFTP subsystem conflict.
+• Onboarding & UI: Adds welcome and deletion screens.
+• Fixes: Keyboard resize, command queue, logs.

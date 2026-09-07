@@ -1,0 +1,256 @@
+package com.devwithzachary.completelinuxinstaller.model
+
+import org.junit.Assert.*
+import org.junit.Test
+
+class DistroCatalogTest {
+
+    @Test
+    fun testAllDistros_containsExpectedSixDistros() {
+        val distros = DistroCatalog.ALL_DISTROS
+        assertEquals(6, distros.size)
+
+        val ids = distros.map { it.id }
+        assertTrue("Must contain ubuntu_26_04", ids.contains("ubuntu_26_04"))
+        assertTrue("Must contain debian_12", ids.contains("debian_12"))
+        assertTrue("Must contain alpine_3_21", ids.contains("alpine_3_21"))
+        assertTrue("Must contain arch_arm", ids.contains("arch_arm"))
+        assertTrue("Must contain kali_rolling", ids.contains("kali_rolling"))
+        assertTrue("Must contain void_rolling", ids.contains("void_rolling"))
+    }
+
+    @Test
+    fun testDistros_haveUniqueIds() {
+        val distros = DistroCatalog.ALL_DISTROS
+        val ids = distros.map { it.id }
+        assertEquals("Distro IDs must be distinct", ids.size, ids.toSet().size)
+    }
+
+    @Test
+    fun testDistros_haveValidDownloadUrlsForArchitectures() {
+        for (distro in DistroCatalog.ALL_DISTROS) {
+            val arm64Url = distro.getDownloadUrl(SystemArchitecture.ARM64)
+            assertNotNull("Distro ${distro.name} must define an ARM64 download URL", arm64Url)
+            assertTrue("Distro ${distro.name} ARM64 URL must be valid", arm64Url!!.startsWith("http"))
+
+            val x86Url = distro.getDownloadUrl(SystemArchitecture.X86_64)
+            assertNotNull("Distro ${distro.name} must define an X86_64 download URL", x86Url)
+            assertTrue("Distro ${distro.name} X86_64 URL must be valid", x86Url!!.startsWith("http"))
+        }
+    }
+
+    @Test
+    fun testDistros_packageManagersMappedCorrectly() {
+        assertEquals(PackageManagerType.APT, DistroCatalog.UBUNTU_26_04.packageManager)
+        assertEquals(PackageManagerType.APT, DistroCatalog.DEBIAN_12.packageManager)
+        assertEquals(PackageManagerType.APK, DistroCatalog.ALPINE_3_21.packageManager)
+        assertEquals(PackageManagerType.PACMAN, DistroCatalog.ARCH_ARM.packageManager)
+        assertEquals(PackageManagerType.APT, DistroCatalog.KALI_ROLLING.packageManager)
+        assertEquals(PackageManagerType.XBPS, DistroCatalog.VOID_ROLLING.packageManager)
+    }
+
+    @Test
+    fun testDistros_expectedSizesArePositive() {
+        for (distro in DistroCatalog.ALL_DISTROS) {
+            assertTrue("Distro ${distro.name} expected size must be positive", distro.expectedSizeMb > 0)
+        }
+    }
+
+    @Test
+    fun testDistros_defaultShellsAreValid() {
+        for (distro in DistroCatalog.ALL_DISTROS) {
+            assertTrue("Distro ${distro.name} default shell must start with /bin/", distro.defaultShell.startsWith("/bin/"))
+        }
+    }
+
+    @Test
+    fun testDistros_haveFirstLaunchScripts() {
+        for (distro in DistroCatalog.ALL_DISTROS) {
+            val script = distro.buildFirstLaunchSetupScript("testroot", "testuser", "testpass", true)
+            assertTrue("Distro ${distro.name} setup script must not be empty", script.isNotBlank())
+            assertTrue("Distro ${distro.name} script must configure testuser", script.contains("testuser"))
+            assertTrue("Distro ${distro.name} script must configure sudoers", script.contains("sudoers"))
+        }
+    }
+
+    @Test
+    fun testDistros_haveOneClickSoftwarePackageCommands() {
+        val packageIds = listOf("xfce_desktop", "python_dev", "node_dev", "android_dev", "nginx_web", "openssh_server")
+        for (distro in DistroCatalog.ALL_DISTROS) {
+            for (pkgId in packageIds) {
+                val cmd = distro.getSoftwarePackageInstallCommand(pkgId, 2222)
+                assertNotNull("Distro ${distro.name} must provide install command for $pkgId", cmd)
+                assertTrue("Distro ${distro.name} install command for $pkgId must not be blank", cmd!!.isNotBlank())
+            }
+        }
+    }
+
+    @Test
+    fun testUbuntu_installedSizeIs450Mb() {
+        assertEquals(450, DistroCatalog.UBUNTU_26_04.installedSizeMb)
+        assertEquals("450 MB", DistroCatalog.UBUNTU_26_04.formattedInstalledSize)
+        val defaultUbuntu = LinuxDistribution.defaultForArch("aarch64")
+        assertEquals(450, defaultUbuntu.installedSizeMb)
+    }
+
+    @Test
+    fun testDebian12_xfceDesktop_distroSpecificOverrides() {
+        val debian = DistroCatalog.DEBIAN_12
+        val installCmd = debian.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Debian install command must exist", installCmd)
+        assertTrue("Debian install command must contain tigervnc-tools", installCmd!!.contains("tigervnc-tools"))
+        assertTrue("Debian install command must contain x11-utils", installCmd.contains("x11-utils"))
+        assertTrue("Debian install command must create /usr/bin/bwrap via printf", installCmd.contains("> /usr/bin/bwrap"))
+        assertTrue("Debian install command must create /etc/vnc/xstartup via printf", installCmd.contains("> /etc/vnc/xstartup"))
+
+        val launchCmd = debian.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Debian must have distro-specific launch command for xfce_desktop", launchCmd)
+        assertTrue("Debian launch command must use debian password", launchCmd!!.contains("echo debian | vncpasswd"))
+        assertTrue("Debian launch command must support tigervncpasswd fallback", launchCmd.contains("tigervncpasswd"))
+
+        val expectedBinaries = debian.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Debian must define expected binaries for xfce_desktop", expectedBinaries)
+        assertTrue("Debian expected binaries must include vncpasswd", expectedBinaries!!.contains("usr/bin/vncpasswd"))
+        assertTrue("Debian expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
+
+        assertEquals("Debian xfce_desktop version must be 5", 5, debian.getSoftwarePackageVersion("xfce_desktop"))
+    }
+
+    @Test
+    fun testArchArm_pacmanAndSoftwarePackageOverrides() {
+        val arch = DistroCatalog.ARCH_ARM
+        val setupScript = arch.buildFirstLaunchSetupScript("root123", "archuser", "user123", true)
+        assertTrue("Arch first launch script must sanitize pacman.conf", setupScript.contains("DownloadUser"))
+        assertTrue("Arch first launch script must disable sandbox", setupScript.contains("DisableSandbox"))
+        assertTrue("Arch first launch script must set SigLevel to Never", setupScript.contains("SigLevel = Never"))
+
+        val xfceInstallCmd = arch.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Arch xfce_desktop install command must exist", xfceInstallCmd)
+        assertTrue("Arch install command must force refresh databases (-Syy)", xfceInstallCmd!!.contains("-Syy"))
+        assertTrue("Arch install command must disable sandbox before pacman", xfceInstallCmd.contains("DisableSandbox"))
+        assertTrue("Arch install command must create /etc/vnc/xstartup via printf", xfceInstallCmd.contains("> /etc/vnc/xstartup"))
+        assertFalse("Arch install command should not use heredoc", xfceInstallCmd.contains("cat << 'EOF'"))
+
+        val launchCmd = arch.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Arch must define a launch command for xfce_desktop", launchCmd)
+        assertTrue("Arch launch command must use arch password", launchCmd!!.contains("echo arch | vncpasswd"))
+        assertTrue("Arch launch command must kill previous display", launchCmd.contains("vncserver -kill :1"))
+        assertTrue("Arch launch command must launch display :1", launchCmd.contains("vncserver :1"))
+
+        val expectedBinaries = arch.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Arch must define expected binaries for xfce_desktop", expectedBinaries)
+        assertTrue("Arch expected binaries must include startxfce4", expectedBinaries!!.contains("usr/bin/startxfce4"))
+        assertTrue("Arch expected binaries must include vncserver", expectedBinaries.contains("usr/bin/vncserver"))
+        assertTrue("Arch expected binaries must include vncpasswd", expectedBinaries.contains("usr/bin/vncpasswd"))
+        assertTrue("Arch expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
+
+        assertEquals("Arch xfce_desktop version must be 5", 5, arch.getSoftwarePackageVersion("xfce_desktop"))
+    }
+
+    @Test
+    fun testKaliRolling_dnsAndSoftwarePackageOverrides() {
+        val kali = DistroCatalog.KALI_ROLLING
+        val setupScript = kali.buildFirstLaunchSetupScript("root123", "kaliuser", "user123", true)
+        assertTrue("Kali setup script must repair resolv.conf", setupScript.contains("nameserver 8.8.8.8"))
+        assertTrue("Kali setup script must check for 213.186.33.99", setupScript.contains("213.186.33.99"))
+
+        val xfceInstallCmd = kali.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Kali xfce_desktop install command must exist", xfceInstallCmd)
+        assertTrue("Kali install command must ensure valid DNS", xfceInstallCmd!!.contains("nameserver 8.8.8.8"))
+        assertTrue("Kali install command must check for 213.186.33.99", xfceInstallCmd.contains("213.186.33.99"))
+        assertTrue("Kali install command must create /etc/vnc/xstartup via printf", xfceInstallCmd.contains("> /etc/vnc/xstartup"))
+
+        val launchCmd = kali.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Kali must define a launch command for xfce_desktop", launchCmd)
+        assertTrue("Kali launch command must use kali password", launchCmd!!.contains("echo kali | vncpasswd"))
+        assertTrue("Kali launch command must kill previous display", launchCmd.contains("vncserver -kill :1"))
+        assertTrue("Kali launch command must launch display :1", launchCmd.contains("vncserver :1"))
+
+        val expectedBinaries = kali.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Kali must define expected binaries for xfce_desktop", expectedBinaries)
+        assertTrue("Kali expected binaries must include startxfce4", expectedBinaries!!.contains("usr/bin/startxfce4"))
+        assertTrue("Kali expected binaries must include vncserver", expectedBinaries.contains("usr/bin/vncserver"))
+        assertTrue("Kali expected binaries must include vncpasswd", expectedBinaries.contains("usr/bin/vncpasswd"))
+        assertTrue("Kali expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
+
+        assertEquals("Kali xfce_desktop version must be 5", 5, kali.getSoftwarePackageVersion("xfce_desktop"))
+    }
+
+    @Test
+    fun testVoidRolling_softwarePackageOverrides() {
+        val void = DistroCatalog.VOID_ROLLING
+        val setupScript = void.buildFirstLaunchSetupScript("root123", "voiduser", "user123", true)
+        assertTrue("Void setup script must update xbps first", setupScript.contains("xbps-install -Syu xbps -y"))
+
+        val xfceInstallCmd = void.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Void xfce_desktop install command must exist", xfceInstallCmd)
+        assertTrue("Void install command must update xbps first", xfceInstallCmd!!.contains("xbps-install -Syu xbps -y"))
+        assertTrue("Void install command must export PATH", xfceInstallCmd.contains("export PATH="))
+        assertTrue("Void install command must install libstdc++", xfceInstallCmd.contains("libstdc++"))
+        assertTrue("Void install command must deploy PRoot vncserver wrapper", xfceInstallCmd.contains("TigerVNC server wrapper for PRoot environments"))
+        assertTrue("Void install command must create /etc/vnc/xstartup via printf", xfceInstallCmd.contains("> /etc/vnc/xstartup"))
+        assertTrue("Void install command must use void password", xfceInstallCmd.contains("echo void | vncpasswd"))
+        assertFalse("Void install command should not use heredoc", xfceInstallCmd.contains("cat << 'EOF'"))
+
+        val launchCmd = void.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Void must define a launch command for xfce_desktop", launchCmd)
+        assertTrue("Void launch command must ensure libstdc++ compatibility", launchCmd!!.contains("CXXABI_1.3.15"))
+        assertTrue("Void launch command must deploy PRoot vncserver wrapper if missing", launchCmd.contains("TigerVNC server wrapper for PRoot environments"))
+        assertTrue("Void launch command must use void password", launchCmd.contains("echo void | vncpasswd"))
+        assertTrue("Void launch command must kill previous display", launchCmd.contains("vncserver -kill :1"))
+        assertTrue("Void launch command must launch display :1", launchCmd.contains("vncserver :1"))
+
+        val expectedBinaries = void.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Void must define expected binaries for xfce_desktop", expectedBinaries)
+        assertTrue("Void expected binaries must include startxfce4", expectedBinaries!!.contains("usr/bin/startxfce4"))
+        assertTrue("Void expected binaries must include vncserver", expectedBinaries.contains("usr/bin/vncserver"))
+        assertTrue("Void expected binaries must include vncpasswd", expectedBinaries.contains("usr/bin/vncpasswd"))
+        assertTrue("Void expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
+
+        assertEquals("Void xfce_desktop version must be 5", 5, void.getSoftwarePackageVersion("xfce_desktop"))
+
+        val sshInstallCmd = void.getSoftwarePackageInstallCommand("openssh_server", 2222)
+        assertNotNull("Void openssh install command must exist", sshInstallCmd)
+        assertTrue("Void ssh install command must update xbps first", sshInstallCmd!!.contains("xbps-install -Syu xbps -y"))
+        assertTrue("Void ssh install command must export PATH", sshInstallCmd.contains("export PATH="))
+
+        val sshLaunchCmd = void.getSoftwarePackageLaunchCommand("openssh_server", 2222)
+        assertNotNull("Void ssh launch command must exist", sshLaunchCmd)
+        assertTrue("Void ssh launch command must launch sshd on port 2222", sshLaunchCmd!!.contains("sshd -p 2222"))
+    }
+
+    @Test
+    fun testUbuntu2604_softwarePackageOverridesAreUnchanged() {
+        val ubuntu = DistroCatalog.UBUNTU_26_04
+        assertNull("Ubuntu should not override launch command by default", ubuntu.getSoftwarePackageLaunchCommand("xfce_desktop"))
+        assertNull("Ubuntu should not override expected binaries by default", ubuntu.getSoftwarePackageExpectedBinaries("xfce_desktop"))
+        assertNull("Ubuntu should not override version by default", ubuntu.getSoftwarePackageVersion("xfce_desktop"))
+    }
+
+    @Test
+    fun testAlpine321_candidateShells_prefersShAndAsh() {
+        val alpine = DistroCatalog.ALPINE_3_21
+        assertEquals("/bin/sh", alpine.defaultShell)
+        assertEquals(
+            listOf("/bin/sh", "/bin/ash", "/bin/bash", "/usr/bin/bash"),
+            alpine.candidateShells
+        )
+    }
+
+    @Test
+    fun testUbuntuAndDebian_candidateShells_useStandardBashHierarchy() {
+        val expected = listOf("/bin/bash", "/usr/bin/bash", "/bin/sh")
+        assertEquals(expected, DistroCatalog.UBUNTU_26_04.candidateShells)
+        assertEquals(expected, DistroCatalog.DEBIAN_12.candidateShells)
+    }
+
+    @Test
+    fun testAlpine321_firstLaunchScript_doesNotCreateBrokenBusyboxBashSymlink() {
+        val alpine = DistroCatalog.ALPINE_3_21
+        val script = alpine.buildFirstLaunchSetupScript("root123", "alpine", "alpine123", true)
+        // Must clean up any bad symlinks if present and not create broken /bin/bash -> /bin/sh
+        assertFalse("Script must not link /bin/sh to /bin/bash", script.contains("ln -sf /bin/sh /bin/bash"))
+        assertFalse("Script must not link /bin/sh to /usr/bin/bash", script.contains("ln -sf /bin/sh /usr/bin/bash"))
+        assertTrue("Script must link /bin/bash to /usr/bin/bash once bash is installed", script.contains("ln -sf /bin/bash /usr/bin/bash"))
+    }
+}

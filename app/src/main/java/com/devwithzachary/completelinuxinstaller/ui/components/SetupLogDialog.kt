@@ -28,8 +28,16 @@ import com.devwithzachary.completelinuxinstaller.R
 @Composable
 fun SetupLogDialog(
     logs: List<String>,
+    distroName: String? = null,
+    title: String? = null,
     onDismiss: () -> Unit
 ) {
+    val displayTitle = title ?: if (!distroName.isNullOrEmpty()) {
+        "$distroName First Launch Setup Log"
+    } else {
+        stringResource(R.string.log_viewer_setup_title)
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -64,7 +72,7 @@ fun SetupLogDialog(
                             tint = Color(0xFF58A6FF)
                         )
                         Text(
-                            text = stringResource(R.string.log_viewer_setup_title),
+                            text = displayTitle,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.White

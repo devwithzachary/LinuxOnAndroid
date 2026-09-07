@@ -56,12 +56,24 @@ data class SystemResourceMetrics(
 class SystemMonitorManager(
     private val context: Context,
     private val pRootEngine: PRootEngine,
-    private val rootfsManager: RootfsManager
+    private val rootfsManager: RootfsManager,
+    private val containerManager: ContainerManager? = null,
+    private val terminalBridge: TerminalBridge? = null
 ) {
 
     private val myAppUid: Int = Process.myUid()
 
-    suspend fun collectMetrics(isSessionRunning: Boolean): SystemResourceMetrics = withContext(Dispatchers.IO) {
+    private data class RawProcInfo(
+        val pid: Int,
+        val ppid: Int,
+        val procName: String,
+        val state: String,
+        val rssMb: Double,
+        val cmdline: String,
+        val cwd: String?
+    )
+
+    suspend fun collectMetrics(isSessionRunning: Boolean, targetRootDir: File? = null): SystemResourceMetrics = withContext(Dispatchers.IO) {
         var totalRamMb = 0L
         var availRamMb = 0L
         try {
@@ -83,15 +95,42 @@ class SystemMonitorManager(
             storageAvail = statFs.availableBytes
         } catch (_: Exception) {}
 
-        val storageUsedMb = try {
-            rootfsManager.getCachedStorageUsedMb()
-        } catch (_: Exception) {
-            0L
+        val storageUsedMb = if (targetRootDir != null) {
+            val container = containerManager?.getAllContainers()?.find { it.rootDir.absolutePath == targetRootDir.absolutePath }
+            container?.storageUsedMb ?: rootfsManager.getCachedStorageUsedMb()
+        } else {
+            try {
+                val containers = containerManager?.getAllContainers() ?: emptyList()
+                if (containers.isNotEmpty()) {
+                    val sum = containers.sumOf { it.storageUsedMb }
+                    if (sum > 0L) sum else rootfsManager.getCachedStorageUsedMb()
+                } else {
+                    rootfsManager.getCachedStorageUsedMb()
+                }
+            } catch (_: Exception) {
+                0L
+            }
         }
 
-        val processes = collectProcesses()
-        val containerMemMb = processes.sumOf { it.rssMb }.toLong().coerceAtLeast(getFallbackAppMemoryMb())
-        val listeningPorts = collectListeningPorts(rootfsManager.isInstalled())
+        val processes = collectProcesses(targetRootDir)
+        val containerMemMb = if (targetRootDir != null) {
+            if (processes.isNotEmpty()) {
+                processes.sumOf { it.rssMb }.toLong().coerceAtLeast(1L)
+            } else {
+                0L
+            }
+        } else {
+            processes.sumOf { it.rssMb }.toLong().coerceAtLeast(getFallbackAppMemoryMb())
+        }
+
+        val isInstalled = if (targetRootDir != null) {
+            containerManager?.getAllContainers()?.find { it.rootDir.absolutePath == targetRootDir.absolutePath }?.isInstalled == true ||
+                (targetRootDir.absolutePath == pRootEngine.rootfsDir.absolutePath && rootfsManager.isInstalled())
+        } else {
+            rootfsManager.isInstalled() || (containerManager?.getAllContainers()?.any { it.isInstalled } == true)
+        }
+
+        val listeningPorts = collectListeningPorts(isInstalled = isInstalled, targetRootDir = targetRootDir)
 
         SystemResourceMetrics(
             containerMemoryUsedMb = containerMemMb,
@@ -106,7 +145,27 @@ class SystemMonitorManager(
         )
     }
 
-    fun collectProcesses(): List<ContainerProcessInfo> {
+    private fun pathMatchesContainer(path: String?, targetRootDir: File): Boolean {
+        if (path == null) return false
+        val targetAbs = targetRootDir.absolutePath
+        val targetCanon = try { targetRootDir.canonicalPath } catch (_: Exception) { targetAbs }
+        val isDefaultLegacy = targetAbs.endsWith("/files/rootfs") || targetCanon.endsWith("/files/rootfs")
+
+        if (isDefaultLegacy) {
+            return (path.contains(targetAbs) || path.contains(targetCanon)) && !path.contains("/files/containers/")
+        }
+
+        if (path.contains(targetAbs) || path.contains(targetCanon)) return true
+
+        val containerDirName = targetRootDir.name
+        if (containerDirName.isNotBlank() && containerDirName != "rootfs" && containerDirName != "files") {
+            if (path.contains(containerDirName)) return true
+        }
+
+        return false
+    }
+
+    fun collectProcesses(targetRootDir: File? = null): List<ContainerProcessInfo> {
         val procDir = File("/proc")
         if (!procDir.exists() || !procDir.isDirectory) return emptyList()
 
@@ -117,7 +176,7 @@ class SystemMonitorManager(
         }
 
         val myPid = Process.myPid()
-        val result = mutableListOf<ContainerProcessInfo>()
+        val rawList = mutableListOf<RawProcInfo>()
 
         val pidDirs = procDir.listFiles { file -> file.isDirectory && file.name.all { it.isDigit() } } ?: return emptyList()
 
@@ -131,6 +190,7 @@ class SystemMonitorManager(
                 var procName = pidDir.name
                 var state = "S"
                 var uid = -1
+                var ppid = 0
 
                 for (line in lines) {
                     if (line.startsWith("Name:")) {
@@ -140,6 +200,8 @@ class SystemMonitorManager(
                     } else if (line.startsWith("Uid:")) {
                         val uidTokens = line.substringAfter("Uid:").trim().split("\\s+".toRegex())
                         uid = uidTokens.firstOrNull()?.toIntOrNull() ?: -1
+                    } else if (line.startsWith("PPid:")) {
+                        ppid = line.substringAfter("PPid:").trim().toIntOrNull() ?: 0
                     }
                 }
 
@@ -166,24 +228,90 @@ class SystemMonitorManager(
                     cmdline = procName
                 }
 
-                // Derive a clean display name and user
-                val isRoot = cmdline.contains("proot") || cmdline.contains("root") || procName.contains("proot")
-                val displayUser = if (isRoot) "root" else "ubuntu"
+                val cwd = try {
+                    Os.readlink("/proc/$pid/cwd")
+                } catch (_: Throwable) {
+                    null
+                }
 
-                result.add(
-                    ContainerProcessInfo(
+                rawList.add(
+                    RawProcInfo(
                         pid = pid,
-                        name = sanitizeProcessName(procName, cmdline),
-                        user = displayUser,
-                        rssMb = (Math.round(rssMb * 10.0) / 10.0),
+                        ppid = ppid,
+                        procName = procName,
                         state = state,
-                        cmdline = cmdline
+                        rssMb = rssMb,
+                        cmdline = cmdline,
+                        cwd = cwd
                     )
                 )
             } catch (_: Exception) {}
         }
 
-        return result.sortedByDescending { it.rssMb }
+        val filteredRaw = if (targetRootDir != null) {
+            val containerPids = mutableSetOf<Int>()
+
+            // 1. Session process PID matching
+            terminalBridge?.sessions?.value?.forEach { session ->
+                val targetContainer = containerManager?.getAllContainers()?.find { it.rootDir.absolutePath == targetRootDir.absolutePath }
+                val isDefaultRootfs = targetRootDir.absolutePath == pRootEngine.rootfsDir.absolutePath
+                val matchesSession = (targetContainer != null && session.containerId == targetContainer.id) ||
+                    (isDefaultRootfs && (session.containerId == com.devwithzachary.completelinuxinstaller.engine.ContainerManager.DEFAULT_CONTAINER_ID || session.containerId == "ubuntu_default"))
+                if (matchesSession) {
+                    session.processPid?.let { containerPids.add(it) }
+                }
+            }
+
+            // 2. Known PID files in targetRootDir
+            listOf(
+                File(targetRootDir, "tmp/.X1-lock"),
+                File(targetRootDir, "run/sshd.pid"),
+                File(targetRootDir, "var/run/sshd.pid"),
+                File(targetRootDir, "run/nginx.pid"),
+                File(targetRootDir, "var/run/nginx.pid")
+            ).forEach { pidFile ->
+                if (pidFile.exists()) {
+                    val pid = try { pidFile.readText().trim().toIntOrNull() } catch (_: Exception) { null }
+                    if (pid != null && pid > 0) containerPids.add(pid)
+                }
+            }
+
+            // 3. Pass 1: Direct root match on cmdline or cwd
+            for (proc in rawList) {
+                if (pathMatchesContainer(proc.cmdline, targetRootDir) || pathMatchesContainer(proc.cwd, targetRootDir)) {
+                    containerPids.add(proc.pid)
+                }
+            }
+
+            // 4. Pass 2: Process hierarchy propagation (descendants of proot/su/bash)
+            var changed = true
+            while (changed) {
+                changed = false
+                for (proc in rawList) {
+                    if (proc.pid !in containerPids && proc.ppid in containerPids) {
+                        containerPids.add(proc.pid)
+                        changed = true
+                    }
+                }
+            }
+
+            rawList.filter { it.pid in containerPids }
+        } else {
+            rawList
+        }
+
+        return filteredRaw.map { proc ->
+            val isRoot = proc.cmdline.contains("proot") || proc.cmdline.contains("root") || proc.procName.contains("proot")
+            val displayUser = if (isRoot) "root" else "ubuntu"
+            ContainerProcessInfo(
+                pid = proc.pid,
+                name = sanitizeProcessName(proc.procName, proc.cmdline),
+                user = displayUser,
+                rssMb = (Math.round(proc.rssMb * 10.0) / 10.0),
+                state = proc.state,
+                cmdline = proc.cmdline
+            )
+        }.sortedByDescending { it.rssMb }
     }
 
     private fun sanitizeProcessName(name: String, cmdline: String): String {
@@ -206,48 +334,113 @@ class SystemMonitorManager(
         }
     }
 
-    fun collectListeningPorts(isInstalled: Boolean): List<ListeningPortInfo> {
+    fun collectListeningPorts(isInstalled: Boolean = true, targetRootDir: File? = null): List<ListeningPortInfo> {
         val portsFound = mutableSetOf<Int>()
         val result = mutableListOf<ListeningPortInfo>()
+        val savedSshPort = try {
+            context.getSharedPreferences("terminal_theme_prefs", Context.MODE_PRIVATE).getInt("ssh_port", 2222)
+        } catch (_: Exception) { 2222 }
 
-        // 1. Parse /proc/net/tcp and /proc/net/tcp6 for TCP_LISTEN (state 0A)
-        for (tcpPath in listOf("/proc/net/tcp", "/proc/net/tcp6")) {
-            val tcpFile = File(tcpPath)
-            if (tcpFile.canRead()) {
-                try {
-                    tcpFile.forEachLine { line ->
-                        val parts = line.trim().split("\\s+".toRegex())
-                        if (parts.size >= 4) {
-                            val state = parts[3]
-                            if (state.equals("0A", ignoreCase = true)) {
-                                val localAddress = parts[1]
-                                val portHex = localAddress.substringAfterLast(":")
-                                val portInt = portHex.toIntOrNull(16)
-                                if (portInt != null && portInt in 1..65535) {
-                                    portsFound.add(portInt)
+        if (!isInstalled) return emptyList()
+
+        if (targetRootDir != null) {
+            val containerProcs = collectProcesses(targetRootDir)
+            if (containerProcs.isEmpty()) {
+                return emptyList()
+            }
+
+            val candidatePorts = mutableSetOf<Int>()
+
+            if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isVncRunning(targetRootDir, containerProcs)) {
+                candidatePorts.add(5901)
+            }
+            if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isNginxRunning(targetRootDir, containerProcs)) {
+                candidatePorts.add(80)
+                candidatePorts.add(8080)
+            }
+            if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isSshRunning(targetRootDir, savedSshPort, containerProcs)) {
+                candidatePorts.add(savedSshPort)
+            }
+
+            for (proc in containerProcs) {
+                val cmd = proc.cmdline
+                val matches = Regex("""(?:-p|--port|:|\brunserver\s+|\bhttp\.server\s+)\s*(\d{2,5})""").findAll(cmd)
+                for (m in matches) {
+                    val p = m.groupValues[1].toIntOrNull()
+                    if (p != null && p in 1..65535) {
+                        candidatePorts.add(p)
+                    }
+                }
+            }
+
+            for (candidate in candidatePorts.sorted()) {
+                if (isPortOpenLocally(candidate)) {
+                    portsFound.add(candidate)
+                }
+            }
+        } else {
+            // Global scan across all containers
+            for (tcpPath in listOf("/proc/net/tcp", "/proc/net/tcp6")) {
+                val tcpFile = File(tcpPath)
+                if (tcpFile.canRead()) {
+                    try {
+                        tcpFile.forEachLine { line ->
+                            val parts = line.trim().split("\\s+".toRegex())
+                            if (parts.size >= 4) {
+                                val state = parts[3]
+                                if (state.equals("0A", ignoreCase = true)) {
+                                    val localAddress = parts[1]
+                                    val portHex = localAddress.substringAfterLast(":")
+                                    val portInt = portHex.toIntOrNull(16)
+                                    if (portInt != null && portInt in 1..65535) {
+                                        portsFound.add(portInt)
+                                    }
                                 }
                             }
                         }
+                    } catch (_: Exception) {}
+                }
+            }
+
+            val rootDirsToCheck = mutableListOf<File>()
+            containerManager?.getAllContainers()?.forEach { c ->
+                if (c.isInstalled) rootDirsToCheck.add(c.rootDir)
+            }
+            val pRootDefaultDir = pRootEngine.rootfsDir
+            if (pRootDefaultDir.exists() && rootDirsToCheck.none { it.absolutePath == pRootDefaultDir.absolutePath }) {
+                rootDirsToCheck.add(pRootDefaultDir)
+            }
+
+            val probeCandidatePorts = mutableSetOf(
+                22, 2222, savedSshPort, 5900, 5901, 5902, 80, 443, 8080, 3000, 5000, 8000, 8888, 9090, 5432, 3306, 6379, 27017
+            )
+
+            val allProcs = collectProcesses(null)
+            for (dir in rootDirsToCheck) {
+                if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isVncRunning(dir, allProcs)) {
+                    probeCandidatePorts.add(5901)
+                }
+                if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isNginxRunning(dir, allProcs)) {
+                    probeCandidatePorts.add(80)
+                    probeCandidatePorts.add(8080)
+                }
+                if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isSshRunning(dir, savedSshPort, allProcs)) {
+                    probeCandidatePorts.add(savedSshPort)
+                }
+            }
+
+            for (proc in allProcs) {
+                val cmd = proc.cmdline
+                val matches = Regex("""(?:-p|--port|:|\brunserver\s+|\bhttp\.server\s+)\s*(\d{2,5})""").findAll(cmd)
+                for (m in matches) {
+                    val p = m.groupValues[1].toIntOrNull()
+                    if (p != null && p in 1..65535) {
+                        probeCandidatePorts.add(p)
                     }
-                } catch (_: Exception) {}
-            }
-        }
-
-        // 2. Active probe well-known container service ports if container is installed
-        if (isInstalled) {
-            val rootfsDir = pRootEngine.rootfsDir
-            if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isVncRunning(rootfsDir)) {
-                portsFound.add(5901)
-            }
-            if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isNginxRunning(rootfsDir)) {
-                portsFound.add(80)
-            }
-            if (com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isSshRunning(rootfsDir, 2222)) {
-                portsFound.add(2222)
+                }
             }
 
-            val probeCandidatePorts = listOf(22, 2222, 5900, 5901, 80, 8080, 3000, 5000, 8000, 8888, 9090)
-            for (candidate in probeCandidatePorts) {
+            for (candidate in probeCandidatePorts.sorted()) {
                 if (candidate !in portsFound && isPortOpenLocally(candidate)) {
                     portsFound.add(candidate)
                 }
@@ -255,7 +448,7 @@ class SystemMonitorManager(
         }
 
         for (port in portsFound.sorted()) {
-            val (serviceName, isWeb) = resolveServiceName(port)
+            val (serviceName, isWeb) = resolveServiceName(port, savedSshPort)
             result.add(
                 ListeningPortInfo(
                     port = port,
@@ -269,10 +462,10 @@ class SystemMonitorManager(
         return result
     }
 
-    fun resolveServiceName(port: Int): Pair<String, Boolean> {
+    fun resolveServiceName(port: Int, customSshPort: Int = 2222): Pair<String, Boolean> {
         return when (port) {
-            22, 2222 -> "OpenSSH Server" to false
-            5900, 5901, 5902 -> "TigerVNC Desktop (:1)" to false
+            22, 2222, customSshPort -> "OpenSSH Server" to false
+            5900, 5901, 5902 -> "TigerVNC Desktop (:${port - 5900})" to false
             80 -> "HTTP Web Server (NGINX / Apache)" to true
             443 -> "HTTPS Web Server" to true
             8080 -> "HTTP Alternate (NGINX / Tomcat)" to true
@@ -292,7 +485,7 @@ class SystemMonitorManager(
     private fun isPortOpenLocally(port: Int): Boolean {
         return try {
             Socket().use { socket ->
-                socket.connect(InetSocketAddress("127.0.0.1", port), 50)
+                socket.connect(InetSocketAddress("127.0.0.1", port), 100)
                 true
             }
         } catch (_: Exception) {

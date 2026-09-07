@@ -340,6 +340,16 @@ object RootfsMigrationManager {
                             "Subsystem sftp internal-sftp\n"
                 )
 
+                val mainSshConfig = File(rootfsDir, "etc/ssh/sshd_config")
+                if (mainSshConfig.exists()) {
+                    try {
+                        val text = mainSshConfig.readText()
+                        if (text.contains(Regex("(?m)^Subsystem\\s+sftp"))) {
+                            mainSshConfig.writeText(text.replace(Regex("(?m)^Subsystem\\s+sftp"), "#Subsystem sftp"))
+                        }
+                    } catch (_: Exception) {}
+                }
+
                 val pamSshd = File(rootfsDir, "etc/pam.d/sshd")
                 if (pamSshd.exists()) {
                     try {

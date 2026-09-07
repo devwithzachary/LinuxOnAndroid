@@ -83,10 +83,89 @@ class SystemMonitorManagerTest {
         assertEquals("S", proc.state)
     }
 
+    @Test
+    fun testResolveServiceName_customSshPort() {
+        val mockManager = SystemMonitorManagerStub()
+        val customSsh = mockManager.resolveServiceName(22222, 22222)
+        assertEquals("OpenSSH Server", customSsh.first)
+        assertFalse(customSsh.second)
+    }
+
+    @Test
+    fun testContainerScoping_processTreeFiltering() {
+        val container1Dir = java.io.File("/data/user/0/com.devwithzachary.completelinuxinstaller/files/containers/container_1/rootfs")
+        val container2Dir = java.io.File("/data/user/0/com.devwithzachary.completelinuxinstaller/files/containers/container_2/rootfs")
+
+        data class MockProc(val pid: Int, val ppid: Int, val cmdline: String, val cwd: String?)
+
+        val allProcs = listOf(
+            MockProc(100, 1, "libproot.so -0 -l -r ${container1Dir.absolutePath} /bin/bash", container1Dir.absolutePath),
+            MockProc(101, 100, "su -s /bin/bash - ubuntu", container1Dir.absolutePath),
+            MockProc(102, 101, "bash", container1Dir.absolutePath + "/home/ubuntu"),
+            MockProc(103, 102, "/usr/sbin/sshd -D", container1Dir.absolutePath),
+            MockProc(200, 1, "libproot.so -0 -l -r ${container2Dir.absolutePath} /bin/bash", container2Dir.absolutePath),
+            MockProc(201, 200, "bash", container2Dir.absolutePath + "/home/ubuntu")
+        )
+
+        fun filterForContainer(targetDir: java.io.File): List<Int> {
+            val matched = mutableSetOf<Int>()
+            for (p in allProcs) {
+                if (p.cmdline.contains(targetDir.absolutePath) || (p.cwd != null && p.cwd.startsWith(targetDir.absolutePath))) {
+                    matched.add(p.pid)
+                }
+            }
+            var changed = true
+            while (changed) {
+                changed = false
+                for (p in allProcs) {
+                    if (p.pid !in matched && p.ppid in matched) {
+                        matched.add(p.pid)
+                        changed = true
+                    }
+                }
+            }
+            return matched.sorted()
+        }
+
+        val c1Pids = filterForContainer(container1Dir)
+        assertEquals(listOf(100, 101, 102, 103), c1Pids)
+
+        val c2Pids = filterForContainer(container2Dir)
+        assertEquals(listOf(200, 201), c2Pids)
+
+        val emptyContainerDir = java.io.File("/data/user/0/com.devwithzachary.completelinuxinstaller/files/containers/container_3/rootfs")
+        val c3Pids = filterForContainer(emptyContainerDir)
+        assertTrue(c3Pids.isEmpty())
+    }
+
+    @Test
+    fun testServiceStatusManager_containerScopingIsolation() {
+        val tempDir1 = java.io.File(System.getProperty("java.io.tmpdir"), "test_container_1").apply { mkdirs() }
+        val tempDir2 = java.io.File(System.getProperty("java.io.tmpdir"), "test_container_2").apply { mkdirs() }
+
+        try {
+            val vncLock1 = java.io.File(tempDir1, "tmp/.X1-lock").apply {
+                parentFile?.mkdirs()
+                writeText("999999\n")
+            }
+
+            // Container 1 has a PID file for VNC
+            assertTrue(java.io.File(tempDir1, "tmp/.X1-lock").exists())
+            // Container 2 has no PID file
+            assertFalse(java.io.File(tempDir2, "tmp/.X1-lock").exists())
+            assertFalse(com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isVncRunning(tempDir2))
+            assertFalse(com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isSshRunning(tempDir2, 2222))
+            assertFalse(com.devwithzachary.completelinuxinstaller.service.ServiceStatusManager.isNginxRunning(tempDir2))
+        } finally {
+            tempDir1.deleteRecursively()
+            tempDir2.deleteRecursively()
+        }
+    }
+
     private class SystemMonitorManagerStub {
-        fun resolveServiceName(port: Int): Pair<String, Boolean> {
+        fun resolveServiceName(port: Int, customSshPort: Int = 2222): Pair<String, Boolean> {
             return when (port) {
-                22, 2222 -> "OpenSSH Server" to false
+                22, 2222, customSshPort -> "OpenSSH Server" to false
                 5900, 5901, 5902 -> "TigerVNC Desktop (:1)" to false
                 80 -> "HTTP Web Server (NGINX / Apache)" to true
                 443 -> "HTTPS Web Server" to true

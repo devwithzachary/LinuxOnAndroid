@@ -31,6 +31,7 @@ class SoftwarePackageTest {
             assertTrue("Package ${pkg.id} must include dpkg recovery flag", pkg.installCommand.contains("dpkg --configure -a"))
             assertTrue("Package ${pkg.id} must include policy-rc.d service block", pkg.installCommand.contains("policy-rc.d"))
             assertTrue("Package ${pkg.id} must include messagebus system user initialization", pkg.installCommand.contains("messagebus:"))
+            assertTrue("Package ${pkg.id} must include cargo/libexec permission fixes", pkg.installCommand.contains("chmod -R 755 /usr/lib/cargo /usr/libexec"))
         }
     }
 
@@ -108,6 +109,51 @@ class SoftwarePackageTest {
             assertTrue("launchCommand must specify SecurityTypes None,VncAuth", it.launchCommand?.contains("-SecurityTypes None,VncAuth") == true)
             assertTrue("launchCommand must specify -UseBlacklist=0", it.launchCommand?.contains("-UseBlacklist=0") == true)
             assertTrue("launchCommand must include --I-KNOW-THIS-IS-INSECURE", it.launchCommand?.contains("--I-KNOW-THIS-IS-INSECURE") == true)
+        }
+    }
+
+    @Test
+    fun testIsBinaryPresent_regularFileAndAliases() {
+        val tempDir = java.io.File(System.getProperty("java.io.tmpdir"), "test_rootfs_bin_" + System.currentTimeMillis()).apply { mkdirs() }
+        try {
+            val usrBin = java.io.File(tempDir, "usr/bin").apply { mkdirs() }
+            val startxfce4 = java.io.File(usrBin, "startxfce4").apply { createNewFile() }
+            val tigervncserver = java.io.File(usrBin, "tigervncserver").apply { createNewFile() }
+
+            // startxfce4 should be detected directly
+            assertTrue("startxfce4 must be present", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/startxfce4"))
+
+            // vncserver should be detected via tigervncserver alias
+            assertTrue("vncserver must be detected via tigervncserver alias", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/vncserver"))
+
+            // Non-existent binary returns false
+            assertFalse("nonexistent binary must return false", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/nonexistent_xyz"))
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun testIsBinaryPresent_containerRelativeSymlink() {
+        val tempDir = java.io.File(System.getProperty("java.io.tmpdir"), "test_rootfs_symlink_" + System.currentTimeMillis()).apply { mkdirs() }
+        try {
+            val usrBin = java.io.File(tempDir, "usr/bin").apply { mkdirs() }
+            val etcAlt = java.io.File(tempDir, "etc/alternatives").apply { mkdirs() }
+            val realTarget = java.io.File(usrBin, "tigervncserver").apply { createNewFile() }
+
+            // Create absolute symlink etc/alternatives/vncserver -> /usr/bin/tigervncserver
+            val altLink = java.io.File(etcAlt, "vncserver")
+            java.nio.file.Files.createSymbolicLink(altLink.toPath(), java.nio.file.Paths.get("/usr/bin/tigervncserver"))
+
+            // Create absolute symlink usr/bin/vncserver -> /etc/alternatives/vncserver
+            val binLink = java.io.File(usrBin, "vncserver")
+            java.nio.file.Files.createSymbolicLink(binLink.toPath(), java.nio.file.Paths.get("/etc/alternatives/vncserver"))
+
+            // Standard File.exists() fails on host because /etc/alternatives does not exist on host
+            // But SoftwarePackage.isBinaryPresent must resolve the container-relative symlink chain!
+            assertTrue("isBinaryPresent must resolve container-relative symlink chains", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/vncserver"))
+        } finally {
+            tempDir.deleteRecursively()
         }
     }
 }

@@ -2,6 +2,50 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.5.0] - 2026-09-07
+
+### 📑 Tabbed Multi-Window Terminal System
+- **Concurrent Multi-Tab Terminal**: Launch, run, switch, and manage multiple independent interactive terminal sessions simultaneously within your container rootfs.
+- **Dynamic Tab Strip UI**: Scrollable top tab strip with live status indicators (running / stopped), active session highlights, close tab shortcuts (`✕`), and quick `+` new tab creation.
+- **Session Renaming & Custom Titles**: Long-press on any tab chip to give it a custom name (e.g. "Web Server", "Database", "Compiler").
+- **Container-Specific Tabs**: Open new terminal tabs bound directly into different installed rootfs environments from a single unified screen.
+- **Independent PTY Subprocesses**: Each tab operates its own isolated pseudo-terminal (PTY) process, buffering output and maintaining full interactive state in the background.
+- **Preset Command Queuing**: Launches service buttons and 1-click software presets reliably with asynchronous command queuing that signals shell readiness and executes commands upon terminal initialization.
+- **Terminal Viewport & Keyboard Resize Preservation**: Preserves active prompt and cursor visibility when opening or closing the software keyboard via dynamic viewport resizing and scrollback buffer synchronization.
+
+### 🐧 Multiple Rootfs Distributions & Extended Setup Wizard
+- **Multi-Distribution Catalog**: Choose from 6 distinct Linux distributions tailored for different use cases:
+  - **Ubuntu 26.04 LTS**: Official LTS base rootfs with APT package manager for general development.
+  - **Debian 12**: Ultra-stable lightweight alternative with vast package repositories.
+  - **Alpine Linux 3.21**: Minimalist musl/busybox environment (~10MB rootfs) booting instantly with tiny memory footprint.
+  - **Arch Linux ARM**: Rolling release distribution featuring the pacman package manager and bleeding-edge software.
+  - **Kali Linux CLI Tools**: Security auditing and network forensics environment with Kali Linux repositories.
+  - **Void Linux**: Independent general-purpose distribution with XBPS package manager and fast boot times.
+- **Multi-Package Manager Engine**: Native bootstrap setup and package manager support for `apt`, `apk`, `pacman`, `dnf`, and `xbps`.
+- **Rootfs Symlink & File Extraction Safety**: Preserves and safely unlinks rootfs symlinks without recursive deletion across archive extractions and software package installations.
+- **Cross-Distribution User Account Provisioning**: Robust fallback user record generation (`/etc/passwd`, `/etc/group`, `/etc/shadow`) and multi-path `su` binary resolution ensuring seamless terminal logins on Busybox and shadow environments.
+- **High-Capacity Archive Extraction Engine**: Streamlined in-memory logging and hardened Tar extractor handling large distributions (e.g. Arch Linux ARM ~790MB archive, ~2.2GB rootfs) with hard-link resolution and heap protection.
+- **Tailored 1-Click Software & Desktop Presets**: Pre-configured and tested 1-click presets for XFCE 4 Desktop, TigerVNC Server, NGINX Web Server, and OpenSSH Server tailored specifically for each supported distribution (Debian, Alpine, Arch, Kali, Void, and Ubuntu).
+- **First Launch Welcome Screen & Container Architecture Overview**: Introduced an engaging onboarding screen shown prior to the distribution setup wizard on first launch. Clearly explains what LinuxOnAndroid is, outlines how to create your initial container while managing multiple containers later, and reassures users that PRoot virtualization runs 100% in user-space without root, never touching or altering Android system partitions or personal files. Existing users can also review this introduction anytime from the About screen.
+- **Ubuntu 26.04 Coreutils & Package Installation Fix**: Resolved an issue where Ubuntu 26.04's default `rust-coreutils` binaries in `/usr/lib/cargo/bin/coreutils/` lacked execution permissions due to Android SELinux hardlink restrictions. Hardened the archive extractor to link via relative symlinks and enforce `+rx` permissions, eliminating `python3.14-minimal` maintainer script failures (exit status 127) during 1-click package installs and accurately propagating subprocess exit codes in `SoftwareInstaller`.
+- **Ubuntu 26.04 Wizard Size Estimate**: Updated Ubuntu 26.04 base installed size in the setup wizard to 450 MB (previously 1500 MB).
+- **Rootfs Symlink-Aware Package Detection**: Fixed an issue where installed packages using update-alternatives (e.g. XFCE 4 Desktop & TigerVNC via /etc/alternatives/vncserver symlinks) were not marked as installed in the Software list. Added container-relative symlink traversal and binary alias resolution so symlinked binaries on the Android host are correctly detected.
+- **Web Server (NGINX) & Universal Service Runner**: Resolved `service: command not found` when launching the web server preset. Ensured complete `$PATH` accessibility (`/usr/local/sbin`, `/usr/sbin`, `/sbin`) across all logins and shells, installed a cross-distribution `/usr/local/bin/service` delegation shim, configured NGINX for unprivileged port 8080 binding on Android, and ensured `/run`, `/var/log/nginx`, and `/var/lib/nginx` write permissions.
+- **OpenSSH Server & SFTP Subsystem Conflict Resolution**: Fixed a fatal configuration error (`sshd_config line 115: Subsystem sftp already defined`) caused by duplicate SFTP subsystem declarations across `/etc/ssh/sshd_config.d/00-linuxonandroid.conf` and `/etc/ssh/sshd_config`. Sanitized default subsystem declarations to reliably use `internal-sftp` across package installs, service runners, and container startup hooks.
+- **Software Installation Log Viewer**: Streamlined log event handling to deduplicate completion lines while preserving full terminal log history and real-time status updates during 1-click installations.
+
+### 🎛️ Installed Containers Dashboard & Per-Container Overview
+- **Three-Tab Container Detail Layout**: Split container details into dedicated "Overview", "Software", and "Settings" tabs with seamless sliding animations and swipe gestures.
+  - **Overview Tab**: Live RAM and storage dials, intelligent one-touch service launchers (VNC, NGINX, SSH) with installation checks and 1-tap setup guidance, live process table (`ps aux`), and open listening ports.
+  - **Software Tab**: Scoped package installer with category filters, custom package command prompt (`apt`, `apk`, `pacman`, `dnf`), and preset software cards with logs.
+  - **Settings Tab**: Scoped rootfs upgrade mechanism with live build version status and inspection logs dialog, container backup and restore (.tar.gz export/import), storage mount (/sdcard bind) configuration, user/account management (root password, add/delete user, default login user selection, sudo permissions), custom network/DNS settings (/etc/resolv.conf), and safe container deletion.
+- **Per-Container Storage Tracking**: Accurately calculates real-time disk allocation for each container using filesystem parsing across hard links, displaying per-container usage in Details and total combined storage on the main Dashboard.
+- **Isolated Process & Port Monitoring**: Scopes active processes and open TCP listening ports strictly to their specific container via rootfs and process-tree tracing, ensuring inactive containers accurately report zero background processes and open ports.
+- **Active Port Listener & PID Validation**: Enhanced open port detection with candidate port probing, process flag extraction (e.g. `-p 2222`), PID liveness checks against `/proc/<pid>/cmdline`, automatic stale PID file cleanup, and a 1-tap refresh button on the Open Ports card.
+- **Streamlined Global App Settings**: Focused exclusively on app-wide preferences including GitHub update checks, terminal fonts and 16-color theme palette customization, background keep-alive/WakeLock policies, and diagnostics debug reporting.
+- **Multi-Container Diagnostics & Integrity Verification**: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and verifying essential filesystem components (/bin/sh, /etc/os-release, /etc/resolv.conf, /etc/passwd, /etc/group, /etc/hosts, and proot runtime binaries).
+- **Dedicated Container Deletion Screen**: Full-screen deletion view with animated progress indicators, real-time step updates ("Closing active terminal sessions", "Purging rootfs files, packages, and storage"), and back-gesture protection to safely delete containers and free storage before returning to the dashboard.
+
 ## [1.4.0] - 2026-08-28
 
 ### 🚀 GitHub Release Update Checker & Play Store Migration Guide

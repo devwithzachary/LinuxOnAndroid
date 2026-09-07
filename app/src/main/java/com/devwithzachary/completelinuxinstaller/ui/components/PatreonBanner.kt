@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.R
 
 @Composable
@@ -95,11 +96,15 @@ fun PatreonBanner(
                                 uriHandler.openUri(patreonUrl)
                             } catch (_: Exception) {}
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
                     ) {
-                        Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.btn_join_patreon))
+                        Text(
+                            text = stringResource(R.string.btn_join_patreon),
+                            maxLines = 1,
+                            softWrap = false,
+                            fontSize = 13.sp
+                        )
                     }
 
                     OutlinedButton(
@@ -108,11 +113,15 @@ fun PatreonBanner(
                                 uriHandler.openUri(buymeacoffeeUrl)
                             } catch (_: Exception) {}
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
                     ) {
-                        Icon(Icons.Default.LocalCafe, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.btn_buy_me_a_coffee))
+                        Text(
+                            text = stringResource(R.string.btn_buy_me_a_coffee),
+                            maxLines = 1,
+                            softWrap = false,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }

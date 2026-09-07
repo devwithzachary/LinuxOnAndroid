@@ -23,9 +23,33 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
+        version = "v1.5.0",
+        date = "September 7, 2026",
+        initialExpanded = true,
+        highlights = listOf(
+            "Tabbed Multi-Window Terminal: Open, run, switch, rename, and manage multiple concurrent interactive terminal tabs within your Linux rootfs environments.",
+            "Multi-Rootfs Container Management: Install, run, and manage multiple distinct Linux distributions side-by-side on disk with per-container storage tracking, custom container names, and dynamic shell hostnames (e.g. user@ContainerName).",
+            "Multi-Distro Setup Wizard: Extended setup catalog allowing you to choose and install Debian 12, Alpine Linux 3.21 (ultra-fast ~10MB rootfs), Arch Linux ARM, Kali Linux CLI Tools, Void Linux, or Ubuntu 26.04 LTS.",
+            "Interactive Dashboard & Per-Container Overview: Three-tab container detail layout (Overview, Software, Settings) with live RAM/storage dials, process table, and open port monitoring.",
+            "Isolated Process & Port Monitoring: Scopes active processes and open TCP listening ports strictly to their specific container via rootfs and process-tree tracing, ensuring inactive containers accurately report zero background processes and open ports.",
+            "Active Port Listener & PID Validation: Enhanced open port detection with candidate port probing, process flag extraction, PID liveness checks, automatic stale PID file cleanup, and a 1-tap refresh button on the Open Ports card.",
+            "Tailored 1-Click Software & Desktop Presets: Pre-configured and tested 1-click presets for XFCE 4 Desktop, TigerVNC Server, NGINX Web Server, and OpenSSH Server tailored specifically for each supported distribution.",
+            "Filesystem & Software Hub Hardening: Safe rootfs symlink and file extraction without recursive deletion, robust cross-distro user account provisioning (/etc/passwd, /etc/group), and high-capacity archive extractor for large rootfs distributions.",
+            "Dedicated Container Deletion Screen: Full-screen deletion view with animated progress indicators, real-time step updates, and back-gesture protection to safely delete containers and free storage before returning to the dashboard.",
+            "First Launch Welcome Screen: Added an introductory onboarding screen before the setup wizard that explains what the app is, container virtualization, safety (zero Android system changes), and multi-container capabilities.",
+            "Terminal Viewport & Command Queuing: Preserves active terminal lines and prompt visibility on software keyboard resize, and reliably executes preset commands with shell readiness signaling.",
+            "Ubuntu 26.04 Coreutils & Package Installation Fix: Fixed rust-coreutils binary execution permissions and tar hard link resolution preventing python3.14-minimal maintainer script errors during 1-click package installs.",
+            "Web Server (NGINX) & Universal Service Runner: Fixed 'service: command not found' errors by ensuring full /usr/sbin and /sbin PATH accessibility across all shells and logins, and deploying a universal service runner shim across distros.",
+            "OpenSSH Server & SFTP Subsystem Conflict Resolution: Resolved a fatal error ('sshd_config line 115: Subsystem sftp already defined') by sanitizing duplicate Subsystem sftp configuration directives across sshd_config to reliably use internal-sftp.",
+            "Rootfs Symlink-Aware Package Detection: Resolved an issue where installed packages using update-alternatives (such as XFCE 4 Desktop via /etc/alternatives/vncserver) were not marked as installed in the Software hub.",
+            "Software Installation Log Viewer: Streamlined log event handling to deduplicate completion lines while preserving full terminal log history and real-time status updates during 1-click installations.",
+            "Multi-Container Debug Diagnostics: Enhanced the system debug report generator to scan all installed rootfs containers, accurately calculating real-time disk sizes and checking required filesystem files."
+        )
+    ),
+    ReleaseChangelog(
         version = "v1.4.0",
         date = "August 28, 2026",
-        initialExpanded = true,
+        initialExpanded = false,
         highlights = listOf(
             "GitHub Release Update Checker & Play Store Migration Guide: Automated in-app GitHub release checks notifying users of cutting-edge updates, with full step-by-step guidance on migrating from Google Play Store builds to GitHub developer-signed APKs.",
             "Real-Time Container Dashboard & System Monitor: Live visual RAM and storage gauges, real-time process table (ps aux) with 1-tap kill confirmation, and active TCP network port listener with 1-tap browser launcher.",
