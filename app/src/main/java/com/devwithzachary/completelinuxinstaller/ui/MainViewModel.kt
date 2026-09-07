@@ -81,6 +81,17 @@ sealed class BackupState {
     data class Error(val message: String) : BackupState()
 }
 
+sealed class DeleteContainerState {
+    data object Idle : DeleteContainerState()
+    data class Deleting(
+        val containerId: String,
+        val containerName: String,
+        val distroName: String? = null,
+        val statusMessage: String = "Deleting container..."
+    ) : DeleteContainerState()
+    data class Error(val containerName: String, val errorMessage: String) : DeleteContainerState()
+}
+
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val pRootEngine = PRootEngine(application)
@@ -246,6 +257,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _backupState = MutableStateFlow<BackupState>(BackupState.Idle)
     val backupState: StateFlow<BackupState> = _backupState.asStateFlow()
+
+    private val _deleteContainerState = MutableStateFlow<DeleteContainerState>(DeleteContainerState.Idle)
+    val deleteContainerState: StateFlow<DeleteContainerState> = _deleteContainerState.asStateFlow()
+
+    fun dismissDeleteContainerError() {
+        _deleteContainerState.value = DeleteContainerState.Idle
+    }
 
     private val _packages = MutableStateFlow(SoftwarePackage.getPresets(loadSshPort()))
     val packages: StateFlow<List<SoftwarePackage>> = _packages.asStateFlow()
@@ -909,12 +927,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshStatus()
     }
 
-    fun deleteContainer(containerId: String) {
+    fun deleteContainer(containerId: String, onDeleted: (() -> Unit)? = null) {
+        val container = containerManager.getContainer(containerId)
+        val containerName = container?.name ?: "Container"
+        val distro = container?.let { DistroCatalog.getById(it.distroId) }
+
+        _deleteContainerState.value = DeleteContainerState.Deleting(
+            containerId = containerId,
+            containerName = containerName,
+            distroName = distro?.name,
+            statusMessage = "Closing active terminal sessions..."
+        )
+
         viewModelScope.launch {
             val tabs = terminalBridge.sessions.value.filter { it.containerId == containerId }
             tabs.forEach { terminalBridge.closeSession(it.id) }
-            containerManager.deleteContainer(containerId)
+
+            val success = containerManager.deleteContainer(containerId) { progress ->
+                _deleteContainerState.value = DeleteContainerState.Deleting(
+                    containerId = containerId,
+                    containerName = containerName,
+                    distroName = distro?.name,
+                    statusMessage = progress
+                )
+            }
+
             refreshStatus()
+
+            if (!success) {
+                _deleteContainerState.value = DeleteContainerState.Error(
+                    containerName = containerName,
+                    errorMessage = "Failed to completely remove container files."
+                )
+            } else {
+                _deleteContainerState.value = DeleteContainerState.Idle
+                onDeleted?.invoke()
+            }
         }
     }
 

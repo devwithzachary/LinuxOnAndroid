@@ -315,7 +315,7 @@ class ContainerManager(private val context: Context) {
         updateContainer(updated)
     }
 
-    suspend fun deleteContainer(id: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun deleteContainer(id: String, onProgress: ((String) -> Unit)? = null): Boolean = withContext(Dispatchers.IO) {
         val container = getContainer(id) ?: return@withContext false
         try {
             val rootDir = File(container.rootDirPath)
@@ -327,13 +327,16 @@ class ContainerManager(private val context: Context) {
 
             // Ensure full write permissions before recursive deletion
             if (containerFolder != null && containerFolder.exists()) {
+                onProgress?.invoke("Preparing filesystem permissions...")
                 try {
                     val chmodBin = if (File("/system/bin/chmod").exists()) "/system/bin/chmod" else "chmod"
                     ProcessBuilder(chmodBin, "-R", "777", containerFolder.absolutePath).start().waitFor()
                 } catch (_: Exception) {}
+                onProgress?.invoke("Purging rootfs files, packages, and storage...")
                 containerFolder.deleteRecursively()
             }
 
+            onProgress?.invoke("Updating container configuration...")
             val updated = _containers.value.filter { it.id != id }
             saveContainersToPrefs(updated)
 

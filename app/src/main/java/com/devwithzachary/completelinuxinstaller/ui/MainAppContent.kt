@@ -18,6 +18,7 @@ import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.ui.screens.about.AboutScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailScreen
+import com.devwithzachary.completelinuxinstaller.ui.screens.container.DeletingContainerScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.dashboard.DashboardScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.SettingsScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.splash.SplashScreen
@@ -39,6 +40,7 @@ fun MainAppContent(viewModel: MainViewModel) {
     val dashboardState by viewModel.dashboardState.collectAsStateWithLifecycle()
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
+    val deleteContainerState by viewModel.deleteContainerState.collectAsStateWithLifecycle()
     val packages by viewModel.packages.collectAsStateWithLifecycle()
     val requestedScreen by viewModel.requestedScreen.collectAsStateWithLifecycle()
     val systemMetrics by viewModel.systemMetrics.collectAsStateWithLifecycle()
@@ -70,6 +72,15 @@ fun MainAppContent(viewModel: MainViewModel) {
 
     if (isInitializing || currentScreen == AppScreen.SPLASH) {
         SplashRoute(viewModel, dashboardState)
+    } else if (deleteContainerState !is DeleteContainerState.Idle) {
+        DeletingContainerScreen(
+            state = deleteContainerState,
+            onDismissError = {
+                viewModel.dismissDeleteContainerError()
+                selectedContainerTarget = null
+                currentScreen = AppScreen.DASHBOARD
+            }
+        )
     } else {
         val isTerminal = currentScreen == AppScreen.TERMINAL
         Scaffold(
@@ -212,8 +223,9 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     viewModel.installCustomPackage(pkgName, containerId)
                                 },
                                 onDeleteContainer = { containerId ->
-                                    viewModel.deleteContainer(containerId)
-                                    selectedContainerTarget = null
+                                    viewModel.deleteContainer(containerId) {
+                                        selectedContainerTarget = null
+                                    }
                                 },
                                 onUpgradeRootfs = { containerId ->
                                     viewModel.upgradeRootfs(containerId)
