@@ -177,6 +177,49 @@ class DistroCatalogTest {
     }
 
     @Test
+    fun testVoidRolling_softwarePackageOverrides() {
+        val void = DistroCatalog.VOID_ROLLING
+        val setupScript = void.buildFirstLaunchSetupScript("root123", "voiduser", "user123", true)
+        assertTrue("Void setup script must update xbps first", setupScript.contains("xbps-install -Syu xbps -y"))
+
+        val xfceInstallCmd = void.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Void xfce_desktop install command must exist", xfceInstallCmd)
+        assertTrue("Void install command must update xbps first", xfceInstallCmd!!.contains("xbps-install -Syu xbps -y"))
+        assertTrue("Void install command must export PATH", xfceInstallCmd.contains("export PATH="))
+        assertTrue("Void install command must install libstdc++", xfceInstallCmd.contains("libstdc++"))
+        assertTrue("Void install command must deploy PRoot vncserver wrapper", xfceInstallCmd.contains("TigerVNC server wrapper for PRoot environments"))
+        assertTrue("Void install command must create /etc/vnc/xstartup via printf", xfceInstallCmd.contains("> /etc/vnc/xstartup"))
+        assertTrue("Void install command must use void password", xfceInstallCmd.contains("echo void | vncpasswd"))
+        assertFalse("Void install command should not use heredoc", xfceInstallCmd.contains("cat << 'EOF'"))
+
+        val launchCmd = void.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Void must define a launch command for xfce_desktop", launchCmd)
+        assertTrue("Void launch command must ensure libstdc++ compatibility", launchCmd!!.contains("CXXABI_1.3.15"))
+        assertTrue("Void launch command must deploy PRoot vncserver wrapper if missing", launchCmd.contains("TigerVNC server wrapper for PRoot environments"))
+        assertTrue("Void launch command must use void password", launchCmd.contains("echo void | vncpasswd"))
+        assertTrue("Void launch command must kill previous display", launchCmd.contains("vncserver -kill :1"))
+        assertTrue("Void launch command must launch display :1", launchCmd.contains("vncserver :1"))
+
+        val expectedBinaries = void.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Void must define expected binaries for xfce_desktop", expectedBinaries)
+        assertTrue("Void expected binaries must include startxfce4", expectedBinaries!!.contains("usr/bin/startxfce4"))
+        assertTrue("Void expected binaries must include vncserver", expectedBinaries.contains("usr/bin/vncserver"))
+        assertTrue("Void expected binaries must include vncpasswd", expectedBinaries.contains("usr/bin/vncpasswd"))
+        assertTrue("Void expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
+
+        assertEquals("Void xfce_desktop version must be 5", 5, void.getSoftwarePackageVersion("xfce_desktop"))
+
+        val sshInstallCmd = void.getSoftwarePackageInstallCommand("openssh_server", 2222)
+        assertNotNull("Void openssh install command must exist", sshInstallCmd)
+        assertTrue("Void ssh install command must update xbps first", sshInstallCmd!!.contains("xbps-install -Syu xbps -y"))
+        assertTrue("Void ssh install command must export PATH", sshInstallCmd.contains("export PATH="))
+
+        val sshLaunchCmd = void.getSoftwarePackageLaunchCommand("openssh_server", 2222)
+        assertNotNull("Void ssh launch command must exist", sshLaunchCmd)
+        assertTrue("Void ssh launch command must launch sshd on port 2222", sshLaunchCmd!!.contains("sshd -p 2222"))
+    }
+
+    @Test
     fun testUbuntu2604_softwarePackageOverridesAreUnchanged() {
         val ubuntu = DistroCatalog.UBUNTU_26_04
         assertNull("Ubuntu should not override launch command by default", ubuntu.getSoftwarePackageLaunchCommand("xfce_desktop"))

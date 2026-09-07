@@ -2,8 +2,8 @@
 • Multi-Distro: Debian, Alpine, Arch, Kali, Void.
 • Container UI: Scoped Overview, Software, Settings.
 • Isolation: Scoped processes and ports per container.
-• Keyboard: Preserves prompt on soft keyboard resize.
-• OpenSSH: Resolves duplicate SFTP subsystem conflict.
-• Debian & Kali XFCE: Bundles tigervnc-tools & desktop.
-• Alpine: Resolves bash applet error on login.
-• Arch & Kali: Fixes pacman sandbox & DNS resolution.
+• Terminal: Preserves prompt on soft keyboard resize.
+• OpenSSH: Fixes duplicate SFTP subsystem conflict.
+• XFCE & VNC: Fixes setup on Debian, Arch, Kali, Void.
+• Alpine: Fixes missing bash applet on login.
+• Arch, Kali, Void: Fixes sandbox, DNS, and xbps updates.
