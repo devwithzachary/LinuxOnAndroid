@@ -38,6 +38,7 @@ import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
 import com.devwithzachary.completelinuxinstaller.ui.components.DebugReportDialog
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
+import com.devwithzachary.completelinuxinstaller.ui.util.rememberWindowSizeClass
 import kotlinx.coroutines.launch
 
 enum class SettingsCategory(val displayName: String, val icon: ImageVector) {
@@ -189,48 +190,22 @@ fun SettingsScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = stringResource(R.string.nav_settings),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold
-        )
+    val windowSizeClass = rememberWindowSizeClass()
+    val isWideScreen = !windowSizeClass.isCompact
 
-        // Settings Category Filter Tabs
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(SettingsCategory.entries) { category ->
-                val isSelected = selectedCategory == category
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { selectedCategory = category },
-                    label = { Text(category.displayName) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = category.icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                )
-            }
-        }
+    var showCustomThemeDialog by remember { mutableStateOf(false) }
+    var editingColorTarget by remember { mutableStateOf<String?>(null) }
+    var colorHexInput by remember { mutableStateOf("") }
 
-        // 1. Updates & Release Channel Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.UPDATES) {
-            CollapsibleSettingsCard(
+    var customFg by remember(terminalTheme) { mutableStateOf(terminalTheme.defaultFg) }
+    var customBg by remember(terminalTheme) { mutableStateOf(terminalTheme.defaultBg) }
+    var customCursor by remember(terminalTheme) { mutableStateOf(terminalTheme.cursorColor) }
+    var customSelection by remember(terminalTheme) { mutableStateOf(terminalTheme.selectionColor) }
+    var customAnsiColors by remember(terminalTheme) { mutableStateOf(terminalTheme.ansiColors.toMutableList()) }
+
+    // 1. Updates & Release Channel Card
+    val updatesCard = @Composable {
+        CollapsibleSettingsCard(
                 title = stringResource(R.string.github_updates_card_title),
                 subtitle = stringResource(R.string.github_updates_card_subtitle),
                 icon = Icons.Default.CloudDownload,
@@ -351,19 +326,9 @@ fun SettingsScreen(
             }
         }
 
-        // 2. Terminal Appearance & Theme Pack Card
-        var showCustomThemeDialog by remember { mutableStateOf(false) }
-        var editingColorTarget by remember { mutableStateOf<String?>(null) }
-        var colorHexInput by remember { mutableStateOf("") }
-
-        var customFg by remember(terminalTheme) { mutableStateOf(terminalTheme.defaultFg) }
-        var customBg by remember(terminalTheme) { mutableStateOf(terminalTheme.defaultBg) }
-        var customCursor by remember(terminalTheme) { mutableStateOf(terminalTheme.cursorColor) }
-        var customSelection by remember(terminalTheme) { mutableStateOf(terminalTheme.selectionColor) }
-        var customAnsiColors by remember(terminalTheme) { mutableStateOf(terminalTheme.ansiColors.toMutableList()) }
-
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.TERMINAL) {
-            CollapsibleSettingsCard(
+    // 2. Terminal Appearance & Theme Pack Card
+    val terminalCard = @Composable {
+        CollapsibleSettingsCard(
                 title = "Terminal Appearance & Theme",
                 subtitle = "Theme: ${terminalTheme.name} (${terminalFontSize}sp, $terminalFontFamily)",
                 icon = Icons.Default.Palette,
@@ -758,7 +723,7 @@ fun SettingsScreen(
         }
 
         // 3. Background Execution & Power Management Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.BACKGROUND) {
+        val backgroundCard = @Composable {
             CollapsibleSettingsCard(
                 title = stringResource(R.string.setting_keep_alive_title),
                 subtitle = if (isKeepAliveEnabled) "Foreground Service & WakeLock Active" else "Standard Background Limits",
@@ -907,9 +872,9 @@ fun SettingsScreen(
             }
         }
 
-        // 4. Diagnostics & Debug Report Card
-        if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.DIAGNOSTICS) {
-            CollapsibleSettingsCard(
+    // 4. Diagnostics & Debug Report Card
+    val diagnosticsCard = @Composable {
+        CollapsibleSettingsCard(
                 title = "Diagnostics & Debug Report",
                 subtitle = "Generate a technical debug report for bug reports",
                 icon = Icons.Default.BugReport,
@@ -948,6 +913,87 @@ fun SettingsScreen(
                     }
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Generate Debug Report")
+                }
+            }
+        }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 1200.dp)
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.nav_settings),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Settings Category Filter Tabs
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(SettingsCategory.entries) { category ->
+                    val isSelected = selectedCategory == category
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { selectedCategory = category },
+                        label = { Text(category.displayName) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = category.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    )
+                }
+            }
+
+            if (isWideScreen && selectedCategory == SettingsCategory.ALL) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        updatesCard()
+                        backgroundCard()
+                        diagnosticsCard()
+                    }
+                    Column(
+                        modifier = Modifier.weight(1.1f),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        terminalCard()
+                    }
+                }
+            } else {
+                if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.UPDATES) {
+                    updatesCard()
+                }
+                if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.TERMINAL) {
+                    terminalCard()
+                }
+                if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.BACKGROUND) {
+                    backgroundCard()
+                }
+                if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.DIAGNOSTICS) {
+                    diagnosticsCard()
                 }
             }
         }

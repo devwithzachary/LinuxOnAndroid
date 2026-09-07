@@ -2,8 +2,9 @@ package com.devwithzachary.completelinuxinstaller.ui.screens.hub
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -85,12 +86,14 @@ fun SoftwareHubScreen(
             }
         }
 
-        // Package Cards List
-        LazyColumn(
+        // Package Cards Adaptive Grid (1 col on phone, 2 on 7" tablet, 3-4 on 10" / desktop)
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 320.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.weight(1f)
         ) {
-            items(filteredPackages) { pkg ->
+            items(filteredPackages, key = { it.id }) { pkg ->
                 SoftwareCard(
                     pkg = pkg,
                     onInstallClick = {

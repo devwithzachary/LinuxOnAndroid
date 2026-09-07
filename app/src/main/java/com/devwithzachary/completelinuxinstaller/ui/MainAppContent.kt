@@ -26,6 +26,14 @@ import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalScr
 import com.devwithzachary.completelinuxinstaller.ui.screens.welcome.WelcomeScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.wizard.WizardScreen
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.ui.util.DesktopKeyHandler
+import com.devwithzachary.completelinuxinstaller.ui.util.rememberWindowSizeClass
+
 enum class AppScreen(val titleRes: Int) {
     SPLASH(R.string.app_name),
     WELCOME(R.string.app_name),
@@ -39,6 +47,7 @@ enum class AppScreen(val titleRes: Int) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun MainAppContent(viewModel: MainViewModel) {
+    val windowSizeClass = rememberWindowSizeClass()
     val dashboardState by viewModel.dashboardState.collectAsStateWithLifecycle()
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
@@ -90,70 +99,193 @@ fun MainAppContent(viewModel: MainViewModel) {
         )
     } else {
         val isTerminal = currentScreen == AppScreen.TERMINAL
-        Scaffold(
-            containerColor = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background,
-            contentWindowInsets = if (isTerminal) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
-            bottomBar = {
-                val isImeVisible = WindowInsets.isImeVisible
-                val isFullscreenScreen = currentScreen == AppScreen.WIZARD || currentScreen == AppScreen.WELCOME
-                if ((isInstalled || splashDismissed) && !isFullscreenScreen && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
-                    NavigationBar {
-                        NavigationBarItem(
-                            selected = currentScreen == AppScreen.DASHBOARD,
-                            onClick = {
-                                selectedContainerTarget = null
-                                currentScreen = AppScreen.DASHBOARD
-                            },
-                            icon = {
-                                Icon(
-                                    Icons.Default.Home,
-                                    contentDescription = stringResource(R.string.nav_dashboard)
-                                )
-                            },
-                            label = { Text(stringResource(R.string.nav_dashboard)) }
-                        )
-                        NavigationBarItem(
-                            selected = currentScreen == AppScreen.TERMINAL,
-                            onClick = { currentScreen = AppScreen.TERMINAL },
-                            icon = {
-                                Icon(
-                                    Icons.Default.Terminal,
-                                    contentDescription = stringResource(R.string.nav_terminal)
-                                )
-                            },
-                            label = { Text(stringResource(R.string.nav_terminal)) }
-                        )
-                        NavigationBarItem(
-                            selected = currentScreen == AppScreen.SETTINGS,
-                            onClick = { currentScreen = AppScreen.SETTINGS },
-                            icon = {
-                                Icon(
-                                    Icons.Default.Settings,
-                                    contentDescription = stringResource(R.string.nav_settings)
-                                )
-                            },
-                            label = { Text(stringResource(R.string.nav_settings)) }
-                        )
-                        NavigationBarItem(
-                            selected = currentScreen == AppScreen.ABOUT,
-                            onClick = { currentScreen = AppScreen.ABOUT },
-                            icon = {
-                                Icon(
-                                    Icons.Default.Info,
-                                    contentDescription = stringResource(R.string.nav_about)
-                                )
-                            },
-                            label = { Text(stringResource(R.string.nav_about)) }
-                        )
+        val isFullscreenScreen = currentScreen == AppScreen.WIZARD || currentScreen == AppScreen.WELCOME
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onPreviewKeyEvent { keyEvent ->
+                    DesktopKeyHandler.handleGlobalShortcut(
+                        event = keyEvent,
+                        onNavigate = { target ->
+                            if (target == AppScreen.TERMINAL && !dashboardState.isRunning) {
+                                viewModel.startTerminalSession()
+                            }
+                            selectedContainerTarget = null
+                            currentScreen = target
+                        },
+                        onNewTerminalTab = {
+                            val container = dashboardState.containers.find { it.id == dashboardState.defaultContainerId }
+                                ?: dashboardState.containers.firstOrNull()
+                            viewModel.createNewTab(container?.id, container?.defaultUser ?: "root", null)
+                        },
+                        onCloseTerminalTab = {
+                            viewModel.closeActiveTab()
+                        },
+                        onNextTerminalTab = {
+                            viewModel.nextTab()
+                        },
+                        onPrevTerminalTab = {
+                            viewModel.prevTab()
+                        },
+                        currentScreen = currentScreen
+                    )
+                }
+        ) {
+            Scaffold(
+                containerColor = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background,
+                contentWindowInsets = if (isTerminal) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
+                bottomBar = {
+                    val isImeVisible = WindowInsets.isImeVisible
+                    if (windowSizeClass.isCompact && (isInstalled || splashDismissed) && !isFullscreenScreen && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
+                        NavigationBar {
+                            NavigationBarItem(
+                                selected = currentScreen == AppScreen.DASHBOARD,
+                                onClick = {
+                                    selectedContainerTarget = null
+                                    currentScreen = AppScreen.DASHBOARD
+                                },
+                                icon = {
+                                    Icon(
+                                        Icons.Default.Home,
+                                        contentDescription = stringResource(R.string.nav_dashboard)
+                                    )
+                                },
+                                label = { Text(stringResource(R.string.nav_dashboard)) }
+                            )
+                            NavigationBarItem(
+                                selected = currentScreen == AppScreen.TERMINAL,
+                                onClick = { currentScreen = AppScreen.TERMINAL },
+                                icon = {
+                                    Icon(
+                                        Icons.Default.Terminal,
+                                        contentDescription = stringResource(R.string.nav_terminal)
+                                    )
+                                },
+                                label = { Text(stringResource(R.string.nav_terminal)) }
+                            )
+                            NavigationBarItem(
+                                selected = currentScreen == AppScreen.SETTINGS,
+                                onClick = { currentScreen = AppScreen.SETTINGS },
+                                icon = {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = stringResource(R.string.nav_settings)
+                                    )
+                                },
+                                label = { Text(stringResource(R.string.nav_settings)) }
+                            )
+                            NavigationBarItem(
+                                selected = currentScreen == AppScreen.ABOUT,
+                                onClick = { currentScreen = AppScreen.ABOUT },
+                                icon = {
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = stringResource(R.string.nav_about)
+                                    )
+                                },
+                                label = { Text(stringResource(R.string.nav_about)) }
+                            )
+                        }
                     }
                 }
-            }
-        ) { innerPadding ->
-            Surface(
-                modifier = if (isTerminal) Modifier.fillMaxSize().padding(bottom = innerPadding.calculateBottomPadding()) else Modifier.padding(innerPadding),
-                color = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background
-            ) {
-                when (currentScreen) {
+            ) { innerPadding ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = if (windowSizeClass.isCompact) innerPadding.calculateBottomPadding() else 0.dp)
+                ) {
+                    if (windowSizeClass.isMediumOrExpanded && (isInstalled || splashDismissed) && !isFullscreenScreen) {
+                        NavigationRail(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .padding(top = if (isTerminal) 0.dp else innerPadding.calculateTopPadding()),
+                            containerColor = if (isTerminal) Color(0xFF242424) else NavigationRailDefaults.ContainerColor,
+                            contentColor = if (isTerminal) Color.White else MaterialTheme.colorScheme.onSurface,
+                            header = {
+                                IconButton(
+                                    onClick = {
+                                        selectedContainerTarget = null
+                                        currentScreen = AppScreen.DASHBOARD
+                                    },
+                                    modifier = Modifier.padding(top = 8.dp)
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_launcher_logo),
+                                        contentDescription = stringResource(R.string.app_title),
+                                        modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)),
+                                        tint = Color.Unspecified
+                                    )
+                                }
+                            }
+                        ) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            NavigationRailItem(
+                                selected = currentScreen == AppScreen.DASHBOARD,
+                                onClick = {
+                                    selectedContainerTarget = null
+                                    currentScreen = AppScreen.DASHBOARD
+                                },
+                                icon = {
+                                    Icon(
+                                        Icons.Default.Home,
+                                        contentDescription = stringResource(R.string.nav_dashboard)
+                                    )
+                                },
+                                label = { Text(stringResource(R.string.nav_dashboard)) }
+                            )
+                            NavigationRailItem(
+                                selected = currentScreen == AppScreen.TERMINAL,
+                                onClick = { currentScreen = AppScreen.TERMINAL },
+                                icon = {
+                                    BadgedBox(
+                                        badge = {
+                                            if (dashboardState.isRunning) {
+                                                Badge(containerColor = Color(0xFF4CAF50))
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Terminal,
+                                            contentDescription = stringResource(R.string.nav_terminal)
+                                        )
+                                    }
+                                },
+                                label = { Text(stringResource(R.string.nav_terminal)) }
+                            )
+                            NavigationRailItem(
+                                selected = currentScreen == AppScreen.SETTINGS,
+                                onClick = { currentScreen = AppScreen.SETTINGS },
+                                icon = {
+                                    Icon(
+                                        Icons.Default.Settings,
+                                        contentDescription = stringResource(R.string.nav_settings)
+                                    )
+                                },
+                                label = { Text(stringResource(R.string.nav_settings)) }
+                            )
+                            NavigationRailItem(
+                                selected = currentScreen == AppScreen.ABOUT,
+                                onClick = { currentScreen = AppScreen.ABOUT },
+                                icon = {
+                                    Icon(
+                                        Icons.Default.Info,
+                                        contentDescription = stringResource(R.string.nav_about)
+                                    )
+                                },
+                                label = { Text(stringResource(R.string.nav_about)) }
+                            )
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .padding(top = if (isTerminal) 0.dp else innerPadding.calculateTopPadding()),
+                        color = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background
+                    ) {
+                        when (currentScreen) {
                     AppScreen.SPLASH -> {
                         SplashRoute(viewModel, dashboardState)
                     }
@@ -381,6 +513,8 @@ fun MainAppContent(viewModel: MainViewModel) {
             }
         }
     }
+}
+}
 }
 
 @Composable

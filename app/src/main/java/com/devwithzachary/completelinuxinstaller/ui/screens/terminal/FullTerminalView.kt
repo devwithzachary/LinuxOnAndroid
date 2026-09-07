@@ -30,6 +30,11 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -70,6 +75,8 @@ fun FullTerminalView(
     var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) } // (row, col)
     var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // (row, col)
     var accumulatedScrollY by remember { mutableFloatStateOf(0f) }
+    var showContextMenu by remember { mutableStateOf(false) }
+    var contextMenuOffset by remember { mutableStateOf(Offset.Zero) }
 
     val selectedTypeface = remember(fontFamilyName, context) {
         TerminalFonts.getTypeface(context, fontFamilyName, bold = false)
@@ -134,6 +141,28 @@ fun FullTerminalView(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .pointerHoverIcon(PointerIcon.Text)
+                .pointerInput(cols, rows) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Main)
+                            if (event.type == PointerEventType.Scroll) {
+                                val delta = event.changes.firstOrNull()?.scrollDelta?.y ?: 0f
+                                if (delta > 0) {
+                                    terminalBridge.scrollDown(max(1, (delta * 2).toInt()))
+                                } else if (delta < 0) {
+                                    terminalBridge.scrollUp(max(1, (-delta * 2).toInt()))
+                                }
+                            } else if (event.type == PointerEventType.Press && event.buttons.isSecondaryPressed) {
+                                val change = event.changes.firstOrNull()
+                                val position = change?.position ?: Offset.Zero
+                                change?.consume()
+                                contextMenuOffset = position
+                                showContextMenu = true
+                            }
+                        }
+                    }
+                }
                 .pointerInput(cols, rows) {
                     // Direct smooth scrolling with vertical dragging
                     detectDragGestures(
@@ -257,7 +286,7 @@ fun FullTerminalView(
                             }
                         }
                         when {
-                            isCtrlOrMeta && event.key == Key.V -> {
+                            isCtrlOrMeta && (event.key == Key.V || (event.isShiftPressed && event.key == Key.V)) -> {
                                 val clipText = clipboardManager.getText()?.text
                                 if (!clipText.isNullOrEmpty()) {
                                     terminalBridge.pasteText(clipText)
@@ -266,7 +295,11 @@ fun FullTerminalView(
                             }
 
                             isCtrlOrMeta && event.isShiftPressed && event.key == Key.C -> {
-                                val text = terminalBridge.getScreenText()
+                                val text = if (hasSelection) {
+                                    terminalBridge.getSelectedText(fromR, fromC, toR, toC)
+                                } else {
+                                    terminalBridge.getScreenText()
+                                }
                                 if (text.isNotEmpty()) {
                                     clipboardManager.setText(AnnotatedString(text))
                                 }
@@ -626,6 +659,90 @@ fun FullTerminalView(
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+
+            // Mouse Right-Click Context Menu
+            Box(
+                modifier = Modifier
+                    .offset(
+                        x = with(density) { contextMenuOffset.x.toDp() },
+                        y = with(density) { contextMenuOffset.y.toDp() }
+                    )
+                    .size(1.dp)
+            ) {
+                DropdownMenu(
+                    expanded = showContextMenu,
+                    onDismissRequest = { showContextMenu = false }
+                ) {
+                    val hasTextSelected = hasSelection
+                    // Copy
+                    DropdownMenuItem(
+                        text = { Text("Copy") },
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = {
+                            showContextMenu = false
+                            if (hasTextSelected) {
+                                val text = terminalBridge.getSelectedText(fromR, fromC, toR, toC)
+                                if (text.isNotEmpty()) {
+                                    clipboardManager.setText(AnnotatedString(text))
+                                }
+                                selectionStart = null
+                                selectionEnd = null
+                            } else {
+                                val text = terminalBridge.getScreenText()
+                                if (text.isNotEmpty()) {
+                                    clipboardManager.setText(AnnotatedString(text))
+                                }
+                            }
+                            focusRequester.requestFocus()
+                        }
+                    )
+                    // Paste
+                    val clipText = clipboardManager.getText()?.text
+                    DropdownMenuItem(
+                        text = { Text("Paste") },
+                        enabled = !clipText.isNullOrEmpty(),
+                        leadingIcon = { Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = {
+                            showContextMenu = false
+                            if (!clipText.isNullOrEmpty()) {
+                                terminalBridge.pasteText(clipText)
+                            }
+                            focusRequester.requestFocus()
+                        }
+                    )
+                    HorizontalDivider()
+                    // Select All
+                    DropdownMenuItem(
+                        text = { Text("Select All") },
+                        leadingIcon = { Icon(Icons.Default.SelectAll, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = {
+                            showContextMenu = false
+                            selectionStart = Pair(0, 0)
+                            selectionEnd = Pair(rows - 1, cols - 1)
+                        }
+                    )
+                    // Clear Screen / Buffer
+                    DropdownMenuItem(
+                        text = { Text("Clear Buffer") },
+                        leadingIcon = { Icon(Icons.Default.ClearAll, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = {
+                            showContextMenu = false
+                            terminalBridge.sendInput("\u000c")
+                            focusRequester.requestFocus()
+                        }
+                    )
+                    // Reset Terminal
+                    DropdownMenuItem(
+                        text = { Text("Reset Terminal") },
+                        leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        onClick = {
+                            showContextMenu = false
+                            terminalBridge.sendInput("\u001Bc")
+                            focusRequester.requestFocus()
+                        }
+                    )
                 }
             }
         }

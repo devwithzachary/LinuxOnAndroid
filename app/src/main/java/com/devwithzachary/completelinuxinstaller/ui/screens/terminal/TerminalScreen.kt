@@ -42,6 +42,10 @@ import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
 import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
 import com.devwithzachary.completelinuxinstaller.ui.components.EditHotkeysDialog
 import com.devwithzachary.completelinuxinstaller.ui.components.ExtraKeysRow
+import androidx.compose.material.icons.filled.KeyboardHide
+import com.devwithzachary.completelinuxinstaller.ui.util.handHover
+import com.devwithzachary.completelinuxinstaller.ui.util.isHardwareKeyboardConnected
+import com.devwithzachary.completelinuxinstaller.ui.util.onContextMenu
 import com.devwithzachary.completelinuxinstaller.util.HotkeyManager
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -112,6 +116,10 @@ fun TerminalScreen(
     var showEditHotkeysDialog by remember { mutableStateOf(false) }
     var showNewTabDialog by remember { mutableStateOf(false) }
     var sessionToRename by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val isHardwareKeyboard = isHardwareKeyboardConnected()
+    var showExtraKeysOverride by remember { mutableStateOf<Boolean?>(null) }
+    val showExtraKeys = showExtraKeysOverride ?: !isHardwareKeyboard
+    var tabContextMenuSessionId by remember { mutableStateOf<String?>(null) }
 
     var isCtrlActive by remember { mutableStateOf(false) }
     var isAltActive by remember { mutableStateOf(false) }
@@ -171,12 +179,28 @@ fun TerminalScreen(
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(onClick = {
-                            val clipText = clipboardManager.getText()?.text
-                            if (!clipText.isNullOrEmpty()) {
-                                terminalBridge.pasteText(clipText)
-                            }
-                        }) {
+                        // Toggle Extra Keys Ribbon
+                        IconButton(
+                            onClick = { showExtraKeysOverride = !showExtraKeys },
+                            modifier = Modifier.handHover()
+                        ) {
+                            Icon(
+                                imageVector = if (showExtraKeys) Icons.Default.KeyboardHide else Icons.Default.Keyboard,
+                                contentDescription = if (showExtraKeys) "Hide On-screen Keys" else "Show On-screen Keys",
+                                tint = if (showExtraKeys) Color(0xFF81D4FA) else Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        IconButton(
+                            onClick = {
+                                val clipText = clipboardManager.getText()?.text
+                                if (!clipText.isNullOrEmpty()) {
+                                    terminalBridge.pasteText(clipText)
+                                }
+                            },
+                            modifier = Modifier.handHover()
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.ContentPaste,
                                 contentDescription = "Paste Clipboard",
@@ -185,7 +209,10 @@ fun TerminalScreen(
                             )
                         }
 
-                        IconButton(onClick = { showEditHotkeysDialog = true }) {
+                        IconButton(
+                            onClick = { showEditHotkeysDialog = true },
+                            modifier = Modifier.handHover()
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Tune,
                                 contentDescription = "Edit Hotkeys",
@@ -194,10 +221,13 @@ fun TerminalScreen(
                             )
                         }
 
-                        IconButton(onClick = {
-                            focusRequester.requestFocus()
-                            keyboardController?.show()
-                        }) {
+                        IconButton(
+                            onClick = {
+                                focusRequester.requestFocus()
+                                keyboardController?.show()
+                            },
+                            modifier = Modifier.handHover()
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Keyboard,
                                 contentDescription = "Show Keyboard",
@@ -207,11 +237,14 @@ fun TerminalScreen(
                         }
 
                         if (isRunning) {
-                            IconButton(onClick = {
-                                isCtrlActive = false
-                                isAltActive = false
-                                onStopSession()
-                            }) {
+                            IconButton(
+                                onClick = {
+                                    isCtrlActive = false
+                                    isAltActive = false
+                                    onStopSession()
+                                },
+                                modifier = Modifier.handHover()
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.Stop,
                                     contentDescription = "Stop Terminal",
@@ -220,7 +253,10 @@ fun TerminalScreen(
                                 )
                             }
                         } else {
-                            IconButton(onClick = onStartSession) {
+                            IconButton(
+                                onClick = onStartSession,
+                                modifier = Modifier.handHover()
+                            ) {
                                 Icon(
                                     imageVector = Icons.Default.PlayArrow,
                                     contentDescription = "Start Terminal",
@@ -253,58 +289,101 @@ fun TerminalScreen(
                                 val sessionRunning by session.isRunning.collectAsStateWithLifecycle()
                                 val sessionTitle by session.title.collectAsStateWithLifecycle()
 
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = if (isSelected) Color(0xFF333333) else Color(0xFF262626),
-                                    border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4CAF50)) else null,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .combinedClickable(
-                                            onClick = {
-                                                onSwitchTab(session.id)
-                                                terminalBridge.switchActiveSession(session.id)
-                                                focusRequester.requestFocus()
-                                            },
-                                            onLongClick = {
-                                                sessionToRename = Pair(session.id, sessionTitle)
+                                Box {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (isSelected) Color(0xFF333333) else Color(0xFF262626),
+                                        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4CAF50)) else null,
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .handHover()
+                                            .combinedClickable(
+                                                onClick = {
+                                                    onSwitchTab(session.id)
+                                                    terminalBridge.switchActiveSession(session.id)
+                                                    focusRequester.requestFocus()
+                                                },
+                                                onLongClick = {
+                                                    tabContextMenuSessionId = session.id
+                                                }
+                                            )
+                                            .onContextMenu {
+                                                tabContextMenuSessionId = session.id
                                             }
-                                        )
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .background(
-                                                    color = if (sessionRunning) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
-                                                    shape = CircleShape
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .background(
+                                                        color = if (sessionRunning) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
+                                                        shape = CircleShape
+                                                    )
+                                            )
+
+                                            Text(
+                                                text = sessionTitle,
+                                                color = if (isSelected) Color.White else Color(0xFFB0B0B0),
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                fontFamily = FontFamily.Monospace,
+                                                maxLines = 1
+                                            )
+
+                                            IconButton(
+                                                onClick = {
+                                                    onCloseTab(session.id)
+                                                    terminalBridge.closeSession(session.id)
+                                                },
+                                                modifier = Modifier.size(16.dp).handHover()
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Close Tab",
+                                                    tint = Color(0xFFB0B0B0),
+                                                    modifier = Modifier.size(12.dp)
                                                 )
-                                        )
+                                            }
+                                        }
+                                    }
 
-                                        Text(
-                                            text = sessionTitle,
-                                            color = if (isSelected) Color.White else Color(0xFFB0B0B0),
-                                            fontSize = 12.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            fontFamily = FontFamily.Monospace,
-                                            maxLines = 1
-                                        )
-
-                                        IconButton(
+                                    DropdownMenu(
+                                        expanded = tabContextMenuSessionId == session.id,
+                                        onDismissRequest = { tabContextMenuSessionId = null }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Rename Tab") },
                                             onClick = {
+                                                tabContextMenuSessionId = null
+                                                sessionToRename = Pair(session.id, sessionTitle)
+                                            },
+                                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Close Tab") },
+                                            onClick = {
+                                                tabContextMenuSessionId = null
                                                 onCloseTab(session.id)
                                                 terminalBridge.closeSession(session.id)
                                             },
-                                            modifier = Modifier.size(16.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Close Tab",
-                                                tint = Color(0xFFB0B0B0),
-                                                modifier = Modifier.size(12.dp)
+                                            leadingIcon = { Icon(Icons.Default.Close, contentDescription = null) }
+                                        )
+                                        if (sessions.size > 1) {
+                                            HorizontalDivider()
+                                            DropdownMenuItem(
+                                                text = { Text("Close Other Tabs") },
+                                                onClick = {
+                                                    tabContextMenuSessionId = null
+                                                    sessions.filter { it.id != session.id }.forEach { other ->
+                                                        onCloseTab(other.id)
+                                                        terminalBridge.closeSession(other.id)
+                                                    }
+                                                },
+                                                leadingIcon = { Icon(Icons.Default.Close, contentDescription = null) }
                                             )
                                         }
                                     }
@@ -326,6 +405,7 @@ fun TerminalScreen(
                             },
                             modifier = Modifier
                                 .size(28.dp)
+                                .handHover()
                                 .background(Color(0xFF333333), shape = RoundedCornerShape(6.dp))
                         ) {
                             Icon(
@@ -361,47 +441,49 @@ fun TerminalScreen(
         )
 
         // Touch Navigation & Quick Command Keys Ribbon (Positioned directly above keyboard)
-        ExtraKeysRow(
-            keys = customHotkeys,
-            onPaste = {
-                val clipText = clipboardManager.getText()?.text
-                if (!clipText.isNullOrEmpty()) {
-                    terminalBridge.pasteText(clipText)
-                }
-            },
-            isCtrlActive = isCtrlActive,
-            onToggleCtrl = {
-                isCtrlActive = !isCtrlActive
-                focusRequester.requestFocus()
-                keyboardController?.show()
-            },
-            isAltActive = isAltActive,
-            onToggleAlt = {
-                isAltActive = !isAltActive
-                focusRequester.requestFocus()
-                keyboardController?.show()
-            },
-            onKeyClick = { key ->
-                if (key == "Paste") {
+        if (showExtraKeys) {
+            ExtraKeysRow(
+                keys = customHotkeys,
+                onPaste = {
                     val clipText = clipboardManager.getText()?.text
                     if (!clipText.isNullOrEmpty()) {
                         terminalBridge.pasteText(clipText)
                     }
-                } else {
-                    if (isCtrlActive || isAltActive) {
-                        if (key.length == 1) {
-                            terminalBridge.sendModifiedChar(key[0], isCtrlActive, isAltActive)
+                },
+                isCtrlActive = isCtrlActive,
+                onToggleCtrl = {
+                    isCtrlActive = !isCtrlActive
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                isAltActive = isAltActive,
+                onToggleAlt = {
+                    isAltActive = !isAltActive
+                    focusRequester.requestFocus()
+                    keyboardController?.show()
+                },
+                onKeyClick = { key ->
+                    if (key == "Paste") {
+                        val clipText = clipboardManager.getText()?.text
+                        if (!clipText.isNullOrEmpty()) {
+                            terminalBridge.pasteText(clipText)
+                        }
+                    } else {
+                        if (isCtrlActive || isAltActive) {
+                            if (key.length == 1) {
+                                terminalBridge.sendModifiedChar(key[0], isCtrlActive, isAltActive)
+                            } else {
+                                terminalBridge.sendKeyShortcut(key)
+                            }
+                            isCtrlActive = false
+                            isAltActive = false
                         } else {
                             terminalBridge.sendKeyShortcut(key)
                         }
-                        isCtrlActive = false
-                        isAltActive = false
-                    } else {
-                        terminalBridge.sendKeyShortcut(key)
                     }
                 }
-            }
-        )
+            )
+        }
     }
 
     // New Tab Selector Dialog

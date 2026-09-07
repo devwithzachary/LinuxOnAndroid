@@ -2,6 +2,28 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.6.0] - Unreleased
+
+### 🖥️ Tablet, Large Screen & Android Desktop Mode Experience
+- **Adaptive Scaffold Navigation**: Automatically transitions between a bottom `NavigationBar` on compact phone screens (<600dp) and a sleek vertical `NavigationRail` on medium and expanded displays (>=600dp, 7" & 10" tablets, foldable devices, and desktop mode windows).
+- **Two-Column Responsive Dashboard**: Replaces stretched single-column layouts on tablets and desktop windows with a balanced 2-column view: containers list on the left; quick-access hero, terminal launcher with `Ctrl+Alt+T` quick action, live performance dials, and project support on the right.
+- **Adaptive Software Hub Grid**: Software presets and packages automatically arrange into a responsive multi-column grid (`GridCells.Adaptive(320.dp)`), maximizing screen utility on large displays.
+- **Responsive Two-Column Settings**: Displays settings categories in a responsive two-column layout on wide screens, presenting the interactive terminal appearance and live preview alongside updates and background services.
+- **Balanced Wizard & Container Detail Views**: Centers and bounds setup wizard forms and container overview panes to prevent excessive horizontal stretching across high-resolution 2560px displays.
+
+### ⌨️ Universal Keyboard Shortcuts & Desktop Ergonomics
+- **Universal Quick Terminal Shortcut (`Ctrl+Alt+T`)**: Instantly launch or switch to the Linux terminal from any screen in the app when using a physical or Bluetooth keyboard.
+- **Top-Level Navigation Shortcuts (`Alt+1` through `Alt+4`)**: Seamlessly switch between Dashboard, Terminal, Software Hub, and Settings using standard keyboard shortcuts.
+- **Terminal Tab Shortcuts**: Manage multi-session tabs effortlessly with `Ctrl+Shift+T` (new tab), `Ctrl+Shift+W` (close tab), and `Ctrl+Tab` (switch tabs).
+- **Physical Keyboard Auto-Collapse**: Automatically detects physical hardware keyboards to collapse the on-screen extra-keys ribbon for maximum terminal workspace, with a 1-tap top-bar toggle button to restore it whenever needed.
+
+### 🖱️ Mouse Right-Click Context Menus & Hover Feedback
+- **Terminal Right-Click Context Menu**: Right-click anywhere in the terminal canvas to open a desktop context menu for Copy, Paste, Select All, Clear Buffer (`\u000c`), and Reset Terminal (`\u001Bc`).
+- **Container Right-Click Menu**: Right-click or long-press on any container card on the Dashboard to quickly Launch Terminal, Open Container Details, or Manage Services.
+- **Tab Context Menu**: Right-click on terminal tab chips to Rename, Close Tab, or Close Other Tabs.
+- **Mouse Wheel Scrolling**: Smooth terminal buffer scrolling using standard mouse scroll wheels (`PointerEventType.Scroll`).
+- **Desktop Cursor Hover Feedback**: Dynamic pointer hover cursors (`PointerIcon.Hand` on interactive elements and `PointerIcon.Text` over terminal screens).
+
 ## [1.5.0] - 2026-09-07
 
 ### 📑 Tabbed Multi-Window Terminal System

@@ -23,9 +23,24 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
+        version = "v1.6.0",
+        date = "In Development",
+        initialExpanded = true,
+        highlights = listOf(
+            "Adaptive Navigation: Automatically switches from a bottom navigation bar on phones to a sleek vertical NavigationRail on 7\" and 10\" tablets and desktop mode windows.",
+            "Two-Column Dashboard: Replaces stretched single-column layouts with a balanced two-column dashboard displaying container cards alongside quick terminal access, live hardware gauges, and project links.",
+            "Adaptive Software Hub Grid: Arranges software presets and packages into a multi-column responsive grid on larger screens to make full use of tablet display space.",
+            "Master-Detail Settings Layout: Organizes app settings and terminal customization into a side-by-side two-column view on wide displays.",
+            "Universal Keyboard Shortcuts: Added Ctrl+Alt+T to launch the terminal from anywhere, Alt+1..4 for top-level navigation, and Ctrl+Shift+T/W/Tab for terminal tab management.",
+            "Hardware Keyboard Auto-Collapse: Detects physical QWERTY keyboards to collapse the touch extra-keys bar, maximizing active terminal space with a 1-tap restore button.",
+            "Mouse Right-Click Menus: Added desktop context menus for containers (Launch, Details, Services), terminal tabs (Rename, Close, Close Others), and the terminal canvas (Copy, Paste, Select All, Clear, Reset).",
+            "Mouse Wheel Scrolling & Pointer Cursors: Native mouse wheel buffer scrolling and intuitive pointer hover cursors across terminal and interactive components."
+        )
+    ),
+    ReleaseChangelog(
         version = "v1.5.0",
         date = "September 7, 2026",
-        initialExpanded = true,
+        initialExpanded = false,
         highlights = listOf(
             "Tabbed Multi-Window Terminal: Open, run, switch, rename, and manage multiple concurrent interactive terminal tabs within your Linux rootfs environments.",
             "Multi-Rootfs Container Management: Install, run, and manage multiple distinct Linux distributions side-by-side on disk with per-container storage tracking, custom container names, and dynamic shell hostnames (e.g. user@ContainerName).",
