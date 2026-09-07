@@ -278,6 +278,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isKeepAliveEnabled = MutableStateFlow(loadKeepAliveEnabled())
     val isKeepAliveEnabled: StateFlow<Boolean> = _isKeepAliveEnabled.asStateFlow()
 
+    private fun loadHasSeenWelcome(): Boolean {
+        return prefs.getBoolean("has_seen_welcome", false)
+    }
+
+    private val _hasSeenWelcome = MutableStateFlow(loadHasSeenWelcome())
+    val hasSeenWelcome: StateFlow<Boolean> = _hasSeenWelcome.asStateFlow()
+
+    fun completeWelcome() {
+        prefs.edit().putBoolean("has_seen_welcome", true).apply()
+        _hasSeenWelcome.value = true
+    }
+
+    fun resetWelcome() {
+        prefs.edit().putBoolean("has_seen_welcome", false).apply()
+        _hasSeenWelcome.value = false
+    }
+
     fun toggleKeepAlive() {
         val next = !_isKeepAliveEnabled.value
         prefs.edit().putBoolean("keep_alive_enabled", next).apply()

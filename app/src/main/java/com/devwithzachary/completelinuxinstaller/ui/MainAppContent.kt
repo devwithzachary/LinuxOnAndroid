@@ -23,10 +23,12 @@ import com.devwithzachary.completelinuxinstaller.ui.screens.dashboard.DashboardS
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.SettingsScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.splash.SplashScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalScreen
+import com.devwithzachary.completelinuxinstaller.ui.screens.welcome.WelcomeScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.wizard.WizardScreen
 
 enum class AppScreen(val titleRes: Int) {
     SPLASH(R.string.app_name),
+    WELCOME(R.string.app_name),
     DASHBOARD(R.string.nav_dashboard),
     WIZARD(R.string.app_title),
     TERMINAL(R.string.nav_terminal),
@@ -41,6 +43,7 @@ fun MainAppContent(viewModel: MainViewModel) {
     val downloadState by viewModel.downloadState.collectAsStateWithLifecycle()
     val backupState by viewModel.backupState.collectAsStateWithLifecycle()
     val deleteContainerState by viewModel.deleteContainerState.collectAsStateWithLifecycle()
+    val hasSeenWelcome by viewModel.hasSeenWelcome.collectAsStateWithLifecycle()
     val packages by viewModel.packages.collectAsStateWithLifecycle()
     val requestedScreen by viewModel.requestedScreen.collectAsStateWithLifecycle()
     val systemMetrics by viewModel.systemMetrics.collectAsStateWithLifecycle()
@@ -60,11 +63,15 @@ fun MainAppContent(viewModel: MainViewModel) {
     }
 
     // Sync screen navigation state when initialization completes or installation status is confirmed
-    LaunchedEffect(isInitializing, isInstalled, splashDismissed) {
+    LaunchedEffect(isInitializing, isInstalled, splashDismissed, hasSeenWelcome) {
         if (!isInitializing) {
             if (!isInstalled && !splashDismissed) {
-                currentScreen = AppScreen.WIZARD
-            } else if (currentScreen == AppScreen.SPLASH || currentScreen == AppScreen.WIZARD) {
+                if (!hasSeenWelcome) {
+                    currentScreen = AppScreen.WELCOME
+                } else {
+                    currentScreen = AppScreen.WIZARD
+                }
+            } else if (currentScreen == AppScreen.SPLASH || currentScreen == AppScreen.WELCOME || currentScreen == AppScreen.WIZARD) {
                 currentScreen = AppScreen.DASHBOARD
             }
         }
@@ -88,7 +95,8 @@ fun MainAppContent(viewModel: MainViewModel) {
             contentWindowInsets = if (isTerminal) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
             bottomBar = {
                 val isImeVisible = WindowInsets.isImeVisible
-                if ((isInstalled || splashDismissed) && currentScreen != AppScreen.WIZARD && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
+                val isFullscreenScreen = currentScreen == AppScreen.WIZARD || currentScreen == AppScreen.WELCOME
+                if ((isInstalled || splashDismissed) && !isFullscreenScreen && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
                     NavigationBar {
                         NavigationBarItem(
                             selected = currentScreen == AppScreen.DASHBOARD,
@@ -148,6 +156,19 @@ fun MainAppContent(viewModel: MainViewModel) {
                 when (currentScreen) {
                     AppScreen.SPLASH -> {
                         SplashRoute(viewModel, dashboardState)
+                    }
+
+                    AppScreen.WELCOME -> {
+                        WelcomeScreen(
+                            onGetStarted = {
+                                viewModel.completeWelcome()
+                                currentScreen = AppScreen.WIZARD
+                            },
+                            hasExistingContainers = isInstalled || dashboardState.containers.isNotEmpty(),
+                            onBack = if (isInstalled || dashboardState.containers.isNotEmpty()) {
+                                { currentScreen = AppScreen.ABOUT }
+                            } else null
+                        )
                     }
 
                     AppScreen.WIZARD -> {
@@ -352,7 +373,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                         AboutScreen(
                             onCheckForUpdatesClick = { viewModel.checkForGitHubUpdates(manual = true) },
                             isCheckingForUpdates = isCheckingForUpdates,
-                            updateCheckResult = updateCheckResult
+                            updateCheckResult = updateCheckResult,
+                            onViewAppOverview = { currentScreen = AppScreen.WELCOME }
                         )
                     }
                 }

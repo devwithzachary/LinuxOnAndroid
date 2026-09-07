@@ -5,5 +5,5 @@
 • Terminal: Preserves prompt on soft keyboard resize.
 • OpenSSH: Fixes duplicate SFTP subsystem conflict.
 • XFCE & VNC: Fixes setup on Debian, Arch, Kali, Void.
-• Deletion UI: Adds dedicated progress deleting screen.
+• Onboarding & UI: Adds welcome screen and deletion view.
 • Fixes: Sandbox, DNS, xbps, install logs, bash applet.
