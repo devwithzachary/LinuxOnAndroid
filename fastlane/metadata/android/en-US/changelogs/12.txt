@@ -6,4 +6,4 @@
 • OpenSSH: Fixes duplicate SFTP subsystem conflict.
 • XFCE & VNC: Fixes setup on Debian, Arch, Kali, Void.
 • Alpine: Fixes missing bash applet on login.
-• Arch, Kali, Void: Fixes sandbox, DNS, and xbps updates.
+• Fixes: Sandbox, DNS, xbps, and duplicate install logs.

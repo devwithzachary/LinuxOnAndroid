@@ -1093,7 +1093,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
 
                         is InstallStepState.Success -> {
-                            val newLogs = list[idx].installLogs + "Installation completed successfully!\n"
+                            val currentLogs = list[idx].installLogs
+                            val newLogs = if (!currentLogs.trimEnd().endsWith("Installation completed successfully!")) {
+                                currentLogs + "Installation completed successfully!\n"
+                            } else {
+                                currentLogs
+                            }
                             list[idx] = list[idx].copy(
                                 status = InstallStatus.INSTALLED,
                                 progressMessage = "Installed! " + (step.notes ?: ""),
