@@ -930,7 +930,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             hostnameFile.writeText("$hostName\n")
         } catch (_: Exception) {}
 
-        val currentDns = getDnsServers()
+        val currentDns = getDnsServers(targetDir)
         val resolvConf = File(etcDir, "resolv.conf")
         val dnsContent = currentDns.joinToString("\n") { "nameserver $it" } + "\n"
         try {
@@ -1157,7 +1157,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
         val resolvConf = File(etcDir, "resolv.conf")
         try {
-            val currentDns = getDnsServers()
+            val currentDns = getDnsServers(targetDir)
             val dnsContent = currentDns.joinToString("\n") { "nameserver $it" } + "\n"
             try { android.system.Os.remove(resolvConf.absolutePath) } catch (_: Exception) { resolvConf.delete() }
             resolvConf.writeText(dnsContent)
@@ -1615,20 +1615,20 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
     }.flowOn(Dispatchers.IO)
 
     fun getDnsServers(targetDir: File = rootfsDir): List<String> {
+        val prefs = context.getSharedPreferences("dns_prefs", Context.MODE_PRIVATE)
+        val saved = prefs.getString("dns_servers_csv", null)
+        if (!saved.isNullOrBlank()) {
+            return saved.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        }
         val resolvConf = File(targetDir, "etc/resolv.conf")
         if (resolvConf.exists()) {
             try {
                 val servers = resolvConf.readLines()
                     .filter { it.trim().startsWith("nameserver") }
                     .map { it.removePrefix("nameserver").trim() }
-                    .filter { it.isNotBlank() }
+                    .filter { it.isNotBlank() && !it.startsWith("127.") && it != "213.186.33.99" }
                 if (servers.isNotEmpty()) return servers
             } catch (_: Exception) {}
-        }
-        val prefs = context.getSharedPreferences("dns_prefs", Context.MODE_PRIVATE)
-        val saved = prefs.getString("dns_servers_csv", null)
-        if (!saved.isNullOrBlank()) {
-            return saved.split(",").map { it.trim() }.filter { it.isNotBlank() }
         }
         return listOf("8.8.8.8", "1.1.1.1", "8.8.4.4")
     }

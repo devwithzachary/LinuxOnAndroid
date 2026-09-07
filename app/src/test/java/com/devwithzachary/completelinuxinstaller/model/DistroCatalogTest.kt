@@ -148,6 +148,35 @@ class DistroCatalogTest {
     }
 
     @Test
+    fun testKaliRolling_dnsAndSoftwarePackageOverrides() {
+        val kali = DistroCatalog.KALI_ROLLING
+        val setupScript = kali.buildFirstLaunchSetupScript("root123", "kaliuser", "user123", true)
+        assertTrue("Kali setup script must repair resolv.conf", setupScript.contains("nameserver 8.8.8.8"))
+        assertTrue("Kali setup script must check for 213.186.33.99", setupScript.contains("213.186.33.99"))
+
+        val xfceInstallCmd = kali.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Kali xfce_desktop install command must exist", xfceInstallCmd)
+        assertTrue("Kali install command must ensure valid DNS", xfceInstallCmd!!.contains("nameserver 8.8.8.8"))
+        assertTrue("Kali install command must check for 213.186.33.99", xfceInstallCmd.contains("213.186.33.99"))
+        assertTrue("Kali install command must create /etc/vnc/xstartup via printf", xfceInstallCmd.contains("> /etc/vnc/xstartup"))
+
+        val launchCmd = kali.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Kali must define a launch command for xfce_desktop", launchCmd)
+        assertTrue("Kali launch command must use kali password", launchCmd!!.contains("echo kali | vncpasswd"))
+        assertTrue("Kali launch command must kill previous display", launchCmd.contains("vncserver -kill :1"))
+        assertTrue("Kali launch command must launch display :1", launchCmd.contains("vncserver :1"))
+
+        val expectedBinaries = kali.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Kali must define expected binaries for xfce_desktop", expectedBinaries)
+        assertTrue("Kali expected binaries must include startxfce4", expectedBinaries!!.contains("usr/bin/startxfce4"))
+        assertTrue("Kali expected binaries must include vncserver", expectedBinaries.contains("usr/bin/vncserver"))
+        assertTrue("Kali expected binaries must include vncpasswd", expectedBinaries.contains("usr/bin/vncpasswd"))
+        assertTrue("Kali expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
+
+        assertEquals("Kali xfce_desktop version must be 5", 5, kali.getSoftwarePackageVersion("xfce_desktop"))
+    }
+
+    @Test
     fun testUbuntu2604_softwarePackageOverridesAreUnchanged() {
         val ubuntu = DistroCatalog.UBUNTU_26_04
         assertNull("Ubuntu should not override launch command by default", ubuntu.getSoftwarePackageLaunchCommand("xfce_desktop"))
