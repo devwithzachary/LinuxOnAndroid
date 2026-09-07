@@ -1,1 +1,1 @@
-Run full Ubuntu Linux terminal environments on Android without root
+Run Ubuntu, Debian, Arch & Alpine with XFCE desktop & tabbed terminal. No root!
