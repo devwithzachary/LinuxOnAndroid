@@ -1,9 +1,11 @@
 Categories:
   - Development
+  - System
 License: GPL-2.0-or-later
 AuthorName: Zachary Powell
 SourceCode: https://github.com/devwithzachary/LinuxOnAndroid
 IssueTracker: https://github.com/devwithzachary/LinuxOnAndroid/issues
+Changelog: https://github.com/devwithzachary/LinuxOnAndroid/blob/main/CHANGELOG.md
 
 RepoType: git
 Repo: https://github.com/devwithzachary/LinuxOnAndroid.git
@@ -12,7 +14,7 @@ Binaries: https://github.com/devwithzachary/LinuxOnAndroid/releases/download/%v/
 Builds:
   - versionName: 1.6.0
     versionCode: 13
-    commit: 1.6.0
+    commit: f20997222fab8b703f6d7738e73b4954285fd9b1
     subdir: app
     gradle:
       - yes
