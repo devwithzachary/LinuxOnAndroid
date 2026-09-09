@@ -24,6 +24,11 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Mouse Wheel Scrolling**: Smooth terminal buffer scrolling using standard mouse scroll wheels (`PointerEventType.Scroll`).
 - **Desktop Cursor Hover Feedback**: Dynamic pointer hover cursors (`PointerIcon.Hand` on interactive elements and `PointerIcon.Text` over terminal screens).
 
+### 🤖 F-Droid Distribution & Native Compilation Architecture
+- **F-Droid Build Pipeline Compliance**: Configured `com.devwithzachary.completelinuxinstaller.yml` with automated prebuilt binary cleaning (`scandelete`) and offline-safe native source compilation.
+- **Automated Native Build Tooling (`build_native_libs.sh`)**: Added a cross-platform compilation script to build `libproot.so`, `libproot_loader.so`, `libproot_loader32.so`, `libtalloc.so`, and `libandroid-shmem.so` across all supported Android architectures (`arm64-v8a`, `armeabi-v7a`, `x86_64`) with NDK toolchain auto-discovery.
+- **Vendored Clean Sources (`external/`)**: Added lightweight, clean C source trees for PRoot, talloc, and libandroid-shmem, enabling fully reproducible offline source builds for F-Droid while retaining prebuilt binaries for instant day-to-day Play Store workflows.
+
 ## [1.5.0] - 2026-09-07
 
 ### 📑 Tabbed Multi-Window Terminal System

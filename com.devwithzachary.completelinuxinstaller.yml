@@ -1,23 +1,30 @@
 Categories:
   - Development
 License: GPL-2.0-or-later
+AuthorName: Zachary Powell
 SourceCode: https://github.com/devwithzachary/LinuxOnAndroid
 IssueTracker: https://github.com/devwithzachary/LinuxOnAndroid/issues
-AuthorName: Zachary Powell
+
 RepoType: git
 Repo: https://github.com/devwithzachary/LinuxOnAndroid.git
-AllowedAPKSigningKeys:
-  - c532d763fd4ec838fa118005d9eb51ec13ce72167d2b0a1a8452ce36fc49199e
 
 Builds:
-  - versionName: 1.4.0
-    versionCode: 11
-    commit: main
+  - versionName: 1.6.0
+    versionCode: 13
+    commit: 1.6.0
     subdir: app
     gradle:
       - yes
+    scandelete:
+      - app/src/main/jniLibs
+    build:
+      - ../scripts/build_native_libs.sh $$NDK$$
+    ndk: 26.1.10909125
+
+AllowedAPKSigningKeys:
+  - c532d763fd4ec838fa118005d9eb51ec13ce72167d2b0a1a8452ce36fc49199e
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.4.0
-CurrentVersionCode: 11
+CurrentVersion: 1.6.0
+CurrentVersionCode: 13

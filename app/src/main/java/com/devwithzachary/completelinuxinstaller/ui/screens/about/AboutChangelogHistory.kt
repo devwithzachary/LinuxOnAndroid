@@ -34,7 +34,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Universal Keyboard Shortcuts: Added Ctrl+Alt+T to launch the terminal from anywhere, Alt+1..4 for top-level navigation, and Ctrl+Shift+T/W/Tab for terminal tab management.",
             "Hardware Keyboard Auto-Collapse: Detects physical QWERTY keyboards to collapse the touch extra-keys bar, maximizing active terminal space with a 1-tap restore button.",
             "Mouse Right-Click Menus: Added desktop context menus for containers (Launch, Details, Services), terminal tabs (Rename, Close, Close Others), and the terminal canvas (Copy, Paste, Select All, Clear, Reset).",
-            "Mouse Wheel Scrolling & Pointer Cursors: Native mouse wheel buffer scrolling and intuitive pointer hover cursors across terminal and interactive components."
+            "Mouse Wheel Scrolling & Pointer Cursors: Native mouse wheel buffer scrolling and intuitive pointer hover cursors across terminal and interactive components.",
+            "F-Droid Distribution & Source Builds: Automated offline native compilation for F-Droid and added local build_native_libs.sh script for cross-compiling PRoot, talloc, and shared memory libraries across all Android architectures."
         )
     ),
     ReleaseChangelog(

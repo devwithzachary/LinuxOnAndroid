@@ -141,12 +141,19 @@ Complete Linux Installer provisions environments using official root filesystem 
    cd LinuxOnAndroid
    ```
 
-2. **Build Debug APK**:
+2. **(Optional) Rebuild Native Libraries**:
+   Pre-compiled binaries are maintained under `app/src/main/jniLibs/` for rapid daily builds. To recompile `libproot.so`, `libproot_loader.so`, `libproot_loader32.so`, `libtalloc.so`, and `libandroid-shmem.so` from source across all target architectures (`arm64-v8a`, `armeabi-v7a`, `x86_64`):
+   ```bash
+   ./scripts/build_native_libs.sh
+   ```
+   *Note: This script is also executed automatically by F-Droid's build pipeline to compile all native components strictly from source.*
+
+3. **Build Debug APK**:
    ```bash
    ./gradlew assembleDebug
    ```
 
-3. **Install on connected device via ADB**:
+4. **Install on connected device via ADB**:
    ```bash
    adb install app/build/outputs/apk/debug/app-debug.apk
    ```
