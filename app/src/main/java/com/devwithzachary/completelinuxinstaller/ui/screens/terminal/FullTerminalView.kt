@@ -69,6 +69,7 @@ fun FullTerminalView(
     val context = LocalContext.current
     val fontSizePx = with(density) { fontSizeSp.sp.toPx() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     val hapticFeedback = LocalHapticFeedback.current
 

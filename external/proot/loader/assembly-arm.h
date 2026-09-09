@@ -27,6 +27,8 @@
  * - the stack pointer (r13)
  * - the rtld_fini pointer (r0)
  */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winline-asm"
 #define BRANCH(stack_pointer, destination) do {			\
 	asm volatile (						\
 		"// Restore initial stack pointer.	\n\t"	\
@@ -42,6 +44,7 @@
 		: "memory", "sp", "r0", "pc");			\
 	__builtin_unreachable();				\
 	} while (0)
+#pragma clang diagnostic pop
 
 #define PREPARE_ARGS_1(arg1_)				\
 	register word_t arg1 asm("r0") = arg1_;		\

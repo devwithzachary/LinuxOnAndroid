@@ -732,16 +732,16 @@ void sysvipc_shm_fill_proc(FILE *proc_file, struct SysVIpcNamespace *ipc_namespa
 
 		fprintf(
 			proc_file,
-			"%10d %10d  %4o %21lu %5u %5u  "
-			"%5lu %5u %5u %5u %5u %10llu %10llu %10llu "
-			"%21lu %21lu\n",
+			"%10d %10d  %4o %21llu %5u %5u  "
+			"%5llu %5u %5u %5u %5u %10llu %10llu %10llu "
+			"%21llu %21llu\n",
 			shm->key,
 			(int) IPC_OBJECT_ID(shm_index, shm),
 			shm->stats.shm_perm.mode,
-			shm->stats.shm_segsz,
+			(unsigned long long) shm->stats.shm_segsz,
 			shm->stats.shm_cpid,
 			shm->stats.shm_lpid,
-			shm->stats.shm_nattch,
+			(unsigned long long) shm->stats.shm_nattch,
 			shm->stats.shm_perm.uid,
 			shm->stats.shm_perm.gid,
 			shm->stats.shm_perm.cuid,
@@ -749,8 +749,8 @@ void sysvipc_shm_fill_proc(FILE *proc_file, struct SysVIpcNamespace *ipc_namespa
 			(unsigned long long) shm->stats.shm_atime,
 			(unsigned long long) shm->stats.shm_dtime,
 			(unsigned long long) shm->stats.shm_ctime,
-			map_size,
-			0L
+			(unsigned long long) map_size,
+			0ULL
 		);
 	}
 }
@@ -811,7 +811,10 @@ void sysvipc_shm_helper_main() {
 	};
 	for (int i = 0;; i++) {
 		path = create_temp_name(NULL, "prootshm");
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 		(void) mktemp(path);
+#pragma clang diagnostic pop
 
 		if (strlen(path) > SYSVIPC_SHMHELPER_SOCKET_LEN) {
 			close(socket_server_fd);

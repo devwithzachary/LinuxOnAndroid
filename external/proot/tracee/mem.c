@@ -200,6 +200,8 @@ void mem_prepare_after_execve(Tracee *tracee)
 {
 #if HAS_POKEDATA_WORKAROUND
 	tracee->pokedata_workaround_stub_addr = peek_reg(tracee, CURRENT, INSTR_POINTER) + offset_to_pokedata_workaround;
+#else
+	(void)tracee;
 #endif
 }
 
@@ -207,6 +209,8 @@ void mem_prepare_before_first_execve(Tracee *tracee)
 {
 #if HAS_POKEDATA_WORKAROUND
 	tracee->pokedata_workaround_stub_addr = (word_t)&launcher_pokedata_workaround;
+#else
+	(void)tracee;
 #endif
 }
 

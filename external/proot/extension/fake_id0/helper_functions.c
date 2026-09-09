@@ -180,9 +180,10 @@ int get_permissions(char meta_path[PATH_MAX], Config *config, bool uses_real)
 		emulated_uid = config->ruid;
 		emulated_gid = config->rgid;
 	}
-	else
+	else {
 		emulated_uid = config->euid;
 		emulated_gid = config->egid;
+	}
 
 	if (emulated_uid == owner || emulated_uid == 0)
 		perms = OWNER_PERMS;

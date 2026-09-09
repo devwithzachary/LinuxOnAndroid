@@ -324,9 +324,8 @@ static int handle_seccomp_event_common(Tracee *tracee)
 			break;
 		}
             	translate_path(tracee, path, AT_FDCWD, original, true);
-		errno = 0;
 		status = statfs64(path, &my_statfs64); 
-		if (errno != 0) {
+		if (status < 0) {
 			set_result_after_seccomp(tracee, -errno);
 			break;
 		}
@@ -603,26 +602,27 @@ static int handle_seccomp_event_common(Tracee *tracee)
 	case PR_setresuid:
 	case PR_setresgid:
 	{
+		int res_ret = 0;
 		gid_t rxid, exid, sxid, rxid_, exid_, sxid_;
 		rxid = peek_reg(tracee, CURRENT, SYSARG_1);
 		exid = peek_reg(tracee, CURRENT, SYSARG_2);
 		sxid = peek_reg(tracee, CURRENT, SYSARG_3);
 		if (sysnum == PR_setresuid)
-			ret = getresuid(&rxid_, &exid_, &sxid_);
+			res_ret = getresuid(&rxid_, &exid_, &sxid_);
 		else if (sysnum == PR_setresgid)
-			ret = getresgid(&rxid_, &exid_, &sxid_);
-		if (ret) {  // EFAULT = address outside address space
+			res_ret = getresgid(&rxid_, &exid_, &sxid_);
+		if (res_ret) {  // EFAULT = address outside address space
 			set_result_after_seccomp(tracee, -EPERM);
 			break;
 		}
-		ret = 0;
-		if (rxid != rxid_ && rxid != -1)
-			ret = -EPERM;
-		if (exid != exid_ && exid != -1)
-			ret = -EPERM;
-		if (sxid != sxid_ && sxid != -1)
-			ret = -EPERM;
-		set_result_after_seccomp(tracee, ret);
+		res_ret = 0;
+		if (rxid != rxid_ && rxid != (gid_t)-1)
+			res_ret = -EPERM;
+		if (exid != exid_ && exid != (gid_t)-1)
+			res_ret = -EPERM;
+		if (sxid != sxid_ && sxid != (gid_t)-1)
+			res_ret = -EPERM;
+		set_result_after_seccomp(tracee, res_ret);
 		break;
 	}
 

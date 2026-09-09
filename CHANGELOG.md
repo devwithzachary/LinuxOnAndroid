@@ -2,6 +2,12 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.7.0] - 2026-09-09
+
+### ⚙️ System Architecture & Codebase Hardening
+- **Native Runtime Stability & Bug Fixes**: Corrected socketcall memory allocation and pointer sizing in `port_switch`, fixed an unconditional GID overwrite in `fake_id0`, resolved IPv6 UDP condition handling, and initialized tracee seccomp result registers.
+- **Zero-Warning Toolchain Compliance**: Eliminated all native C compiler warnings across `arm64-v8a`, `armeabi-v7a`, and `x86_64` ABIs and cleaned up Kotlin/Compose deprecation and dead code warnings.
+
 ## [1.6.0] - 2026-09-09
 
 ### 🖥️ Tablet, Large Screen & Android Desktop Mode Experience

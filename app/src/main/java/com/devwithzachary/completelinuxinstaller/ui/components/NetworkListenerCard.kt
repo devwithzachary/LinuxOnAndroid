@@ -31,6 +31,7 @@ fun NetworkListenerCard(
     onRefresh: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
 
     Card(

@@ -2819,6 +2819,7 @@ _PUBLIC_ void *talloc_realloc_fn(const void *context, void *ptr, size_t size)
 
 static int talloc_autofree_destructor(void *ptr)
 {
+	(void)ptr;
 	autofree_context = NULL;
 	return 0;
 }

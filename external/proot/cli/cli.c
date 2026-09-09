@@ -574,6 +574,8 @@ void __cyg_profile_func_enter(void *this_function, void *call_site)
 
 #ifdef __GLIBC__
 	symbols = backtrace_symbols(pointers, 2);
+#else
+	(void)pointers;
 #endif
 	if (symbols == NULL)
 		goto end;
