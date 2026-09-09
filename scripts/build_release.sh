@@ -23,6 +23,12 @@ fi
 echo "📦 Target Version: $VERSION_NAME (code: $VERSION_CODE)"
 echo ""
 
+# Ensure native libraries are present
+if [ ! -f "app/src/main/jniLibs/arm64-v8a/libproot.so" ]; then
+    echo "⚠️  Native libraries missing in app/src/main/jniLibs. Rebuilding from source..."
+    ./scripts/build_native_libs.sh
+fi
+
 # Execute Gradle Clean Build for Release AAB and APK
 ./gradlew clean bundleRelease assembleRelease
 

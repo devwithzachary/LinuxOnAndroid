@@ -927,6 +927,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshStatus()
     }
 
+    fun nextTab() {
+        val list = sessions.value
+        if (list.size <= 1) return
+        val currentIdx = list.indexOfFirst { it.id == activeSessionId.value }
+        val nextIdx = if (currentIdx == -1) 0 else (currentIdx + 1) % list.size
+        switchTab(list[nextIdx].id)
+    }
+
+    fun prevTab() {
+        val list = sessions.value
+        if (list.size <= 1) return
+        val currentIdx = list.indexOfFirst { it.id == activeSessionId.value }
+        val prevIdx = if (currentIdx <= 0) list.size - 1 else currentIdx - 1
+        switchTab(list[prevIdx].id)
+    }
+
+    fun closeActiveTab() {
+        val activeId = activeSessionId.value ?: return
+        closeTab(activeId)
+    }
+
     fun closeTab(sessionId: String) {
         terminalBridge.closeSession(sessionId)
         if (!terminalBridge.isAnySessionRunning.value) {

@@ -1,0 +1,4 @@
+• Tablet & Desktop UI: Adaptive NavigationRail on 7" & 10" screens, 2-column Dashboard & Settings, and multi-column Software Hub.
+• Universal Shortcuts: Ctrl+Alt+T terminal shortcut, Alt+1..4 navigation, and Ctrl+Shift+T/W tab controls.
+• Physical Keyboard Auto-Collapse: Hides extra-keys row when hardware keyboard is connected.
+• Mouse & Desktop Ergonomics: Right-click context menus on containers, tabs, and terminal; mouse wheel scroll and hover cursors.

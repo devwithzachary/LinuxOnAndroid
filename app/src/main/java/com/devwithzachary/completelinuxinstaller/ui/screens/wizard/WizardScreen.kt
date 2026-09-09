@@ -102,23 +102,32 @@ fun WizardScreen(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Top Step Progress Indicator
-        WizardStepIndicator(currentStep = currentStep)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        Column(
+            modifier = Modifier
+                .widthIn(max = 760.dp)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Top Step Progress Indicator
+            WizardStepIndicator(currentStep = currentStep)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 AnimatedContent(
                     targetState = currentStep,
+                    modifier = Modifier.fillMaxWidth(),
                     transitionSpec = { fadeIn() togetherWith fadeOut() },
                     label = "WizardStepAnimation"
                 ) { step ->
@@ -192,6 +201,7 @@ fun WizardScreen(
             }
         }
     }
+}
 
     if (showLogDialog) {
         val currentLogs = when (downloadState) {
@@ -852,6 +862,7 @@ private fun InstallationStep(
     onFinish: () -> Unit
 ) {
     Column(
+        modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -867,13 +878,16 @@ private fun InstallationStep(
                 Text(
                     text = "Installation Complete!",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
 
                 Text(
                     text = "${selectedDistro.name} rootfs has been installed and configured successfully. You can now launch a terminal session.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
 
@@ -891,6 +905,7 @@ private fun InstallationStep(
                 if (downloadState.logs.isNotEmpty()) {
                     OutlinedButton(
                         onClick = onShowLogs,
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -911,7 +926,9 @@ private fun InstallationStep(
                 Text(
                     text = "Downloading ${selectedDistro.name}",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
 
                 LinearProgressIndicator(
@@ -925,7 +942,9 @@ private fun InstallationStep(
                 Text(
                     text = "Downloading: ${downloadState.progressPercent}% (${downloadState.bytesDownloaded / (1024 * 1024)} MB / ~${downloadState.totalBytes / (1024 * 1024)} MB)",
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
             }
 
@@ -935,19 +954,23 @@ private fun InstallationStep(
                 Text(
                     text = "Extracting & Configuring ${selectedDistro.name}",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
 
                 Text(
                     text = downloadState.message,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
 
                 if (downloadState.logs.isNotEmpty()) {
                     OutlinedButton(
                         onClick = onShowLogs,
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -969,19 +992,23 @@ private fun InstallationStep(
                     text = "Installation Failed",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.error
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
                 )
 
                 Text(
                     text = downloadState.message,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
 
                 if (downloadState.logs.isNotEmpty()) {
                     OutlinedButton(
                         onClick = onShowLogs,
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -1002,7 +1029,12 @@ private fun InstallationStep(
 
             is DownloadState.Idle -> {
                 CircularProgressIndicator(modifier = Modifier.size(36.dp))
-                Text("Initializing setup...", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = "Initializing setup...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }

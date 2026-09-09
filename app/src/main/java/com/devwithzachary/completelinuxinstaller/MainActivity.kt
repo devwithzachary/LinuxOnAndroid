@@ -65,4 +65,13 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         mainViewModel.refreshStatus()
     }
+
+    override fun onKeyDown(keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        if (event != null && (event.isCtrlPressed || event.isMetaPressed) && event.isAltPressed && keyCode == android.view.KeyEvent.KEYCODE_T) {
+            mainViewModel.startTerminalSession()
+            mainViewModel.navigateToScreen(AppScreen.TERMINAL)
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
 }

@@ -10,8 +10,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import com.devwithzachary.completelinuxinstaller.ui.util.handHover
+import com.devwithzachary.completelinuxinstaller.ui.util.rememberWindowSizeClass
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -326,120 +332,99 @@ private fun OverviewTabContent(
     onRefreshMetrics: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    val windowSizeClass = rememberWindowSizeClass()
     var servicePrompt by remember { mutableStateOf<Pair<String, String>?>(null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // 1. Live System Resources & Gauges Card
-        DashboardGaugesCard(
-            metrics = metrics.copy(storageUsedMb = container.storageUsedMb)
-        )
-
-        // 2. One-Touch Container Services
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+    if (windowSizeClass.isExpanded) {
+        // 2-Column Responsive Overview for Tablets & Desktop Mode
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Left Column: Gauges, Services Launcher, Listening Ports
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.RocketLaunch,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Container Services & Launchers",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Text(
-                    text = "Launch background servers and graphical desktop sessions inside this rootfs container.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                // 1. Live System Resources & Gauges Card
+                DashboardGaugesCard(
+                    metrics = metrics.copy(storageUsedMb = container.storageUsedMb)
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // VNC Launcher
-                    ServiceLauncherButton(
-                        icon = Icons.Default.DesktopWindows,
-                        label = "VNC",
-                        isInstalled = isVncInstalled,
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            if (isVncInstalled) {
-                                val vncPkg = SoftwarePackage.getPresets().find { it.id == "xfce_desktop" }
-                                vncPkg?.launchCommand?.let { onRunPresetCommand(it) }
-                            } else {
-                                servicePrompt = Pair("TigerVNC & XFCE Desktop", "xfce_desktop")
-                            }
-                        }
-                    )
+                // 2. One-Touch Container Services
+                ServicesCard(
+                    container = container,
+                    isVncInstalled = isVncInstalled,
+                    isNginxInstalled = isNginxInstalled,
+                    isSshInstalled = isSshInstalled,
+                    sshPort = sshPort,
+                    onRunPresetCommand = onRunPresetCommand,
+                    onPromptService = { title, pkgId -> servicePrompt = Pair(title, pkgId) }
+                )
 
-                    // NGINX Launcher
-                    ServiceLauncherButton(
-                        icon = Icons.Default.Public,
-                        label = "NGINX",
-                        isInstalled = isNginxInstalled,
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            if (isNginxInstalled) {
-                                val nginxPkg = SoftwarePackage.getPresets().find { it.id == "nginx_web" }
-                                nginxPkg?.launchCommand?.let { onRunPresetCommand(it) }
-                            } else {
-                                servicePrompt = Pair("NGINX Web Server", "nginx_web")
-                            }
-                        }
-                    )
+                // 3. Open Listening Ports Card
+                NetworkListenerCard(
+                    ports = metrics.listeningPorts,
+                    onRefresh = onRefreshMetrics
+                )
+            }
 
-                    // SSH Launcher
-                    ServiceLauncherButton(
-                        icon = Icons.Default.VpnKey,
-                        label = "SSH",
-                        isInstalled = isSshInstalled,
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            if (isSshInstalled) {
-                                val sshPkg = SoftwarePackage.getPresets(sshPort).find { it.id == "openssh_server" }
-                                sshPkg?.launchCommand?.let { onRunPresetCommand(it) }
-                            } else {
-                                servicePrompt = Pair("OpenSSH Server", "openssh_server")
-                            }
-                        }
-                    )
-                }
+            // Right Column: Live Active Container Processes Table
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ActiveProcessTableCard(
+                    processes = metrics.processes,
+                    onKillProcess = onKillProcess
+                )
             }
         }
+    } else {
+        // Compact Single Column for Phones
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 1. Live System Resources & Gauges Card
+            DashboardGaugesCard(
+                metrics = metrics.copy(storageUsedMb = container.storageUsedMb)
+            )
 
-        // 3. Live Active Container Processes Table (`ps aux`)
-        ActiveProcessTableCard(
-            processes = metrics.processes,
-            onKillProcess = onKillProcess
-        )
+            // 2. One-Touch Container Services
+            ServicesCard(
+                container = container,
+                isVncInstalled = isVncInstalled,
+                isNginxInstalled = isNginxInstalled,
+                isSshInstalled = isSshInstalled,
+                sshPort = sshPort,
+                onRunPresetCommand = onRunPresetCommand,
+                onPromptService = { title, pkgId -> servicePrompt = Pair(title, pkgId) }
+            )
 
-        // 4. Open Listening Ports Card
-        NetworkListenerCard(
-            ports = metrics.listeningPorts,
-            onRefresh = onRefreshMetrics
-        )
+            // 3. Live Active Container Processes Table (`ps aux`)
+            ActiveProcessTableCard(
+                processes = metrics.processes,
+                onKillProcess = onKillProcess
+            )
+
+            // 4. Open Listening Ports Card
+            NetworkListenerCard(
+                ports = metrics.listeningPorts,
+                onRefresh = onRefreshMetrics
+            )
+        }
     }
 
     if (servicePrompt != null) {
@@ -467,6 +452,105 @@ private fun OverviewTabContent(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun ServicesCard(
+    container: ContainerInstance,
+    isVncInstalled: Boolean,
+    isNginxInstalled: Boolean,
+    isSshInstalled: Boolean,
+    sshPort: Int,
+    onRunPresetCommand: (command: String) -> Unit,
+    onPromptService: (title: String, pkgId: String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.RocketLaunch,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Container Services & Launchers",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = "Launch background servers and graphical desktop sessions inside this rootfs container.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // VNC Launcher
+                ServiceLauncherButton(
+                    icon = Icons.Default.DesktopWindows,
+                    label = "VNC",
+                    isInstalled = isVncInstalled,
+                    modifier = Modifier.weight(1f).handHover(),
+                    onClick = {
+                        if (isVncInstalled) {
+                            val vncPkg = SoftwarePackage.getPresets().find { it.id == "xfce_desktop" }
+                            vncPkg?.launchCommand?.let { onRunPresetCommand(it) }
+                        } else {
+                            onPromptService("TigerVNC & XFCE Desktop", "xfce_desktop")
+                        }
+                    }
+                )
+
+                // NGINX Launcher
+                ServiceLauncherButton(
+                    icon = Icons.Default.Public,
+                    label = "NGINX",
+                    isInstalled = isNginxInstalled,
+                    modifier = Modifier.weight(1f).handHover(),
+                    onClick = {
+                        if (isNginxInstalled) {
+                            val nginxPkg = SoftwarePackage.getPresets().find { it.id == "nginx_web" }
+                            nginxPkg?.launchCommand?.let { onRunPresetCommand(it) }
+                        } else {
+                            onPromptService("NGINX Web Server", "nginx_web")
+                        }
+                    }
+                )
+
+                // SSH Launcher
+                ServiceLauncherButton(
+                    icon = Icons.Default.VpnKey,
+                    label = "SSH",
+                    isInstalled = isSshInstalled,
+                    modifier = Modifier.weight(1f).handHover(),
+                    onClick = {
+                        if (isSshInstalled) {
+                            val sshPkg = SoftwarePackage.getPresets(sshPort).find { it.id == "openssh_server" }
+                            sshPkg?.launchCommand?.let { onRunPresetCommand(it) }
+                        } else {
+                            onPromptService("OpenSSH Server", "openssh_server")
+                        }
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -546,15 +630,17 @@ private fun SoftwareTabContent(
         selectedSoftwareCategory == null || pkg.category == selectedSoftwareCategory
     }
 
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 320.dp),
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         contentPadding = PaddingValues(top = 16.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // 1. Custom Package Quick Search & Install Card
-        item {
+        // 1. Custom Package Quick Search & Install Card (Full Width Span)
+        item(span = { GridItemSpan(maxLineSpan) }) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -625,8 +711,8 @@ private fun SoftwareTabContent(
             }
         }
 
-        // 2. Category Filter Tabs
-        item {
+        // 2. Category Filter Tabs (Full Width Span)
+        item(span = { GridItemSpan(maxLineSpan) }) {
             SecondaryScrollableTabRow(
                 selectedTabIndex = if (selectedSoftwareCategory == null) 0 else SoftwareCategory.entries.indexOf(selectedSoftwareCategory) + 1,
                 edgePadding = 0.dp,
@@ -647,7 +733,7 @@ private fun SoftwareTabContent(
             }
         }
 
-        // 3. Preset Software Cards
+        // 3. Preset Software Cards (Adaptive Columns)
         items(filteredPackages, key = { it.id }) { pkg ->
             SoftwareCard(
                 pkg = pkg,
