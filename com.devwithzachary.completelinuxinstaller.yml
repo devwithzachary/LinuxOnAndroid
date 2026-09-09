@@ -14,7 +14,7 @@ Binaries: https://github.com/devwithzachary/LinuxOnAndroid/releases/download/%v/
 Builds:
   - versionName: 1.6.0
     versionCode: 13
-    commit: f0cc7d632444b0b278e4362e6fb8d3db617f9b9e
+    commit: f21641abfd3b6954070d6cbfa3cb3b4eb0ee8368
     subdir: app
     sudo:
       - apt-get update || apt-get update
@@ -25,7 +25,7 @@ Builds:
       - app/src/main/jniLibs
     build:
       - ../scripts/build_native_libs.sh $$NDK$$
-    ndk: 26.1.10909125
+    ndk: 28.2.13676358
 
 AllowedAPKSigningKeys:
   - c532d763fd4ec838fa118005d9eb51ec13ce72167d2b0a1a8452ce36fc49199e
