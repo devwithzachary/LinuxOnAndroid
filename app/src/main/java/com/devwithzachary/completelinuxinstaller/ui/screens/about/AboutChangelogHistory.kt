@@ -24,7 +24,7 @@ data class ReleaseChangelog(
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
         version = "v1.6.0",
-        date = "In Development",
+        date = "September 9, 2026",
         initialExpanded = true,
         highlights = listOf(
             "Adaptive Navigation: Automatically switches from a bottom navigation bar on phones to a sleek vertical NavigationRail on 7\" and 10\" tablets and desktop mode windows.",

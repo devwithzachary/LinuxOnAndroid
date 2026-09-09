@@ -2,7 +2,7 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
-## [1.6.0] - Unreleased
+## [1.6.0] - 2026-09-09
 
 ### 🖥️ Tablet, Large Screen & Android Desktop Mode Experience
 - **Adaptive Scaffold Navigation**: Automatically transitions between a bottom `NavigationBar` on compact phone screens (<600dp) and a sleek vertical `NavigationRail` on medium and expanded displays (>=600dp, 7" & 10" tablets, foldable devices, and desktop mode windows).
