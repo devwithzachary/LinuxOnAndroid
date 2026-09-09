@@ -191,7 +191,7 @@ fun SettingsScreen(
     }
 
     val windowSizeClass = rememberWindowSizeClass()
-    val isWideScreen = !windowSizeClass.isCompact
+    val isWideScreen = windowSizeClass.isExpanded
 
     var showCustomThemeDialog by remember { mutableStateOf(false) }
     var editingColorTarget by remember { mutableStateOf<String?>(null) }

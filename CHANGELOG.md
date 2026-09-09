@@ -6,10 +6,10 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 
 ### 🖥️ Tablet, Large Screen & Android Desktop Mode Experience
 - **Adaptive Scaffold Navigation**: Automatically transitions between a bottom `NavigationBar` on compact phone screens (<600dp) and a sleek vertical `NavigationRail` on medium and expanded displays (>=600dp, 7" & 10" tablets, foldable devices, and desktop mode windows).
-- **Two-Column Responsive Dashboard**: Replaces stretched single-column layouts on tablets and desktop windows with a balanced 2-column view: containers list on the left; quick-access hero, terminal launcher with `Ctrl+Alt+T` quick action, live performance dials, and project support on the right.
+- **Two-Column Responsive Dashboard**: Replaces stretched single-column layouts with a balanced 2-column view on expanded screens (>=840dp, 10" landscape and desktop mode) while maintaining a clean single-column view on medium portrait tablets (such as 7" tablets) with the vertical NavigationRail.
 - **Adaptive Software Hub Grid**: Software presets and packages automatically arrange into a responsive multi-column grid (`GridCells.Adaptive(320.dp)`), maximizing screen utility on large displays.
-- **Responsive Two-Column Settings**: Displays settings categories in a responsive two-column layout on wide screens, presenting the interactive terminal appearance and live preview alongside updates and background services.
-- **Balanced Wizard & Container Detail Views**: Centers and bounds setup wizard forms and container overview panes to prevent excessive horizontal stretching across high-resolution 2560px displays.
+- **Responsive Two-Column Settings & Overview**: Displays settings and container overview in an expanded two-column layout on wide displays (>=840dp) and single-column on medium portrait tablets.
+- **Centered Setup Wizard & Step 4 Completion**: Centers and bounds setup wizard forms to prevent excessive horizontal stretching, ensuring title, progress descriptions, logs, and completion actions span and center across the full card width.
 
 ### ⌨️ Universal Keyboard Shortcuts & Desktop Ergonomics
 - **Universal Quick Terminal Shortcut (`Ctrl+Alt+T`)**: Instantly launch or switch to the Linux terminal from any screen in the app when using a physical or Bluetooth keyboard.

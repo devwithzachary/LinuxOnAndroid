@@ -44,7 +44,7 @@ fun DashboardScreen(
 ) {
     val windowSizeClass = rememberWindowSizeClass()
 
-    if (windowSizeClass.isMediumOrExpanded && state.isInstalled && state.containers.isNotEmpty()) {
+    if (windowSizeClass.isExpanded && state.isInstalled && state.containers.isNotEmpty()) {
         // Large Screen & Desktop 2-Column Responsive Dashboard Layout
         Row(
             modifier = Modifier

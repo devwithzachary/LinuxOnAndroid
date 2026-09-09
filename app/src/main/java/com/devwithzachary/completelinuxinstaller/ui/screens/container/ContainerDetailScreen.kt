@@ -335,7 +335,7 @@ private fun OverviewTabContent(
     val windowSizeClass = rememberWindowSizeClass()
     var servicePrompt by remember { mutableStateOf<Pair<String, String>?>(null) }
 
-    if (windowSizeClass.isMediumOrExpanded) {
+    if (windowSizeClass.isExpanded) {
         // 2-Column Responsive Overview for Tablets & Desktop Mode
         Row(
             modifier = Modifier

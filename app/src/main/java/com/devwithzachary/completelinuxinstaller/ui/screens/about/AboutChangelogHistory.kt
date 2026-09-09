@@ -28,9 +28,9 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         initialExpanded = true,
         highlights = listOf(
             "Adaptive Navigation: Automatically switches from a bottom navigation bar on phones to a sleek vertical NavigationRail on 7\" and 10\" tablets and desktop mode windows.",
-            "Two-Column Dashboard: Replaces stretched single-column layouts with a balanced two-column dashboard displaying container cards alongside quick terminal access, live hardware gauges, and project links.",
+            "Two-Column Dashboard: Replaces stretched single-column layouts with a balanced two-column dashboard on expanded screens (>=840dp) while keeping a clean single-column view on 7\" portrait tablets.",
             "Adaptive Software Hub Grid: Arranges software presets and packages into a multi-column responsive grid on larger screens to make full use of tablet display space.",
-            "Master-Detail Settings Layout: Organizes app settings and terminal customization into a side-by-side two-column view on wide displays.",
+            "Responsive Settings & Overview: Displays settings and container overview in an expanded two-column layout on wide displays and single-column on medium portrait tablets.",
             "Universal Keyboard Shortcuts: Added Ctrl+Alt+T to launch the terminal from anywhere, Alt+1..4 for top-level navigation, and Ctrl+Shift+T/W/Tab for terminal tab management.",
             "Hardware Keyboard Auto-Collapse: Detects physical QWERTY keyboards to collapse the touch extra-keys bar, maximizing active terminal space with a 1-tap restore button.",
             "Mouse Right-Click Menus: Added desktop context menus for containers (Launch, Details, Services), terminal tabs (Rename, Close, Close Others), and the terminal canvas (Copy, Paste, Select All, Clear, Reset).",
