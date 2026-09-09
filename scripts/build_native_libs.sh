@@ -248,8 +248,9 @@ for ABI in "${ABIS[@]}"; do
     mkdir -p "$PROOT_SRC_COPY"
     cp -R "$EXTERNAL_DIR/proot/." "$PROOT_SRC_COPY/"
 
-    # Ensure clean state in copy
-    find "$PROOT_SRC_COPY" -name "*.o" -o -name "*.d" -o -name "proot" -delete
+    # Ensure clean state in source and copy
+    find "$EXTERNAL_DIR" \( -name "*.o" -o -name "*.d" \) -delete 2>/dev/null || true
+    find "$PROOT_SRC_COPY" \( -name "*.o" -o -name "*.d" -o -name "proot" \) -delete
 
     # Ensure sys/shm.h exists in libandroid-shmem for sysvipc_shm.c
     mkdir -p "$EXTERNAL_DIR/libandroid-shmem/sys"

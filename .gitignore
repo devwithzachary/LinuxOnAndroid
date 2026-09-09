@@ -57,4 +57,6 @@ captures/
 .gemini/
 AGENTS.md
 GEMINI.md
-
+# Native build temporary dependency and object files
+*.d
+*.o

@@ -14,7 +14,7 @@ Binaries: https://github.com/devwithzachary/LinuxOnAndroid/releases/download/%v/
 Builds:
   - versionName: 1.6.0
     versionCode: 13
-    commit: 726d1af4ee2980f6fd75cbd1107cfc60f3987aff
+    commit: b7f6205f48603acd47c49a0daa6a1cad1abd4ad0
     subdir: app
     sudo:
       - apt-get update || apt-get update
