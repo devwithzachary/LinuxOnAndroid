@@ -7,6 +7,8 @@ SourceCode: https://github.com/devwithzachary/LinuxOnAndroid
 IssueTracker: https://github.com/devwithzachary/LinuxOnAndroid/issues
 Changelog: https://github.com/devwithzachary/LinuxOnAndroid/blob/main/CHANGELOG.md
 
+AutoName: Linux Installer
+
 RepoType: git
 Repo: https://github.com/devwithzachary/LinuxOnAndroid.git
 
@@ -22,8 +24,7 @@ Builds:
       - yes
     scandelete:
       - app/src/main/jniLibs
-    build:
-      - ../scripts/build_native_libs.sh $$NDK$$
+    build: ../scripts/build_native_libs.sh $$NDK$$
     ndk: 28.2.13676358
 
 AutoUpdateMode: Version
