@@ -43,11 +43,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            val releaseSigning = signingConfigs.getByName("release")
-            signingConfig = if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
-                releaseSigning
-            } else {
-                signingConfigs.getByName("debug")
+            signingConfigs.findByName("release")?.let { releaseConfig ->
+                if (releaseConfig.storeFile != null && releaseConfig.storeFile!!.exists()) {
+                    signingConfig = releaseConfig
+                }
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
