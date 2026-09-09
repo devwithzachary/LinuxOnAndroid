@@ -142,6 +142,24 @@ ln -sf "$TOOLCHAIN_BIN/llvm-objdump" "$WRAPPER_DIR/objdump"
 ln -sf "$TOOLCHAIN_BIN/llvm-strip" "$WRAPPER_DIR/strip"
 ln -sf "$TOOLCHAIN_BIN/llvm-ar" "$WRAPPER_DIR/ar"
 
+# Locate GNU make (system make or NDK prebuilt make)
+MAKE_BIN=""
+if command -v make >/dev/null 2>&1; then
+    MAKE_BIN="$(command -v make)"
+else
+    NDK_MAKE=$(find "$NDK_DIR/prebuilt" -name "make" -type f 2>/dev/null | head -n 1)
+    if [ -n "$NDK_MAKE" ] && [ -x "$NDK_MAKE" ]; then
+        MAKE_BIN="$NDK_MAKE"
+    fi
+fi
+
+if [ -n "$MAKE_BIN" ]; then
+    ln -sf "$MAKE_BIN" "$WRAPPER_DIR/make"
+else
+    echo "❌ Error: 'make' not found in PATH or NDK prebuilt directory." >&2
+    exit 1
+fi
+
 ORIG_PATH="$PATH"
 export PATH="$WRAPPER_DIR:$TOOLCHAIN_BIN:$PATH"
 
@@ -237,8 +255,8 @@ for ABI in "${ABIS[@]}"; do
     mkdir -p "$EXTERNAL_DIR/libandroid-shmem/sys"
     ln -sf ../shm.h "$EXTERNAL_DIR/libandroid-shmem/sys/shm.h"
 
-    make -C "$PROOT_SRC_COPY" clean >/dev/null 2>&1 || true
-    make -C "$PROOT_SRC_COPY" -j$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4) \
+    "$MAKE_BIN" -C "$PROOT_SRC_COPY" clean >/dev/null 2>&1 || true
+    "$MAKE_BIN" -C "$PROOT_SRC_COPY" -j$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4) \
         CC="$CC" \
         STRIP="$STRIP" \
         OBJCOPY="$OBJCOPY" \
