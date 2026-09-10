@@ -14,8 +14,12 @@ android {
         applicationId = "com.devwithzachary.completelinuxinstaller"
         minSdk = 23
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.7.0"
+        versionCode = 13
+        versionName = "1.6.0"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
     }
 
     dependenciesInfo {

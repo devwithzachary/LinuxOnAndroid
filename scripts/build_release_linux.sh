@@ -117,8 +117,8 @@ docker run --rm \
             yes | sdkmanager "cmake;3.22.1" >/dev/null
         fi
 
-        echo "🧹 Cleaning existing jniLibs..."
-        rm -rf app/src/main/jniLibs/*
+        echo "🧹 Cleaning existing jniLibs and cached host .cxx files..."
+        rm -rf app/src/main/jniLibs/* app/.cxx .cxx
 
         echo "🏗️  Building native libraries with Linux NDK (28.2.13676358)..."
         ./scripts/build_native_libs.sh /opt/android-sdk/ndk/28.2.13676358
