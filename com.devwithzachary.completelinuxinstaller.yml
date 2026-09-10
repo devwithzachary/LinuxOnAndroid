@@ -11,6 +11,8 @@ AutoName: Linux Installer
 
 RepoType: git
 Repo: https://github.com/devwithzachary/LinuxOnAndroid.git
+Binaries: 
+  https://github.com/devwithzachary/LinuxOnAndroid/releases/download/%v/LinuxOnAndroid-%v-release.apk
 
 Builds:
   - versionName: 1.6.0
@@ -18,7 +20,7 @@ Builds:
     commit: 94deea6b9a28f059140ac09052bb68560ed23876
     subdir: app
     sudo:
-      - apt-get update || apt-get update
+      - apt-get update
       - apt-get install -y make gawk
     gradle:
       - yes
@@ -26,6 +28,8 @@ Builds:
       - app/src/main/jniLibs
     build: ../scripts/build_native_libs.sh $$NDK$$
     ndk: 28.2.13676358
+
+AllowedAPKSigningKeys: c532d763fd4ec838fa118005d9eb51ec13ce72167d2b0a1a8452ce36fc49199e
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
