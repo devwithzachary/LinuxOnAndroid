@@ -51,7 +51,8 @@ int handle_chroot_exit_end(Tracee *tracee, Config *config, bool from_sigsys) {
 	if (status < 0)
 		return status;
 
-	realpath(path, path_host_absolute);
+	if (realpath(path, path_host_absolute) == NULL)
+		return -errno;
 
 	/* Handle "new rootfs == current rootfs" case.  */
 	status = compare_paths(get_root(tracee), path_host_absolute);

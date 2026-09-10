@@ -170,20 +170,20 @@ void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, str
                    in->sin_port = htons(ntohs(in->sin_port) + PORT_ADDITION); 
 
                 if(is_socketcall && is_udp) {
-                    write_data(tracee, socketcall_arg2[4], in, sizeof(in));
-                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                    write_data(tracee, socketcall_arg2[4], in, sizeof(*in));
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(long) * 6);
                 }
 
                 else if(!is_socketcall && is_udp)
-                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_5), in, sizeof(in));
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_5), in, sizeof(*in));
                 
                 else if(is_socketcall && !is_udp) {
-                    write_data(tracee, socketcall_arg2[1], in, sizeof(in));
-                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                    write_data(tracee, socketcall_arg2[1], in, sizeof(*in));
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(long) * 6);
                 }
 
                 else if(!is_socketcall && !is_udp)
-                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), in, sizeof(in));
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), in, sizeof(*in));
             }
             break;
         }
@@ -200,20 +200,20 @@ void mod_port(Tracee *tracee, bool is_socketcall, bool is_bind, bool is_udp, str
                     in6->sin6_port = htons(ntohs(in6->sin6_port) + PORT_ADDITION);
     
                 if(is_socketcall && is_udp) { 
-                    write_data(tracee, socketcall_arg2[4], in6, sizeof(in6));
-                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                    write_data(tracee, socketcall_arg2[4], in6, sizeof(*in6));
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(long) * 6);
                 }
 
-                else if(is_socketcall && is_udp)
-                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_5), in6, sizeof(in6));
+                else if(!is_socketcall && is_udp)
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_5), in6, sizeof(*in6));
 
                 else if(is_socketcall && !is_udp) { 
-                    write_data(tracee, socketcall_arg2[1], in6, sizeof(in6));
-                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(socketcall_arg2));
+                    write_data(tracee, socketcall_arg2[1], in6, sizeof(*in6));
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), socketcall_arg2, sizeof(long) * 6);
                 }
 
                 else if(!is_socketcall && !is_udp)
-                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), in6, sizeof(in6));
+                    write_data(tracee, peek_reg(tracee, CURRENT, SYSARG_2), in6, sizeof(*in6));
             }
             break;
         }

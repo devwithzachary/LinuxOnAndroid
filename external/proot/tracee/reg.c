@@ -292,6 +292,10 @@ int push_specific_regs(Tracee *tracee, bool including_sysnum)
 {
 	int status;
 
+#if !defined(ARCH_ARM64) && !defined(ARCH_ARM_EABI)
+	(void)including_sysnum;
+#endif
+
 	if (tracee->_regs_were_changed
 			|| (tracee->restore_original_regs && tracee->restore_original_regs_after_seccomp_event)) {
 		/* At the very end of a syscall, with regard to the

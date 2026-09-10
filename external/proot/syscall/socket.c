@@ -120,7 +120,10 @@ int translate_socketcall_enter(Tracee *tracee, word_t *address, int size)
 		if (shorter_host_path == NULL || strlen(shorter_host_path) > sizeof_path)
 			return -EINVAL;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 		(void) mktemp(shorter_host_path);
+#pragma clang diagnostic pop
 
 		if (strlen(shorter_host_path) > sizeof_path)
 			return -EINVAL;

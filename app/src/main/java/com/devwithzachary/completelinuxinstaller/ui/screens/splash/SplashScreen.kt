@@ -40,6 +40,7 @@ fun SplashScreen(
     val window = remember(view) { (view.context as? Activity)?.window }
     val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
 
+    @Suppress("DEPRECATION")
     DisposableEffect(window, insetsController) {
         val prevStatusBarColor = window?.statusBarColor
         val prevLightStatusBars = insetsController?.isAppearanceLightStatusBars

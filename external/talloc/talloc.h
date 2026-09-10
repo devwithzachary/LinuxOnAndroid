@@ -1081,7 +1081,7 @@ _PUBLIC_ int talloc_unlink(const void *context, void *ptr);
  *
  * @return              A talloc context, NULL on error.
  */
-_PUBLIC_ void *talloc_autofree_context(void) _DEPRECATED_;
+_PUBLIC_ void *talloc_autofree_context(void);
 
 /**
  * @brief Show the parentage of a context.

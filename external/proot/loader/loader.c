@@ -249,8 +249,12 @@ void _start(void *cursor)
 				SYSCALL(EXECVE, 6, 1,
 					stmt->start.stack_pointer,
 					stmt->start.entry_point, 2, 3, 4);
-			else
+			else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winline-asm"
 				BRANCH(stmt->start.stack_pointer, stmt->start.entry_point);
+#pragma clang diagnostic pop
+			}
 			FATAL();
 		}
 

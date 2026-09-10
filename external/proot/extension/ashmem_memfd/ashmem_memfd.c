@@ -172,6 +172,7 @@ static void ashmem_memfd_handle_stat_exit(Tracee *tracee, AshmemMemfdState *stat
 
 int ashmem_memfd_callback(Extension *extension, ExtensionEvent event, intptr_t data1, intptr_t data2)
 {
+	(void)data2;
 	switch (event) {
 	case INITIALIZATION: {
 		extension->config = talloc_zero(extension, AshmemMemfdState);

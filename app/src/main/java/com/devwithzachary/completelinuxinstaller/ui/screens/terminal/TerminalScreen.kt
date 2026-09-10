@@ -67,6 +67,7 @@ fun TerminalScreen(
 ) {
     val context = LocalContext.current
     val view = LocalView.current
+    @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
 
     val sessions by terminalBridge.sessions.collectAsStateWithLifecycle()
@@ -92,6 +93,7 @@ fun TerminalScreen(
     val window = remember(view) { (view.context as? Activity)?.window }
     val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
 
+    @Suppress("DEPRECATION")
     DisposableEffect(window, insetsController) {
         val prevStatusBarColor = window?.statusBarColor
         val prevLightStatusBars = insetsController?.isAppearanceLightStatusBars

@@ -1493,7 +1493,6 @@ private fun SettingsTabContent(
         val logs = when (upgradeState) {
             is UpgradeState.Success -> upgradeState.logs
             is UpgradeState.Error -> upgradeState.logs
-            else -> emptyList()
         }
         val title = if (isSuccess) "RootFS System Verified & Up to Date" else "RootFS Upgrade Error"
         val icon = if (isSuccess) Icons.Default.CheckCircle else Icons.Default.ErrorOutline

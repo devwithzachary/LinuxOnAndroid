@@ -23,9 +23,18 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
+        version = "v1.7.0",
+        date = "September 2026",
+        initialExpanded = true,
+        highlights = listOf(
+            "System Hardening: Fixed PRoot socket memory sizing and GID emulation in native extensions.",
+            "Native Runtime Stability: Eliminated compiler warnings across all 32-bit and 64-bit architectures (arm64-v8a, armeabi-v7a, x86_64) for clean builds."
+        )
+    ),
+    ReleaseChangelog(
         version = "v1.6.0",
         date = "September 9, 2026",
-        initialExpanded = true,
+        initialExpanded = false,
         highlights = listOf(
             "Adaptive Navigation: Automatically switches from a bottom navigation bar on phones to a sleek vertical NavigationRail on 7\" and 10\" tablets and desktop mode windows.",
             "Two-Column Dashboard: Replaces stretched single-column layouts with a balanced two-column dashboard on expanded screens (>=840dp) while keeping a clean single-column view on 7\" portrait tablets.",
