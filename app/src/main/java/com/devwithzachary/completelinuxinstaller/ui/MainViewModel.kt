@@ -685,7 +685,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
         val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(container.distroId.ifBlank { container.distroName })
 
-        return _packages.value.map { pkg ->
+        return _packages.value
+            .filter { pkg -> pkg.id !in distroDef.softwarePackageHidden }
+            .map { pkg ->
             val effectiveLaunchCommand = distroDef.getSoftwarePackageLaunchCommand(pkg.id, _sshPort.value) ?: pkg.launchCommand
             val effectiveBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) ?: pkg.expectedBinaries
             val effectiveVersion = distroDef.getSoftwarePackageVersion(pkg.id) ?: pkg.version

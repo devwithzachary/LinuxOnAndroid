@@ -40,7 +40,8 @@ data class DistroDefinition(
     val softwarePackageCommands: Map<String, (sshPort: Int) -> String> = emptyMap(),
     val softwarePackageLaunchCommands: Map<String, (sshPort: Int) -> String> = emptyMap(),
     val softwarePackageExpectedBinaries: Map<String, List<String>> = emptyMap(),
-    val softwarePackageVersions: Map<String, Int> = emptyMap()
+    val softwarePackageVersions: Map<String, Int> = emptyMap(),
+    val softwarePackageHidden: Set<String> = emptySet()
 ) {
     val expectedSizeMb: Int get() = downloadSizeMb
 
@@ -288,7 +289,8 @@ object DistroCatalog {
             "openssh_server" to { port ->
                 "apk update && apk add --no-cache openssh-server openssh ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty && ssh-keygen -A 2>/dev/null || true && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && echo \"Port $port\" >> /etc/ssh/ssh_config && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true"
             }
-        )
+        ),
+        softwarePackageHidden = setOf("initd_service_manager")
     )
 
     val ARCH_ARM = DistroDefinition(
@@ -613,7 +615,8 @@ object DistroCatalog {
         ),
         softwarePackageVersions = mapOf(
             "xfce_desktop" to 5
-        )
+        ),
+        softwarePackageHidden = setOf("initd_service_manager")
     )
 
     val ALL_DISTROS = listOf(
