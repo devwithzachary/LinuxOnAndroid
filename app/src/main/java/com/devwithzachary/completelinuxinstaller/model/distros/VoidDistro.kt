@@ -167,5 +167,6 @@ val VoidDistro = DistroDefinition(
     ),
     softwarePackageVersions = mapOf(
         "xfce_desktop" to 7
-    )
+    ),
+    softwarePackageHidden = setOf("initd_service_manager")
 )
