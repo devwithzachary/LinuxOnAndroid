@@ -468,7 +468,8 @@ class SystemMonitorManager(
             5900, 5901, 5902 -> "TigerVNC Desktop (:${port - 5900})" to false
             80 -> "HTTP Web Server (NGINX / Apache)" to true
             443 -> "HTTPS Web Server" to true
-            8080 -> "VS Code Server / NGINX" to true
+            7681 -> "Web Terminal (ttyd)" to true
+            8080 -> "Web Terminal / VS Code / NGINX" to true
             8443 -> "VS Code Server (code-server)" to true
             8000 -> "Python HTTP / Dev Server" to true
             3000 -> "Node.js / React Web App" to true
@@ -479,7 +480,7 @@ class SystemMonitorManager(
             3306 -> "MySQL / MariaDB" to false
             6379 -> "Redis In-Memory Store" to false
             27017 -> "MongoDB Database" to false
-            else -> "Active TCP Service" to (port in listOf(80, 443, 8080, 8443, 8000, 3000, 5000, 8888, 9090))
+            else -> "Active TCP Service" to (port in listOf(80, 443, 7681, 8080, 8443, 8000, 3000, 5000, 8888, 9090))
         }
     }
 

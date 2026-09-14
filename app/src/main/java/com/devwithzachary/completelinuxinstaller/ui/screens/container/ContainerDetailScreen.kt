@@ -80,6 +80,7 @@ fun ContainerDetailScreen(
     isNginxInstalled: Boolean = false,
     isSshInstalled: Boolean = false,
     isCodeServerInstalled: Boolean = false,
+    isWebTerminalInstalled: Boolean = false,
     sshPort: Int = 2222,
     bindSdCard: Boolean = true,
     dnsServers: List<String> = listOf("8.8.8.8", "1.1.1.1"),
@@ -255,6 +256,13 @@ fun ContainerDetailScreen(
             (container.isDefault && isCodeServerInstalled)
         }
 
+        val webTerminalInstalled = remember(container.rootDirPath, packages, isWebTerminalInstalled) {
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/bin/ttyd") ||
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/local/bin/ttyd") ||
+            packages.find { it.id == "web_terminal" }?.status == InstallStatus.INSTALLED ||
+            (container.isDefault && isWebTerminalInstalled)
+        }
+
         // Horizontal Pager with continuous sliding animation and swipe gesture support
         HorizontalPager(
             state = pagerState,
@@ -271,6 +279,7 @@ fun ContainerDetailScreen(
                         isNginxInstalled = nginxInstalled,
                         isSshInstalled = sshInstalled,
                         isCodeServerInstalled = codeServerInstalled,
+                        isWebTerminalInstalled = webTerminalInstalled,
                         onKillProcess = onKillProcess,
                         onRunPresetCommand = onRunPresetCommand,
                         onNavigateToSoftwareTab = {
@@ -336,6 +345,7 @@ private fun OverviewTabContent(
     isNginxInstalled: Boolean,
     isSshInstalled: Boolean,
     isCodeServerInstalled: Boolean,
+    isWebTerminalInstalled: Boolean,
     onKillProcess: (pid: Int) -> Unit,
     onRunPresetCommand: (command: String) -> Unit,
     onNavigateToSoftwareTab: () -> Unit,
@@ -373,6 +383,7 @@ private fun OverviewTabContent(
                     isNginxInstalled = isNginxInstalled,
                     isSshInstalled = isSshInstalled,
                     isCodeServerInstalled = isCodeServerInstalled,
+                    isWebTerminalInstalled = isWebTerminalInstalled,
                     sshPort = sshPort,
                     onRunPresetCommand = onRunPresetCommand,
                     onPromptService = { title, pkgId -> servicePrompt = Pair(title, pkgId) }
@@ -420,6 +431,7 @@ private fun OverviewTabContent(
                 isNginxInstalled = isNginxInstalled,
                 isSshInstalled = isSshInstalled,
                 isCodeServerInstalled = isCodeServerInstalled,
+                isWebTerminalInstalled = isWebTerminalInstalled,
                 sshPort = sshPort,
                 onRunPresetCommand = onRunPresetCommand,
                 onPromptService = { title, pkgId -> servicePrompt = Pair(title, pkgId) }
@@ -474,6 +486,7 @@ private fun ServicesCard(
     isNginxInstalled: Boolean,
     isSshInstalled: Boolean,
     isCodeServerInstalled: Boolean,
+    isWebTerminalInstalled: Boolean,
     sshPort: Int,
     onRunPresetCommand: (command: String) -> Unit,
     onPromptService: (title: String, pkgId: String) -> Unit
@@ -511,6 +524,7 @@ private fun ServicesCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
+            // Row 1: Classic Daemons & Desktop GUI
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -562,7 +576,13 @@ private fun ServicesCard(
                         }
                     }
                 )
+            }
 
+            // Row 2: Browser Workspaces
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 // VS Code Launcher
                 ServiceLauncherButton(
                     icon = Icons.Default.Code,
@@ -575,6 +595,22 @@ private fun ServicesCard(
                             codePkg?.launchCommand?.let { onRunPresetCommand(it) }
                         } else {
                             onPromptService("VS Code Server (code-server)", "code_server")
+                        }
+                    }
+                )
+
+                // Web Terminal Launcher
+                ServiceLauncherButton(
+                    icon = Icons.Default.Terminal,
+                    label = "Web Terminal",
+                    isInstalled = isWebTerminalInstalled,
+                    modifier = Modifier.weight(1f).handHover(),
+                    onClick = {
+                        if (isWebTerminalInstalled) {
+                            val ttydPkg = SoftwarePackage.getPresets().find { it.id == "web_terminal" }
+                            ttydPkg?.launchCommand?.let { onRunPresetCommand(it) }
+                        } else {
+                            onPromptService("Browser Web Terminal (ttyd)", "web_terminal")
                         }
                     }
                 )

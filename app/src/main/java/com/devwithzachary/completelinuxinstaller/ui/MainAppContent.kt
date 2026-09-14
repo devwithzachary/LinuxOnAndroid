@@ -351,6 +351,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 isNginxInstalled = dashboardState.isNginxInstalled,
                                 isSshInstalled = dashboardState.isSshInstalled,
                                 isCodeServerInstalled = dashboardState.isCodeServerInstalled,
+                                isWebTerminalInstalled = dashboardState.isWebTerminalInstalled,
                                 sshPort = sshPort,
                                 bindSdCard = dashboardState.bindSdCard,
                                 dnsServers = dnsServers,

@@ -107,9 +107,30 @@ data class SoftwarePackage(
                         }
                     }
                 }
+                "usr/bin/ttyd", "usr/local/bin/ttyd" -> {
+                    val ttydAliases = listOf(
+                        "usr/bin/ttyd",
+                        "usr/local/bin/ttyd"
+                    )
+                    for (alias in ttydAliases) {
+                        if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
+                            return true
+                        }
+                    }
+                }
             }
 
             return false
+        }
+
+        fun buildTtydLaunchCommand(port: Int = 8080): String {
+            val validPort = if (port in 1..65535) port else 8080
+            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=7681; fi; [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true; (pkill -f ttyd 2>/dev/null || true); SHELL_BIN=/bin/bash; [ -x /bin/bash ] || SHELL_BIN=/usr/bin/bash; [ -x \"\$SHELL_BIN\" ] || SHELL_BIN=/bin/sh; (nohup ttyd -W -p \$PORT \$SHELL_BIN >/tmp/ttyd.log 2>&1 &) && sleep 1 && cat /tmp/ttyd.log 2>/dev/null || true; echo \"Web Terminal listening on http://0.0.0.0:\$PORT\""
+        }
+
+        fun buildTtydPostInstallNotes(port: Int = 8080): String {
+            val validPort = if (port in 1..65535) port else 8080
+            return "Browser Web Terminal (ttyd) running on port $validPort (or 7681 if busy). Access your full Linux shell from any browser on your Wi-Fi network at http://<phone-ip>:$validPort without an SSH client."
         }
 
         fun buildCodeServerLaunchCommand(port: Int = 8080): String {
@@ -237,6 +258,18 @@ data class SoftwarePackage(
                     postInstallNotes = buildSshPostInstallNotes(validPort),
                     expectedBinaries = listOf("usr/sbin/sshd", "usr/bin/ssh-keygen"),
                     version = 3
+                ),
+                SoftwarePackage(
+                    id = "web_terminal",
+                    name = "Browser Web Terminal (ttyd)",
+                    category = SoftwareCategory.NETWORKING,
+                    description = "Instant browser-based terminal access over local Wi-Fi without needing an SSH client or password setup.",
+                    iconName = "Terminal",
+                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && (apt-get install -y $DPKG_FLAGS ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi",
+                    launchCommand = buildTtydLaunchCommand(),
+                    postInstallNotes = buildTtydPostInstallNotes(),
+                    expectedBinaries = listOf("usr/bin/ttyd"),
+                    version = 1
                 )
             )
         }

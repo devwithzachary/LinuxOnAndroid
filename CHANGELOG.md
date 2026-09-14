@@ -4,6 +4,14 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 
 ## [1.7.0] - 2026-09-14
 
+### 🌐 Browser-Based Web Terminal (ttyd Local Sharing)
+- **Local Wi-Fi Web Terminal**: Added a 1-click preset in the Software Hub to install and launch ttyd, allowing instant full terminal access in any browser on your laptop, desktop, or tablet over local Wi-Fi without needing an SSH client or credentials.
+- **Zero-Password Interactive Access**: Runs with `--writable` (`-W`) and automatically attaches to `/bin/bash` (or `/bin/sh`) inside the container rootfs for instant web-based xterm access.
+- **Intelligent Port Fallback**: Listens on port 8080 by default, with automatic detection and seamless fallback to port 7681 if port 8080 is occupied by NGINX or VS Code Server.
+- **Dedicated Quick Service Launcher**: Integrated 1-tap "Web Terminal" launcher button into Container Overview Quick Services, refactoring the service panel into balanced rows for classic daemons and web workspaces.
+- **Universal Multi-Distro Support**: Configured across Ubuntu, Debian, Fedora, Alpine, Arch, Kali, and Void with automated fallback to the official upstream standalone ttyd binary.
+- **System Monitor Integration**: Detects ttyd listening on ports 8080 and 7681 with 1-click "Open in Browser" action.
+
 ### 💻 1-Click VS Code Server (code-server)
 - **Visual Studio Code in the Browser**: Added a 1-click preset in the Software Hub to install and launch code-server, bringing the full VS Code desktop IDE experience (extensions, syntax highlighting, file explorer, and integrated terminal) directly into Google Chrome or any browser on your phone, tablet, or PC.
 - **Universal Multi-Distro Support**: Fully configured across all 7 supported distributions (Ubuntu 26.04, Debian 12, Fedora 44, Alpine 3.21, Arch Linux ARM, Kali Rolling, and Void Linux) with automated fallback to standalone self-contained binaries.

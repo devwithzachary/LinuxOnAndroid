@@ -64,6 +64,7 @@ data class DashboardUiState(
     val isNginxInstalled: Boolean = false,
     val isSshInstalled: Boolean = false,
     val isCodeServerInstalled: Boolean = false,
+    val isWebTerminalInstalled: Boolean = false,
     val sshPort: Int = 2222,
     val rootfsVersion: RootfsVersionInfo? = null,
     val isUpgradeAvailable: Boolean = false,
@@ -609,6 +610,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             SoftwarePackage.isBinaryPresent(rootfsDir, "usr/local/bin/code-server") ||
             packageVersions.containsKey("code_server")
         )
+        val hasTtyd = installed && (
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/ttyd") ||
+            SoftwarePackage.isBinaryPresent(rootfsDir, "usr/local/bin/ttyd") ||
+            packageVersions.containsKey("web_terminal")
+        )
         val users = if (installed) rootfsManager.getContainerUsers() else emptyList()
 
         val syncedPackages = _packages.value.map { pkg ->
@@ -669,6 +675,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             isNginxInstalled = hasNginx,
             isSshInstalled = hasSsh,
             isCodeServerInstalled = hasCodeServer,
+            isWebTerminalInstalled = hasTtyd,
             sshPort = _sshPort.value,
             rootfsVersion = rootfsVersion,
             isUpgradeAvailable = isUpgradeAvail,

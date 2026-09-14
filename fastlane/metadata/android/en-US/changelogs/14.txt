@@ -1,5 +1,6 @@
-• VS Code Server: 1-click preset to run full Visual Studio Code in your browser.
-• Fedora 44: Official rootfs with DNF package manager and tailored presets.
-• Multi-Distro Support: VS Code Server across Ubuntu, Debian, Fedora, Alpine, Arch, Kali, Void.
-• Quick Services: 1-tap VS Code launcher in Container Overview.
-• System Hardening: Fixed PRoot socket sizing, GID emulation, and TigerVNC scripts.
+• Web Terminal: 1-tap ttyd web terminal for instant local Wi-Fi sharing.
+• VS Code Server: 1-click preset to run Visual Studio Code in browser.
+• Fedora 44: Official rootfs with DNF package manager and presets.
+• Multi-Distro Support: Full presets across 7 Linux distributions.
+• Quick Services: 1-tap VS Code & Web Terminal launchers in Overview.
+• System Hardening: Fixed PRoot socket sizing and TigerVNC scripts.

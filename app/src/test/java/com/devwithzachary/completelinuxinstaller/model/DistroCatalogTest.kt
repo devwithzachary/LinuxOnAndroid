@@ -77,7 +77,7 @@ class DistroCatalogTest {
 
     @Test
     fun testDistros_haveOneClickSoftwarePackageCommands() {
-        val packageIds = listOf("xfce_desktop", "python_dev", "node_dev", "android_dev", "nginx_web", "openssh_server", "code_server")
+        val packageIds = listOf("xfce_desktop", "python_dev", "node_dev", "android_dev", "nginx_web", "openssh_server", "code_server", "web_terminal")
         for (distro in DistroCatalog.ALL_DISTROS) {
             for (pkgId in packageIds) {
                 val cmd = distro.getSoftwarePackageInstallCommand(pkgId, 2222)
@@ -385,5 +385,33 @@ class DistroCatalogTest {
         val alpineCmd = DistroCatalog.ALPINE_3_21.getSoftwarePackageInstallCommand("code_server")
         assertNotNull(alpineCmd)
         assertTrue("Alpine code-server install must install npm/nodejs or standalone", alpineCmd!!.contains("npm install -g code-server") || alpineCmd.contains("--method=standalone"))
+    }
+
+    @Test
+    fun testWebTerminal_distroSpecificInstallCommands() {
+        val fedoraCmd = DistroCatalog.FEDORA_44.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(fedoraCmd)
+        assertTrue("Fedora web_terminal install must use dnf", fedoraCmd!!.contains("dnf install -y"))
+        assertTrue("Fedora web_terminal install must install ttyd", fedoraCmd.contains("ttyd"))
+
+        val alpineCmd = DistroCatalog.ALPINE_3_21.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(alpineCmd)
+        assertTrue("Alpine web_terminal install must use apk", alpineCmd!!.contains("apk add"))
+        assertTrue("Alpine web_terminal install must install ttyd", alpineCmd.contains("ttyd"))
+
+        val archCmd = DistroCatalog.ARCH_ARM.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(archCmd)
+        assertTrue("Arch web_terminal install must use pacman", archCmd!!.contains("pacman -S"))
+        assertTrue("Arch web_terminal install must install ttyd", archCmd.contains("ttyd"))
+
+        val voidCmd = DistroCatalog.VOID_ROLLING.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(voidCmd)
+        assertTrue("Void web_terminal install must use xbps", voidCmd!!.contains("xbps-install"))
+        assertTrue("Void web_terminal install must install ttyd", voidCmd.contains("ttyd"))
+
+        val ubuntuCmd = DistroCatalog.UBUNTU_26_04.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(ubuntuCmd)
+        assertTrue("Ubuntu web_terminal install must use apt", ubuntuCmd!!.contains("apt-get install -y"))
+        assertTrue("Ubuntu web_terminal install must install ttyd", ubuntuCmd.contains("ttyd"))
     }
 }
