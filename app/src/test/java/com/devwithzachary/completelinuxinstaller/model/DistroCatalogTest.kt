@@ -77,7 +77,7 @@ class DistroCatalogTest {
 
     @Test
     fun testDistros_haveOneClickSoftwarePackageCommands() {
-        val packageIds = listOf("xfce_desktop", "python_dev", "node_dev", "android_dev", "nginx_web", "openssh_server", "code_server", "web_terminal")
+        val packageIds = listOf("xfce_desktop", "python_dev", "node_dev", "android_dev", "nginx_web", "openssh_server", "code_server", "web_terminal", "docker_tools")
         for (distro in DistroCatalog.ALL_DISTROS) {
             for (pkgId in packageIds) {
                 val cmd = distro.getSoftwarePackageInstallCommand(pkgId, 2222)
@@ -414,4 +414,50 @@ class DistroCatalogTest {
         assertTrue("Ubuntu web_terminal install must use apt", ubuntuCmd!!.contains("apt-get install -y"))
         assertTrue("Ubuntu web_terminal install must install ttyd", ubuntuCmd.contains("ttyd"))
     }
+
+    @Test
+    fun testDockerTools_distroSpecificInstallCommands() {
+        val fedoraCmd = DistroCatalog.FEDORA_44.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(fedoraCmd)
+        assertTrue("Fedora docker_tools must use dnf", fedoraCmd!!.contains("dnf install -y"))
+        assertTrue("Fedora docker_tools must install udocker", fedoraCmd.contains("udocker"))
+
+        val alpineCmd = DistroCatalog.ALPINE_3_21.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(alpineCmd)
+        assertTrue("Alpine docker_tools must use apk", alpineCmd!!.contains("apk add"))
+        assertTrue("Alpine docker_tools must install udocker", alpineCmd.contains("udocker"))
+
+        val archCmd = DistroCatalog.ARCH_ARM.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(archCmd)
+        assertTrue("Arch docker_tools must use pacman", archCmd!!.contains("pacman -S"))
+        assertTrue("Arch docker_tools must install udocker", archCmd.contains("udocker"))
+
+        val voidCmd = DistroCatalog.VOID_ROLLING.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(voidCmd)
+        assertTrue("Void docker_tools must use xbps", voidCmd!!.contains("xbps-install"))
+        assertTrue("Void docker_tools must install udocker", voidCmd.contains("udocker"))
+
+        val ubuntuCmd = DistroCatalog.UBUNTU_26_04.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(ubuntuCmd)
+        assertTrue("Ubuntu docker_tools must use apt", ubuntuCmd!!.contains("apt-get install -y"))
+        assertTrue("Ubuntu docker_tools must install udocker", ubuntuCmd.contains("udocker"))
+    }
+
+    @Test
+    fun testDockerTools_commonWrapperAndPipelineConfigured() {
+        val wrapper = DistroCatalog.COMMON_DOCKER_WRAPPER
+        assertTrue("Must include [DEFAULT] INI section header for ConfigParser", wrapper.contains("[DEFAULT]"))
+        assertTrue("Must configure valid_host_env in udocker.conf", wrapper.contains("valid_host_env"))
+        assertTrue("Must include PROOT_LOADER in valid_host_env", wrapper.contains("PROOT_LOADER"))
+        assertTrue("Must handle root execution with udocker --allow-root", wrapper.contains("udocker --allow-root"))
+        assertTrue("Must check for /usr/local/lib/libproot_loader.so", wrapper.contains("/usr/local/lib/libproot_loader.so"))
+
+        for (distro in DistroCatalog.ALL_DISTROS) {
+            val cmd = distro.getSoftwarePackageInstallCommand("docker_tools")
+            assertNotNull("Distro ${distro.name} must have docker_tools install command", cmd)
+            assertTrue("Distro ${distro.name} must include COMMON_DOCKER_WRAPPER", cmd!!.contains("/etc/udocker.conf"))
+            assertTrue("Distro ${distro.name} must include UDOCKER_INSTALL_PIPELINE", cmd.contains("pip"))
+        }
+    }
 }
+

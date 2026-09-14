@@ -1,3 +1,4 @@
+• Docker Support: 1-click preset with udocker, Docker CLI & Compose.
 • Web Terminal: 1-tap ttyd web terminal for instant local Wi-Fi sharing.
 • VS Code Server: 1-click preset to run Visual Studio Code in browser.
 • Fedora 44: Official rootfs with DNF package manager and presets.

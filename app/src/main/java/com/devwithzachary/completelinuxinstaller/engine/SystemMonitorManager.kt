@@ -480,6 +480,8 @@ class SystemMonitorManager(
             3306 -> "MySQL / MariaDB" to false
             6379 -> "Redis In-Memory Store" to false
             27017 -> "MongoDB Database" to false
+            2375 -> "Docker Daemon (HTTP)" to false
+            2376 -> "Docker Daemon (TLS)" to false
             else -> "Active TCP Service" to (port in listOf(80, 443, 7681, 8080, 8443, 8000, 3000, 5000, 8888, 9090))
         }
     }

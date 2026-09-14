@@ -444,6 +444,23 @@ class PRootEngine(val context: Context) {
                 }
             }
 
+            val nativeLibDir = File(context.applicationInfo.nativeLibraryDir)
+            if (nativeLibDir.exists()) {
+                addBindMount(cmdList, nativeLibDir.absolutePath)
+                val loaderFile = File(nativeLibDir, "libproot_loader.so")
+                if (loaderFile.exists() && loaderFile.length() > 0L) {
+                    try {
+                        val guestUsrLocalLib = File(config.rootfsDir, "usr/local/lib").apply { mkdirs() }
+                        val guestLoader = File(guestUsrLocalLib, "libproot_loader.so")
+                        if (!guestLoader.exists() || guestLoader.length() != loaderFile.length()) {
+                            loaderFile.copyTo(guestLoader, overwrite = true)
+                            guestLoader.setExecutable(true, false)
+                            guestLoader.setReadable(true, false)
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+
             // Bind-mount synthetic /proc files to bypass Android 10+ SELinux restrictions for htop/top/free
             val fakeProcDir = ensureFakeProcFiles()
             val fakeStat = File(fakeProcDir, "stat")

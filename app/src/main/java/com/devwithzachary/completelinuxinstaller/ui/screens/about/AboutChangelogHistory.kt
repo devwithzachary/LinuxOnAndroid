@@ -27,6 +27,7 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "September 2026",
         initialExpanded = true,
         highlights = listOf(
+            "1-Click Docker & Container Tools: Pull and run containers without root via udocker, with official Docker CLI and Docker Compose support across all distributions.",
             "Browser Web Terminal (ttyd): Share and access your full Linux shell from any web browser over local Wi-Fi with zero passwords or SSH clients required.",
             "Smart Port Handling & Quick Launcher: Added 1-tap Web Terminal launcher in Container Overview with intelligent port fallback between 8080 and 7681.",
             "1-Click VS Code Server: Install and launch code-server to run full Visual Studio Code in Google Chrome or any browser with extensions, syntax highlighting, and integrated terminal.",

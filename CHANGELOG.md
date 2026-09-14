@@ -4,6 +4,12 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 
 ## [1.7.0] - 2026-09-14
 
+### 🐳 1-Click Docker & Container Tools
+- **Rootless Container Execution (udocker)**: Added a 1-click preset in the Software Hub to install and configure Docker tools with udocker, allowing users to pull and run containers from Docker Hub directly in Android user-space without root privileges or kernel cgroup requirements.
+- **Official Docker CLI & Docker Compose**: Installs standard docker and docker-compose tools, with smart CLI delegation to udocker for seamless local execution while retaining full support for remote daemons via DOCKER_HOST.
+- **Universal Multi-Distro Support**: Tailored package installations across all 7 supported distributions (Ubuntu, Debian, Fedora, Alpine, Arch Linux, Kali, and Void) with automated user-space engine initialization.
+- **System Monitor Integration**: Real-time detection and service naming for standard Docker daemon network ports (2375 HTTP, 2376 TLS).
+
 ### 🌐 Browser-Based Web Terminal (ttyd Local Sharing)
 - **Local Wi-Fi Web Terminal**: Added a 1-click preset in the Software Hub to install and launch ttyd, allowing instant full terminal access in any browser on your laptop, desktop, or tablet over local Wi-Fi without needing an SSH client or credentials.
 - **Zero-Password Interactive Access**: Runs with `--writable` (`-W`) and automatically attaches to `/bin/bash` (or `/bin/sh`) inside the container rootfs for instant web-based xterm access.

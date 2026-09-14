@@ -118,6 +118,19 @@ data class SoftwarePackage(
                         }
                     }
                 }
+                "usr/bin/docker", "usr/local/bin/docker", "usr/local/bin/udocker", "usr/bin/udocker" -> {
+                    val dockerAliases = listOf(
+                        "usr/bin/docker",
+                        "usr/local/bin/docker",
+                        "usr/local/bin/udocker",
+                        "usr/bin/udocker"
+                    )
+                    for (alias in dockerAliases) {
+                        if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
+                            return true
+                        }
+                    }
+                }
             }
 
             return false
@@ -141,6 +154,14 @@ data class SoftwarePackage(
         fun buildCodeServerPostInstallNotes(port: Int = 8080): String {
             val validPort = if (port in 1..65535) port else 8080
             return "VS Code Server runs in your browser without password authentication on port $validPort (or 8443 if 8080 is busy). Open http://localhost:$validPort in Chrome or any browser."
+        }
+
+        fun buildDockerLaunchCommand(): String {
+            return "echo '=== Docker & Container Environment ==='; (docker --version 2>/dev/null || true); (udocker --version 2>/dev/null || true); (docker compose version 2>/dev/null || docker-compose --version 2>/dev/null || true); echo ''; echo 'Run containers in user-space without root:'; echo '  docker run --rm alpine cat /etc/os-release'; echo '  udocker ps'; echo 'To connect to a remote Docker daemon:'; echo '  export DOCKER_HOST=tcp://<remote-ip>:2375'"
+        }
+
+        fun buildDockerPostInstallNotes(): String {
+            return "Docker & Container Tools ready. Run containers without root via 'docker run' or 'udocker run' (e.g. 'docker run --rm alpine cat /etc/os-release'). To target a remote Docker host, set DOCKER_HOST=tcp://<remote-ip>:2375."
         }
 
         fun buildNginxLaunchCommand(port: Int = 8080): String {
@@ -269,6 +290,18 @@ data class SoftwarePackage(
                     launchCommand = buildTtydLaunchCommand(),
                     postInstallNotes = buildTtydPostInstallNotes(),
                     expectedBinaries = listOf("usr/bin/ttyd"),
+                    version = 1
+                ),
+                SoftwarePackage(
+                    id = "docker_tools",
+                    name = "Docker & Container Tools",
+                    category = SoftwareCategory.DEVELOPMENT,
+                    description = "Run Docker containers without root via udocker, plus official Docker CLI and Docker Compose.",
+                    iconName = "Apps",
+                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && (apt-get install -y $DPKG_FLAGS docker.io docker-compose python3 python3-pip curl ca-certificates tar || apt-get install -y $DPKG_FLAGS docker-cli docker-compose python3 python3-pip curl ca-certificates tar || apt-get install -y $DPKG_FLAGS python3 python3-pip curl ca-certificates tar || true) && ${DistroCatalog.UDOCKER_INSTALL_PIPELINE} && ${DistroCatalog.COMMON_DOCKER_WRAPPER}",
+                    launchCommand = buildDockerLaunchCommand(),
+                    postInstallNotes = buildDockerPostInstallNotes(),
+                    expectedBinaries = listOf("usr/bin/docker", "usr/local/bin/docker"),
                     version = 1
                 )
             )

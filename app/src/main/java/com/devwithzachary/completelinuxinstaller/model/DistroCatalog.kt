@@ -89,6 +89,37 @@ data class DistroDefinition(
 
 object DistroCatalog {
 
+    const val COMMON_DOCKER_WRAPPER =
+        "mkdir -p /etc && " +
+            "printf '[DEFAULT]\\nvalid_host_env = TERM, PATH, PROOT_TMP_DIR, PROOT_LOADER, PROOT_LOADER32, PROOT_NO_SECCOMP, PROOT_FORCE_SETID, PROOT_LINK2SYMLINK\\n' > /etc/udocker.conf && " +
+            "(udocker --allow-root install --force 2>/dev/null || udocker install --force 2>/dev/null || true) && " +
+            "mkdir -p /usr/local/bin && " +
+            "printf '%s\\n' '#!/bin/sh\n" +
+            "if [ -x /usr/bin/docker ] && ([ -n \"\\\$DOCKER_HOST\" ] || [ -S /var/run/docker.sock ]) && /usr/bin/docker info >/dev/null 2>&1; then\n" +
+            "  exec /usr/bin/docker \"\\\$@\"\n" +
+            "fi\n" +
+            "if command -v udocker >/dev/null 2>&1; then\n" +
+            "  export PROOT_NO_SECCOMP=1\n" +
+            "  if [ -f /usr/local/lib/libproot_loader.so ]; then\n" +
+            "    export PROOT_LOADER=/usr/local/lib/libproot_loader.so\n" +
+            "  elif [ -f /usr/lib/libproot_loader.so ]; then\n" +
+            "    export PROOT_LOADER=/usr/lib/libproot_loader.so\n" +
+            "  fi\n" +
+            "  if [ \"\\\$(id -u)\" = \"0\" ]; then\n" +
+            "    exec udocker --allow-root \"\\\$@\"\n" +
+            "  else\n" +
+            "    exec udocker \"\\\$@\"\n" +
+            "  fi\n" +
+            "fi\n" +
+            "if [ -x /usr/bin/docker ]; then\n" +
+            "  exec /usr/bin/docker \"\\\$@\"\n" +
+            "fi\n" +
+            "echo \"Error: Neither docker nor udocker could be executed.\" >&2\n" +
+            "exit 1' > /usr/local/bin/docker && chmod 755 /usr/local/bin/docker"
+
+    const val UDOCKER_INSTALL_PIPELINE =
+        "(pip3 install --break-system-packages --no-cache-dir udocker || pip install --break-system-packages --no-cache-dir udocker || python3 -m pip install --break-system-packages --no-cache-dir udocker || (curl -fsSL https://github.com/indigo-dc/udocker/releases/download/1.3.17/udocker-1.3.17.tar.gz | tar -xz -C /tmp && cd /tmp/udocker-1.3.17 && python3 setup.py install --prefix=/usr/local && rm -rf /tmp/udocker-1.3.17) || true)"
+
     val UBUNTU_26_04 = DistroDefinition(
         id = "ubuntu_26_04",
         name = "Ubuntu 26.04 LTS",
@@ -157,6 +188,23 @@ object DistroCatalog {
             },
             "web_terminal" to { _ ->
                 "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null && apt-get update -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" && (apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "mkdir -p /usr/sbin /etc /var/lib/dbus 2>/dev/null; " +
+                    "(grep -q ^messagebus: /etc/group || echo \"messagebus:x:101:\" >> /etc/group); " +
+                    "(grep -q ^messagebus: /etc/passwd || echo \"messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\" >> /etc/passwd); " +
+                    "(grep -q ^messagebus: /etc/shadow || echo \"messagebus:*:19700:0:99999:7:::\" >> /etc/shadow); " +
+                    "(grep -q ^docker: /etc/group || echo \"docker:x:102:\" >> /etc/group); " +
+                    "printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; " +
+                    "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
+                    "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && " +
+                    "dpkg --configure -a && " +
+                    "apt-get update -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" && " +
+                    "(apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" docker.io docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" docker-cli docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" python3 python3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         )
     )
@@ -225,6 +273,22 @@ object DistroCatalog {
             },
             "web_terminal" to { _ ->
                 "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && (apt-get install -y ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "mkdir -p /usr/sbin /etc /var/lib/dbus 2>/dev/null; " +
+                    "(grep -q ^messagebus: /etc/group || echo \"messagebus:x:101:\" >> /etc/group); " +
+                    "(grep -q ^messagebus: /etc/passwd || echo \"messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\" >> /etc/passwd); " +
+                    "(grep -q ^messagebus: /etc/shadow || echo \"messagebus:*:19700:0:99999:7:::\" >> /etc/shadow); " +
+                    "(grep -q ^docker: /etc/group || echo \"docker:x:102:\" >> /etc/group); " +
+                    "printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; " +
+                    "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
+                    "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && " +
+                    "dpkg --configure -a && apt-get update && " +
+                    "(apt-get install -y docker.io docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y docker-cli docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y python3 python3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -305,6 +369,10 @@ object DistroCatalog {
             },
             "web_terminal" to { _ ->
                 "apk update && (apk add --no-cache ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "apk update && (apk add --no-cache docker-cli docker-cli-compose python3 py3-pip curl ca-certificates tar || apk add --no-cache python3 py3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         )
     )
@@ -372,6 +440,10 @@ object DistroCatalog {
             },
             "web_terminal" to { _ ->
                 "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/; s/^SigLevel.*/SigLevel = Never/; s/^LocalFileSigLevel.*/LocalFileSigLevel = Never/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm curl ca-certificates && (pacman -S --noconfirm ttyd || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/; s/^SigLevel.*/SigLevel = Never/; s/^LocalFileSigLevel.*/LocalFileSigLevel = Never/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm curl ca-certificates tar python python-pip && (pacman -S --noconfirm docker docker-compose || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -463,6 +535,23 @@ object DistroCatalog {
             "web_terminal" to { _ ->
                 "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +
                     "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && (apt-get install -y ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +
+                    "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "mkdir -p /usr/sbin /etc /var/lib/dbus 2>/dev/null; " +
+                    "(grep -q ^messagebus: /etc/group || echo \"messagebus:x:101:\" >> /etc/group); " +
+                    "(grep -q ^messagebus: /etc/passwd || echo \"messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\" >> /etc/passwd); " +
+                    "(grep -q ^messagebus: /etc/shadow || echo \"messagebus:*:19700:0:99999:7:::\" >> /etc/shadow); " +
+                    "(grep -q ^docker: /etc/group || echo \"docker:x:102:\" >> /etc/group); " +
+                    "printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; " +
+                    "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
+                    "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && " +
+                    "dpkg --configure -a && apt-get update && " +
+                    "(apt-get install -y docker.io docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y docker-cli docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y python3 python3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -621,6 +710,12 @@ object DistroCatalog {
                     "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
                     "(xbps-install -y ttyd curl ca-certificates || xbps-install -y curl ca-certificates) && " +
                     "if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
+                    "(xbps-install -y docker-cli docker-compose python3 python3-pip curl ca-certificates tar || xbps-install -y python3 python3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -824,6 +919,12 @@ object DistroCatalog {
                         "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
                         "(dnf install -y --setopt=keepcache=0 ttyd curl ca-certificates procps-ng || dnf install -y --setopt=keepcache=0 curl ca-certificates procps-ng) && " +
                         "if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi; dnf clean all"
+            },
+            "docker_tools" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "(dnf install -y --setopt=keepcache=0 docker-cli docker-compose python3 python3-pip curl ca-certificates tar || dnf install -y --setopt=keepcache=0 python3 python3-pip curl ca-certificates tar || true) && " +
+                        "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER && dnf clean all"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
