@@ -95,7 +95,30 @@ fun FullTerminalView(
     }
 
     val fontMetrics = paint.fontMetrics
-    val charWidth = paint.measureText("W")
+    val isMono = remember(fontFamilyName) { TerminalFonts.isMonospace(fontFamilyName) }
+    val charWidth = remember(paint, isMono) {
+        if (isMono) {
+            paint.measureText("W")
+        } else {
+            (paint.measureText("a") + paint.measureText("n")) / 2f
+        }
+    }
+    val asciiCharWidths = remember(paint, boldTypeface, isMono) {
+        if (isMono) {
+            null
+        } else {
+            // Precalculate ASCII 32..126 widths: index 0..127 normal, index 128..255 bold
+            val widths = FloatArray(256)
+            for (code in 32..126) {
+                widths[code] = paint.measureText(code.toChar().toString())
+            }
+            val boldPaint = Paint(paint).apply { typeface = boldTypeface }
+            for (code in 32..126) {
+                widths[code + 128] = boldPaint.measureText(code.toChar().toString())
+            }
+            widths
+        }
+    }
     val charHeight = fontMetrics.bottom - fontMetrics.top
     val baselineOffset = -fontMetrics.top
 
@@ -455,12 +478,38 @@ fun FullTerminalView(
                         if (cell.ch != ' ') {
                             val charStr =
                                 if (fontFamilyName == "CyberGlyphs") com.devwithzachary.completelinuxinstaller.theme.CyberGlyphs.transformChar(cell.ch) else cell.ch.toString()
-                            nativeCanvas.drawText(
-                                charStr,
-                                cellX,
-                                rowY + baselineOffset,
-                                paint
-                            )
+                            if (!isMono) {
+                                val chCode = cell.ch.code
+                                val charW = if (asciiCharWidths != null && chCode in 32..126) {
+                                    if (cell.bold) asciiCharWidths[chCode + 128] else asciiCharWidths[chCode]
+                                } else {
+                                    paint.measureText(charStr)
+                                }
+                                if (charW > charWidth) {
+                                    paint.textScaleX = charWidth / charW
+                                    nativeCanvas.drawText(
+                                        charStr,
+                                        cellX,
+                                        rowY + baselineOffset,
+                                        paint
+                                    )
+                                    paint.textScaleX = 1f
+                                } else {
+                                    nativeCanvas.drawText(
+                                        charStr,
+                                        cellX,
+                                        rowY + baselineOffset,
+                                        paint
+                                    )
+                                }
+                            } else {
+                                nativeCanvas.drawText(
+                                    charStr,
+                                    cellX,
+                                    rowY + baselineOffset,
+                                    paint
+                                )
+                            }
                         }
                     }
                 }

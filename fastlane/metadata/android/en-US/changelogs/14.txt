@@ -2,6 +2,6 @@
 • Web Terminal: 1-tap ttyd web terminal for instant local Wi-Fi sharing.
 • VS Code Server: 1-click preset to run Visual Studio Code in browser.
 • Fedora 44: Official rootfs with DNF package manager and presets.
-• Multi-Distro Support: Full presets across 7 Linux distributions.
 • Quick Services: 1-tap VS Code & Web Terminal launchers in Overview.
+• Terminal Theming: Added Cursive, Casual & Serif fonts with balanced spacing.
 • System Hardening: Fixed PRoot socket sizing and TigerVNC scripts.

@@ -36,7 +36,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Tailored 1-Click Software Presets: Full DNF-based presets for XFCE 4 Desktop & VNC, Python 3, Node.js, Android Dev, NGINX, and OpenSSH Server.",
             "TigerVNC & SELinux Hardening: Eliminated TigerVNC wrapper parameter syntax errors and suppressed SELinux netlink warnings for clean desktop launches.",
             "System Hardening: Fixed PRoot socket memory sizing and GID emulation in native extensions.",
-            "Native Runtime Stability: Eliminated compiler warnings across all 32-bit and 64-bit architectures (arm64-v8a, armeabi-v7a, x86_64) for clean builds."
+            "Native Runtime Stability: Eliminated compiler warnings across all 32-bit and 64-bit architectures (arm64-v8a, armeabi-v7a, x86_64) for clean builds.",
+            "Terminal Typography Options: Added Cursive, Casual, Serif, and Sans Serif fonts with optimized character spacing and automatic glyph scaling."
         )
     ),
     ReleaseChangelog(

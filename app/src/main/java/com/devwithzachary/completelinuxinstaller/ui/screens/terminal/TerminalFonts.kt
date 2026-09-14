@@ -12,6 +12,10 @@ object TerminalFonts {
     const val JETBRAINS_MONO = "JetBrains Mono"
     const val UBUNTU_MONO = "Ubuntu Mono"
     const val MONOSPACE = "Monospace"
+    const val CURSIVE = "Cursive"
+    const val CASUAL = "Casual"
+    const val SERIF = "Serif"
+    const val SANS_SERIF = "Sans Serif"
     const val CYBER_GLYPHS = "CyberGlyphs"
 
     const val DEFAULT_FONT = JETBRAINS_MONO
@@ -20,6 +24,10 @@ object TerminalFonts {
         JETBRAINS_MONO,
         UBUNTU_MONO,
         MONOSPACE,
+        CURSIVE,
+        CASUAL,
+        SERIF,
+        SANS_SERIF,
         CYBER_GLYPHS
     )
 
@@ -37,6 +45,26 @@ object TerminalFonts {
         )
     }
 
+    val CursiveFontFamily: FontFamily by lazy {
+        FontFamily.Cursive
+    }
+
+    val CasualFontFamily: FontFamily by lazy {
+        try {
+            FontFamily(Typeface.create("casual", Typeface.NORMAL))
+        } catch (_: Throwable) {
+            FontFamily.Cursive
+        }
+    }
+
+    val SerifFontFamily: FontFamily by lazy {
+        FontFamily.Serif
+    }
+
+    val SansSerifFontFamily: FontFamily by lazy {
+        FontFamily.SansSerif
+    }
+
     /**
      * Cache typefaces to avoid repeatedly parsing font resources on every render frame.
      */
@@ -46,17 +74,28 @@ object TerminalFonts {
         val cacheKey = "${fontName}_${if (bold) "bold" else "normal"}"
         typefaceCache[cacheKey]?.let { return it }
 
-        val resId = when (fontName) {
-            UBUNTU_MONO -> if (bold) R.font.ubuntu_mono_bold else R.font.ubuntu_mono_regular
-            JETBRAINS_MONO, MONOSPACE, CYBER_GLYPHS -> if (bold) R.font.jetbrains_mono_bold else R.font.jetbrains_mono_regular
-            else -> if (bold) R.font.jetbrains_mono_bold else R.font.jetbrains_mono_regular
-        }
-
+        val style = if (bold) Typeface.BOLD else Typeface.NORMAL
         val typeface = try {
-            ResourcesCompat.getFont(context, resId)
-                ?: if (bold) Typeface.create(Typeface.MONOSPACE, Typeface.BOLD) else Typeface.MONOSPACE
+            when (fontName) {
+                UBUNTU_MONO -> {
+                    val resId = if (bold) R.font.ubuntu_mono_bold else R.font.ubuntu_mono_regular
+                    ResourcesCompat.getFont(context, resId) ?: Typeface.create(Typeface.MONOSPACE, style)
+                }
+                CURSIVE -> Typeface.create("cursive", style)
+                CASUAL -> Typeface.create("casual", style)
+                SERIF -> Typeface.create(Typeface.SERIF, style)
+                SANS_SERIF -> Typeface.create(Typeface.SANS_SERIF, style)
+                JETBRAINS_MONO, MONOSPACE, CYBER_GLYPHS -> {
+                    val resId = if (bold) R.font.jetbrains_mono_bold else R.font.jetbrains_mono_regular
+                    ResourcesCompat.getFont(context, resId) ?: Typeface.create(Typeface.MONOSPACE, style)
+                }
+                else -> {
+                    val resId = if (bold) R.font.jetbrains_mono_bold else R.font.jetbrains_mono_regular
+                    ResourcesCompat.getFont(context, resId) ?: Typeface.create(Typeface.MONOSPACE, style)
+                }
+            }
         } catch (_: Throwable) {
-            if (bold) Typeface.create(Typeface.MONOSPACE, Typeface.BOLD) else Typeface.MONOSPACE
+            Typeface.create(Typeface.MONOSPACE, style)
         }
 
         typefaceCache[cacheKey] = typeface
@@ -66,6 +105,10 @@ object TerminalFonts {
     fun getComposeFontFamily(fontName: String): FontFamily {
         return when (fontName) {
             UBUNTU_MONO -> UbuntuMonoFontFamily
+            CURSIVE -> CursiveFontFamily
+            CASUAL -> CasualFontFamily
+            SERIF -> SerifFontFamily
+            SANS_SERIF -> SansSerifFontFamily
             JETBRAINS_MONO, MONOSPACE, CYBER_GLYPHS -> JetBrainsMonoFontFamily
             else -> JetBrainsMonoFontFamily
         }
@@ -76,8 +119,20 @@ object TerminalFonts {
             UBUNTU_MONO -> UBUNTU_MONO
             JETBRAINS_MONO -> JETBRAINS_MONO
             MONOSPACE -> MONOSPACE
+            CURSIVE -> CURSIVE
+            CASUAL -> CASUAL
+            SERIF -> SERIF
+            SANS_SERIF -> SANS_SERIF
             CYBER_GLYPHS -> CYBER_GLYPHS
             else -> DEFAULT_FONT
+        }
+    }
+
+    fun isMonospace(fontName: String?): Boolean {
+        return when (fontName) {
+            CURSIVE, CASUAL, SERIF, SANS_SERIF -> false
+            UBUNTU_MONO, MONOSPACE, CYBER_GLYPHS, JETBRAINS_MONO -> true
+            else -> true
         }
     }
 }

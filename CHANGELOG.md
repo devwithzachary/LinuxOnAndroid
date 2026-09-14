@@ -34,6 +34,11 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **SELinux Container Hardening**: Automatically configures `/etc/selinux/config` with `SELINUX=disabled` on DNF rootfs images to suppress `selinux_status_open()` netlink warnings in PRoot.
 - **TigerVNC Server Wrapper Stability**: Hardened TigerVNC server wrapper script generation, eliminating bash parameter escaping errors and ensuring reliable XFCE desktop initialization.
 
+### 🎨 Terminal Theming & Fun Typography Options
+- **Expanded Font Selection**: Added playful and expressive font family options (Cursive, Casual, Serif, and Sans Serif) to Settings alongside classic developer monospace fonts (JetBrains Mono, Ubuntu Mono, System Monospace) and the CyberGlyphs symbol set.
+- **Optimized Character Spacing & Glyph Scaling**: Balanced character cell advance widths and added automatic horizontal glyph scaling for proportional fonts to eliminate wide gaps between letters while preserving strict monospace grid alignment for developer fonts.
+- **Dynamic In-Terminal Rendering & Preview**: All fonts automatically render across active terminal sessions and update the interactive live theme preview box in Settings.
+
 ### ⚙️ System Architecture & Codebase Hardening
 - **Native Runtime Stability & Bug Fixes**: Corrected socketcall memory allocation and pointer sizing in `port_switch`, fixed an unconditional GID overwrite in `fake_id0`, resolved IPv6 UDP condition handling, and initialized tracee seccomp result registers.
 - **Zero-Warning Toolchain Compliance**: Eliminated all native C compiler warnings across `arm64-v8a`, `armeabi-v7a`, and `x86_64` ABIs and cleaned up Kotlin/Compose deprecation and dead code warnings.
