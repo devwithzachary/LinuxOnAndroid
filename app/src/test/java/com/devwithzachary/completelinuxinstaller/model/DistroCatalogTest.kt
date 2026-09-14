@@ -77,7 +77,7 @@ class DistroCatalogTest {
 
     @Test
     fun testDistros_haveOneClickSoftwarePackageCommands() {
-        val packageIds = listOf("xfce_desktop", "python_dev", "node_dev", "android_dev", "nginx_web", "openssh_server")
+        val packageIds = listOf("xfce_desktop", "python_dev", "node_dev", "android_dev", "nginx_web", "openssh_server", "code_server")
         for (distro in DistroCatalog.ALL_DISTROS) {
             for (pkgId in packageIds) {
                 val cmd = distro.getSoftwarePackageInstallCommand(pkgId, 2222)
@@ -326,5 +326,64 @@ class DistroCatalogTest {
         val sshInstall = fedora.getSoftwarePackageInstallCommand("openssh_server", 2222)
         assertTrue("Fedora ssh install must use dnf", sshInstall!!.contains("dnf install -y openssh-server"))
         assertTrue("Fedora ssh install must configure port 2222", sshInstall.contains("Port 2222"))
+    }
+
+    @Test
+    fun testCodeServerPreset_definedAndValid() {
+        val presets = SoftwarePackage.getPresets()
+        val codePkg = presets.find { it.id == "code_server" }
+        assertNotNull("code_server preset must be present", codePkg)
+        assertEquals("VS Code Server (code-server)", codePkg!!.name)
+        assertEquals(SoftwareCategory.DEVELOPMENT, codePkg.category)
+        assertEquals("Code", codePkg.iconName)
+        assertTrue("Expected binaries must include usr/bin/code-server", codePkg.expectedBinaries.contains("usr/bin/code-server"))
+
+        val launchCmd = codePkg.launchCommand
+        assertNotNull("code_server must have launch command", launchCmd)
+        assertTrue("Launch command must specify 0.0.0.0 bind address", launchCmd!!.contains("--bind-addr 0.0.0.0:"))
+        assertTrue("Launch command must disable authentication for instant access", launchCmd.contains("--auth none"))
+        assertTrue("Launch command must support fallback to 8443 if 8080 is in use", launchCmd.contains("PORT=8443"))
+    }
+
+    @Test
+    fun testCodeServer_isBinaryPresentAliasDetection() {
+        val tempDir = java.nio.file.Files.createTempDirectory("loa_test_rootfs").toFile()
+        try {
+            val usrLocalBin = java.io.File(tempDir, "usr/local/bin").apply { mkdirs() }
+            val dummyBinary = java.io.File(usrLocalBin, "code-server")
+            dummyBinary.writeText("#!/bin/sh\nexit 0\n")
+
+            // Even though binary is at usr/local/bin/code-server, checking usr/bin/code-server must resolve to true
+            assertTrue(
+                "isBinaryPresent for usr/bin/code-server must resolve usr/local/bin/code-server alias",
+                SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/code-server")
+            )
+            assertTrue(
+                "isBinaryPresent for usr/local/bin/code-server must be true",
+                SoftwarePackage.isBinaryPresent(tempDir, "usr/local/bin/code-server")
+            )
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun testCodeServer_distroSpecificInstallCommands() {
+        val fedoraCmd = DistroCatalog.FEDORA_44.getSoftwarePackageInstallCommand("code_server")
+        assertNotNull(fedoraCmd)
+        assertTrue("Fedora code-server install must use dnf", fedoraCmd!!.contains("dnf install -y"))
+        assertTrue("Fedora code-server install must run install.sh", fedoraCmd.contains("install.sh"))
+
+        val archCmd = DistroCatalog.ARCH_ARM.getSoftwarePackageInstallCommand("code_server")
+        assertNotNull(archCmd)
+        assertTrue("Arch code-server install must use standalone prefix to bypass makepkg root restriction", archCmd!!.contains("--method=standalone"))
+
+        val voidCmd = DistroCatalog.VOID_ROLLING.getSoftwarePackageInstallCommand("code_server")
+        assertNotNull(voidCmd)
+        assertTrue("Void code-server install must use standalone method", voidCmd!!.contains("--method=standalone"))
+
+        val alpineCmd = DistroCatalog.ALPINE_3_21.getSoftwarePackageInstallCommand("code_server")
+        assertNotNull(alpineCmd)
+        assertTrue("Alpine code-server install must install npm/nodejs or standalone", alpineCmd!!.contains("npm install -g code-server") || alpineCmd.contains("--method=standalone"))
     }
 }

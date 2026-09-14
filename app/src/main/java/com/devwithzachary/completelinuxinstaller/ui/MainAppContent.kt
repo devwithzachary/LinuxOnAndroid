@@ -350,6 +350,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 isVncInstalled = dashboardState.isVncInstalled,
                                 isNginxInstalled = dashboardState.isNginxInstalled,
                                 isSshInstalled = dashboardState.isSshInstalled,
+                                isCodeServerInstalled = dashboardState.isCodeServerInstalled,
                                 sshPort = sshPort,
                                 bindSdCard = dashboardState.bindSdCard,
                                 dnsServers = dnsServers,

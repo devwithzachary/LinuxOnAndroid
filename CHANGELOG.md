@@ -4,6 +4,13 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 
 ## [1.7.0] - 2026-09-14
 
+### 💻 1-Click VS Code Server (code-server)
+- **Visual Studio Code in the Browser**: Added a 1-click preset in the Software Hub to install and launch code-server, bringing the full VS Code desktop IDE experience (extensions, syntax highlighting, file explorer, and integrated terminal) directly into Google Chrome or any browser on your phone, tablet, or PC.
+- **Universal Multi-Distro Support**: Fully configured across all 7 supported distributions (Ubuntu 26.04, Debian 12, Fedora 44, Alpine 3.21, Arch Linux ARM, Kali Rolling, and Void Linux) with automated fallback to standalone self-contained binaries.
+- **Port Conflict Handling & Instant Access**: Automatically launches with passwordless authentication (`--auth none`) on port 8080 (or port 8443 if 8080 is occupied by NGINX).
+- **Quick Service Launcher**: Added a dedicated VS Code launcher button to Container Overview Quick Services for 1-tap startup.
+- **System Monitor Integration**: Real-time detection of VS Code Server listening on ports 8080 and 8443 with 1-click "Open in Browser" action.
+
 ### 🐧 Fedora Distribution & DNF Package Management
 - **Official Fedora 44 Support**: Added official support for Fedora 44 as a full container distribution in the Multi-Distro Setup Wizard with signature Fedora Blue theme accents.
 - **Upstream Release Images**: Downloads pure, official rootfs builds directly from `download.fedoraproject.org` for ARM64 and x86_64, eliminating dependencies on third-party images.

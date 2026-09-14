@@ -40,7 +40,10 @@ data class SoftwarePackage(
         private const val NONINT_EXPORT =
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; mkdir -p /usr/sbin /etc /var/lib/dbus 2>/dev/null; (grep -q ^messagebus: /etc/group || echo \"messagebus:x:101:\" >> /etc/group); (grep -q ^messagebus: /etc/passwd || echo \"messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\" >> /etc/passwd); (grep -q ^messagebus: /etc/shadow || echo \"messagebus:*:19700:0:99999:7:::\" >> /etc/shadow); (grep -q ^www-data: /etc/group || echo \"www-data:x:33:\" >> /etc/group); (grep -q ^www-data: /etc/passwd || echo \"www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\" >> /etc/passwd); (grep -q ^sshd: /etc/group || echo \"sshd:x:102:\" >> /etc/group); (grep -q ^sshd: /etc/passwd || echo \"sshd:x:102:102:Privilege-separated SSH:/run/sshd:/usr/sbin/nologin\" >> /etc/passwd); printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; if [ ! -f /bin/systemctl ] && [ ! -f /usr/bin/systemctl ]; then printf '#!/bin/sh\\nexit 0\\n' > /usr/bin/systemctl && chmod 755 /usr/bin/systemctl; fi; dbus-uuidgen --ensure 2>/dev/null || true; chmod 755 /usr /usr/local /usr/local/bin /usr/local/sbin /usr/bin /usr/sbin /bin /sbin /etc 2>/dev/null; chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /var/lib/dpkg/lock* /usr/bin/*.dpkg-new /usr/lib/*.dpkg-new 2>/dev/null; mkdir -p /etc/dpkg/dpkg.cfg.d && echo force-all > /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-unsafe-io >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-overwrite >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confold >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confdef >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-depends >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid; mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; export TMPDIR=/tmp && export TMP=/tmp && export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a; chown -R 0:0 /etc/sudoers /etc/sudoers.d /etc/sudo.conf /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true; chmod 0440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true"
 
-        fun isBinaryPresent(rootfsDir: File, relativePath: String): Boolean {
+        fun isBinaryPresent(rootfsDir: File, relativePath: String, visited: Set<String> = emptySet()): Boolean {
+            if (relativePath in visited) return false
+            val currentVisited = visited + relativePath
+
             val file = File(rootfsDir, relativePath)
             if (file.exists()) return true
 
@@ -75,20 +78,48 @@ data class SoftwarePackage(
             // Handle well-known binary aliases across distributions
             when (relativePath) {
                 "usr/bin/vncserver" -> {
-                    if (isBinaryPresent(rootfsDir, "usr/bin/tigervncserver") ||
-                        isBinaryPresent(rootfsDir, "usr/bin/Xvnc") ||
-                        isBinaryPresent(rootfsDir, "usr/bin/Xtigervnc")
+                    if (isBinaryPresent(rootfsDir, "usr/bin/tigervncserver", currentVisited) ||
+                        isBinaryPresent(rootfsDir, "usr/bin/Xvnc", currentVisited) ||
+                        isBinaryPresent(rootfsDir, "usr/bin/Xtigervnc", currentVisited)
                     ) return true
                 }
                 "usr/sbin/sshd" -> {
-                    if (isBinaryPresent(rootfsDir, "usr/bin/sshd")) return true
+                    if (isBinaryPresent(rootfsDir, "usr/bin/sshd", currentVisited)) return true
+                }
+                "usr/bin/sshd" -> {
+                    if (isBinaryPresent(rootfsDir, "usr/sbin/sshd", currentVisited)) return true
                 }
                 "usr/sbin/nginx" -> {
-                    if (isBinaryPresent(rootfsDir, "usr/bin/nginx")) return true
+                    if (isBinaryPresent(rootfsDir, "usr/bin/nginx", currentVisited)) return true
+                }
+                "usr/bin/nginx" -> {
+                    if (isBinaryPresent(rootfsDir, "usr/sbin/nginx", currentVisited)) return true
+                }
+                "usr/bin/code-server", "usr/local/bin/code-server" -> {
+                    val codeAliases = listOf(
+                        "usr/bin/code-server",
+                        "usr/local/bin/code-server",
+                        "usr/lib/code-server/bin/code-server"
+                    )
+                    for (alias in codeAliases) {
+                        if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
+                            return true
+                        }
+                    }
                 }
             }
 
             return false
+        }
+
+        fun buildCodeServerLaunchCommand(port: Int = 8080): String {
+            val validPort = if (port in 1..65535) port else 8080
+            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=8443; fi; (pkill -f code-server 2>/dev/null || true); (nohup code-server --bind-addr 0.0.0.0:\$PORT --auth none >/tmp/code-server.log 2>&1 &) && sleep 1 && cat /tmp/code-server.log 2>/dev/null || true; echo \"code-server listening on http://localhost:\$PORT\""
+        }
+
+        fun buildCodeServerPostInstallNotes(port: Int = 8080): String {
+            val validPort = if (port in 1..65535) port else 8080
+            return "VS Code Server runs in your browser without password authentication on port $validPort (or 8443 if 8080 is busy). Open http://localhost:$validPort in Chrome or any browser."
         }
 
         fun buildNginxLaunchCommand(port: Int = 8080): String {
@@ -170,6 +201,18 @@ data class SoftwarePackage(
                     postInstallNotes = "Includes OpenJDK 17, adb, fastboot, and Gradle for building Android projects.",
                     expectedBinaries = listOf("usr/bin/java", "usr/bin/adb", "usr/bin/gradle", "usr/bin/git"),
                     version = 2
+                ),
+                SoftwarePackage(
+                    id = "code_server",
+                    name = "VS Code Server (code-server)",
+                    category = SoftwareCategory.DEVELOPMENT,
+                    description = "Full Visual Studio Code IDE accessible in any web browser with extensions, syntax highlighting, and integrated terminal.",
+                    iconName = "Code",
+                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS curl ca-certificates git procps && (curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)",
+                    launchCommand = buildCodeServerLaunchCommand(),
+                    postInstallNotes = buildCodeServerPostInstallNotes(),
+                    expectedBinaries = listOf("usr/bin/code-server"),
+                    version = 1
                 ),
                 SoftwarePackage(
                     id = "nginx_web",

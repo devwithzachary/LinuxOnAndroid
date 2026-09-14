@@ -12,7 +12,7 @@ class SoftwarePackageTest {
     fun testGetPresets_returnsNonEmptyList() {
         val presets = SoftwarePackage.getPresets()
         assertTrue("Preset package list should not be empty", presets.isNotEmpty())
-        assertEquals(6, presets.size)
+        assertEquals(7, presets.size)
     }
 
     @Test
@@ -128,6 +128,8 @@ class SoftwarePackageTest {
 
             // Non-existent binary returns false
             assertFalse("nonexistent binary must return false", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/nonexistent_xyz"))
+            assertFalse("nonexistent code-server binary must safely return false without recursion", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/code-server"))
+            assertFalse("nonexistent code-server usr/local/bin must safely return false without recursion", SoftwarePackage.isBinaryPresent(tempDir, "usr/local/bin/code-server"))
         } finally {
             tempDir.deleteRecursively()
         }

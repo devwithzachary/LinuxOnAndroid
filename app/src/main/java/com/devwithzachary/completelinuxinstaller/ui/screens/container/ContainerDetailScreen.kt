@@ -79,6 +79,7 @@ fun ContainerDetailScreen(
     isVncInstalled: Boolean = false,
     isNginxInstalled: Boolean = false,
     isSshInstalled: Boolean = false,
+    isCodeServerInstalled: Boolean = false,
     sshPort: Int = 2222,
     bindSdCard: Boolean = true,
     dnsServers: List<String> = listOf("8.8.8.8", "1.1.1.1"),
@@ -247,6 +248,13 @@ fun ContainerDetailScreen(
             (container.isDefault && isSshInstalled)
         }
 
+        val codeServerInstalled = remember(container.rootDirPath, packages, isCodeServerInstalled) {
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/bin/code-server") ||
+            SoftwarePackage.isBinaryPresent(container.rootDir, "usr/local/bin/code-server") ||
+            packages.find { it.id == "code_server" }?.status == InstallStatus.INSTALLED ||
+            (container.isDefault && isCodeServerInstalled)
+        }
+
         // Horizontal Pager with continuous sliding animation and swipe gesture support
         HorizontalPager(
             state = pagerState,
@@ -262,6 +270,7 @@ fun ContainerDetailScreen(
                         isVncInstalled = vncInstalled,
                         isNginxInstalled = nginxInstalled,
                         isSshInstalled = sshInstalled,
+                        isCodeServerInstalled = codeServerInstalled,
                         onKillProcess = onKillProcess,
                         onRunPresetCommand = onRunPresetCommand,
                         onNavigateToSoftwareTab = {
@@ -326,6 +335,7 @@ private fun OverviewTabContent(
     isVncInstalled: Boolean,
     isNginxInstalled: Boolean,
     isSshInstalled: Boolean,
+    isCodeServerInstalled: Boolean,
     onKillProcess: (pid: Int) -> Unit,
     onRunPresetCommand: (command: String) -> Unit,
     onNavigateToSoftwareTab: () -> Unit,
@@ -362,6 +372,7 @@ private fun OverviewTabContent(
                     isVncInstalled = isVncInstalled,
                     isNginxInstalled = isNginxInstalled,
                     isSshInstalled = isSshInstalled,
+                    isCodeServerInstalled = isCodeServerInstalled,
                     sshPort = sshPort,
                     onRunPresetCommand = onRunPresetCommand,
                     onPromptService = { title, pkgId -> servicePrompt = Pair(title, pkgId) }
@@ -408,6 +419,7 @@ private fun OverviewTabContent(
                 isVncInstalled = isVncInstalled,
                 isNginxInstalled = isNginxInstalled,
                 isSshInstalled = isSshInstalled,
+                isCodeServerInstalled = isCodeServerInstalled,
                 sshPort = sshPort,
                 onRunPresetCommand = onRunPresetCommand,
                 onPromptService = { title, pkgId -> servicePrompt = Pair(title, pkgId) }
@@ -461,6 +473,7 @@ private fun ServicesCard(
     isVncInstalled: Boolean,
     isNginxInstalled: Boolean,
     isSshInstalled: Boolean,
+    isCodeServerInstalled: Boolean,
     sshPort: Int,
     onRunPresetCommand: (command: String) -> Unit,
     onPromptService: (title: String, pkgId: String) -> Unit
@@ -546,6 +559,22 @@ private fun ServicesCard(
                             sshPkg?.launchCommand?.let { onRunPresetCommand(it) }
                         } else {
                             onPromptService("OpenSSH Server", "openssh_server")
+                        }
+                    }
+                )
+
+                // VS Code Launcher
+                ServiceLauncherButton(
+                    icon = Icons.Default.Code,
+                    label = "VS Code",
+                    isInstalled = isCodeServerInstalled,
+                    modifier = Modifier.weight(1f).handHover(),
+                    onClick = {
+                        if (isCodeServerInstalled) {
+                            val codePkg = SoftwarePackage.getPresets().find { it.id == "code_server" }
+                            codePkg?.launchCommand?.let { onRunPresetCommand(it) }
+                        } else {
+                            onPromptService("VS Code Server (code-server)", "code_server")
                         }
                     }
                 )

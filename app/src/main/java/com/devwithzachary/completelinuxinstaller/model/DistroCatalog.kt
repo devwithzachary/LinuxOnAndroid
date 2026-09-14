@@ -151,6 +151,9 @@ object DistroCatalog {
             },
             "openssh_server" to { port ->
                 "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null && mkdir -p /run/sshd /var/run/sshd /var/empty /etc/ssh/sshd_config.d && apt-get update -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" && apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" openssh-server ca-certificates && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && echo \"Port $port\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"UsePAM no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"SetEnv PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"Subsystem sftp internal-sftp\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && (sed -i 's/^Subsystem.*sftp/#&/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^session.*pam_loginuid.so/#&/' /etc/pam.d/sshd 2>/dev/null || true) && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null && apt-get update -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" && apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" curl ca-certificates git procps && (curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
             }
         )
     )
@@ -213,6 +216,9 @@ object DistroCatalog {
             },
             "openssh_server" to { port ->
                 "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y openssh-server ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty /etc/ssh/sshd_config.d && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && echo \"Port $port\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"UsePAM no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"SetEnv PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"Subsystem sftp internal-sftp\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && (sed -i 's/^Subsystem.*sftp/#&/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^session.*pam_loginuid.so/#&/' /etc/pam.d/sshd 2>/dev/null || true) && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y curl ca-certificates git procps && (curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -287,6 +293,9 @@ object DistroCatalog {
             },
             "openssh_server" to { port ->
                 "apk update && apk add --no-cache openssh-server openssh ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty && ssh-keygen -A 2>/dev/null || true && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && echo \"Port $port\" >> /etc/ssh/ssh_config && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "apk update && apk add --no-cache curl ca-certificates git nodejs npm gcompat && (npm install -g code-server --unsafe-perm || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
             }
         )
     )
@@ -348,6 +357,9 @@ object DistroCatalog {
             },
             "openssh_server" to { port ->
                 "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/; s/^SigLevel.*/SigLevel = Never/; s/^LocalFileSigLevel.*/LocalFileSigLevel = Never/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm openssh ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && echo \"Port $port\" >> /etc/ssh/ssh_config && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/; s/^SigLevel.*/SigLevel = Never/; s/^LocalFileSigLevel.*/LocalFileSigLevel = Never/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm curl ca-certificates git procps-ng && (curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local || curl -fsSL https://code-server.dev/install.sh | sh)"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -431,6 +443,10 @@ object DistroCatalog {
             "openssh_server" to { port ->
                 "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +
                     "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y openssh-server ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty /etc/ssh/sshd_config.d && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && echo \"Port $port\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"UsePAM no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"SetEnv PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"Subsystem sftp internal-sftp\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && (sed -i 's/^Subsystem.*sftp/#&/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^session.*pam_loginuid.so/#&/' /etc/pam.d/sshd 2>/dev/null || true) && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +
+                    "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y curl ca-certificates git procps && (curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -577,6 +593,12 @@ object DistroCatalog {
                     "(sed -i 's/^#\\?Port .*/Port $port/' /etc/ssh/sshd_config 2>/dev/null || echo \"Port $port\" >> /etc/ssh/sshd_config) && " +
                     "chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && " +
                     "chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
+                    "xbps-install -y curl ca-certificates git procps-ng && " +
+                    "(curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local || curl -fsSL https://code-server.dev/install.sh | sh)"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -768,6 +790,12 @@ object DistroCatalog {
                         "(sed -i 's/^#\\?Port .*/Port $port/' /etc/ssh/sshd_config 2>/dev/null || echo \"Port $port\" >> /etc/ssh/sshd_config) && " +
                         "chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && " +
                         "chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "dnf install -y curl ca-certificates git procps-ng && " +
+                        "(curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
             }
         ),
         softwarePackageLaunchCommands = mapOf(

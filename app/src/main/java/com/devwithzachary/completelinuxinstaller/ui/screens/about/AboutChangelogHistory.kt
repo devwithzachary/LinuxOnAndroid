@@ -27,6 +27,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "September 2026",
         initialExpanded = true,
         highlights = listOf(
+            "1-Click VS Code Server: Install and launch code-server to run full Visual Studio Code in Google Chrome or any browser with extensions, syntax highlighting, and integrated terminal.",
+            "Universal code-server Support: Multi-distro compatibility across Ubuntu, Debian, Fedora, Alpine, Arch, Kali, and Void with conflict-free port management.",
             "Fedora 44 Support: Choose and install official Fedora 44 rootfs images with native DNF package manager support and signature Fedora Blue accents.",
             "Tailored 1-Click Software Presets: Full DNF-based presets for XFCE 4 Desktop & VNC, Python 3, Node.js, Android Dev, NGINX, and OpenSSH Server.",
             "TigerVNC & SELinux Hardening: Eliminated TigerVNC wrapper parameter syntax errors and suppressed SELinux netlink warnings for clean desktop launches.",
