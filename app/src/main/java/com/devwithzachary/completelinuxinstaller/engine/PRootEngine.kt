@@ -198,6 +198,7 @@ class PRootEngine(val context: Context) {
                 pathScript.setExecutable(true, false)
             } catch (_: Exception) {}
         }
+        FastfetchConfig.ensureFastfetchConfig(targetRootfs)
         val loginDefs = File(etcDir, "login.defs")
         if (loginDefs.exists()) {
             try {

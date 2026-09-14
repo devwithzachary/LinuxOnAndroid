@@ -1101,6 +1101,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 } catch (_: Exception) {}
             }
         }
+
+        FastfetchConfig.ensureFastfetchConfig(targetDir)
     }
 
     fun initializeDistroFallback(
