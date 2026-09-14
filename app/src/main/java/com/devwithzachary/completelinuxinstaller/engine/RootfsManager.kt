@@ -1060,6 +1060,19 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                     }
                 }
             } catch (_: Exception) {}
+
+            val selinuxDir = File(etcDir, "selinux").apply { if (!exists()) mkdirs() }
+            val selinuxConf = File(selinuxDir, "config")
+            try {
+                if (selinuxConf.exists()) {
+                    val content = selinuxConf.readText()
+                    if (content.contains("SELINUX=enforcing") || content.contains("SELINUX=permissive")) {
+                        selinuxConf.writeText(content.replace(Regex("(?m)^SELINUX=.*"), "SELINUX=disabled"))
+                    }
+                } else {
+                    selinuxConf.writeText("SELINUX=disabled\nSELINUXTYPE=targeted\n")
+                }
+            } catch (_: Exception) {}
         }
 
         // Ensure execution and read permissions across all system binary directories and uutils/rust-coreutils

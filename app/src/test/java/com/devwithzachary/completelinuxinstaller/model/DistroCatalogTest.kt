@@ -287,10 +287,16 @@ class DistroCatalogTest {
         assertTrue("Script must configure PAM su permit", script.contains("/etc/pam.d/su"))
 
         // Software package overrides
+        assertTrue("Fedora setup script must disable SELinux", script.contains("SELINUX=disabled"))
+
         val xfceInstall = fedora.getSoftwarePackageInstallCommand("xfce_desktop")
         assertNotNull("Fedora xfce install command must exist", xfceInstall)
         assertTrue("Fedora xfce install command must use dnf", xfceInstall!!.contains("dnf install -y"))
         assertTrue("Fedora xfce install command must install tigervnc-server", xfceInstall.contains("tigervnc-server"))
+        assertTrue("Fedora xfce install command must disable SELinux", xfceInstall.contains("SELINUX=disabled"))
+        assertTrue("Fedora xfce install command must deploy TigerVNC wrapper", xfceInstall.contains("TigerVNC server wrapper for PRoot environments"))
+        assertFalse("Fedora wrapper script must not contain escaped dollar parameter \$#", xfceInstall.contains("\\$#"))
+        assertFalse("Fedora wrapper script must not contain escaped command substitution \\$(", xfceInstall.contains("\\$("))
 
         val xfceLaunch = fedora.getSoftwarePackageLaunchCommand("xfce_desktop")
         assertNotNull("Fedora xfce launch command must exist", xfceLaunch)
@@ -305,6 +311,7 @@ class DistroCatalogTest {
 
         val pythonInstall = fedora.getSoftwarePackageInstallCommand("python_dev")
         assertTrue("Fedora python install must use dnf", pythonInstall!!.contains("dnf install -y python3"))
+        assertTrue("Fedora python install must disable SELinux", pythonInstall.contains("SELINUX=disabled"))
 
         val nodeInstall = fedora.getSoftwarePackageInstallCommand("node_dev")
         assertTrue("Fedora node install must use dnf", nodeInstall!!.contains("dnf install -y nodejs"))

@@ -10,6 +10,8 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Native DNF Package Manager**: Full bootstrap and command-line integration for Fedora's `dnf` package manager with automated cache controls (`keepcache=0`) to preserve device storage.
 - **Complete 1-Click Software Stacks**: Tailored installation and launch scripts for XFCE 4 Desktop with TigerVNC, Python 3 Developer Stack, Node.js Stack, Android Development Environment, NGINX Web Server (remapped to port 8080), and OpenSSH Server with PAM-permit authentication and permission management.
 - **Cross-Architecture User Provisioning**: Automated user and wheel group account initialization with password configuration, PAM security definitions, and non-root sudo access.
+- **SELinux Container Hardening**: Automatically configures `/etc/selinux/config` with `SELINUX=disabled` on DNF rootfs images to suppress `selinux_status_open()` netlink warnings in PRoot.
+- **TigerVNC Server Wrapper Stability**: Hardened TigerVNC server wrapper script generation, eliminating bash parameter escaping errors and ensuring reliable XFCE desktop initialization.
 
 ### ⚙️ System Architecture & Codebase Hardening
 - **Native Runtime Stability & Bug Fixes**: Corrected socketcall memory allocation and pointer sizing in `port_switch`, fixed an unconditional GID overwrite in `fake_id0`, resolved IPv6 UDP condition handling, and initialized tracee seccomp result registers.

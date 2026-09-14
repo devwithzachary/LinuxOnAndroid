@@ -1,3 +1,4 @@
 • Fedora 44 Support: Install official Fedora 44 rootfs with native DNF package management and tailored 1-click software stacks (XFCE, Python, Node, NGINX, SSH).
+• TigerVNC & SELinux Hardening: Resolved VNC wrapper syntax errors and suppressed SELinux netlink warnings.
 • System Hardening: Fixed PRoot socket memory sizing, corrected GID emulation, and hardened native runtime stability.
 • Zero-Warning Builds: Clean compiler passes across all 32-bit and 64-bit native ABIs and Kotlin Compose UI.
