@@ -6,13 +6,14 @@ import org.junit.Test
 class DistroCatalogTest {
 
     @Test
-    fun testAllDistros_containsExpectedSixDistros() {
+    fun testAllDistros_containsExpectedSevenDistros() {
         val distros = DistroCatalog.ALL_DISTROS
-        assertEquals(6, distros.size)
+        assertEquals(7, distros.size)
 
         val ids = distros.map { it.id }
         assertTrue("Must contain ubuntu_26_04", ids.contains("ubuntu_26_04"))
         assertTrue("Must contain debian_12", ids.contains("debian_12"))
+        assertTrue("Must contain fedora_44", ids.contains("fedora_44"))
         assertTrue("Must contain alpine_3_21", ids.contains("alpine_3_21"))
         assertTrue("Must contain arch_arm", ids.contains("arch_arm"))
         assertTrue("Must contain kali_rolling", ids.contains("kali_rolling"))
@@ -43,6 +44,7 @@ class DistroCatalogTest {
     fun testDistros_packageManagersMappedCorrectly() {
         assertEquals(PackageManagerType.APT, DistroCatalog.UBUNTU_26_04.packageManager)
         assertEquals(PackageManagerType.APT, DistroCatalog.DEBIAN_12.packageManager)
+        assertEquals(PackageManagerType.DNF, DistroCatalog.FEDORA_44.packageManager)
         assertEquals(PackageManagerType.APK, DistroCatalog.ALPINE_3_21.packageManager)
         assertEquals(PackageManagerType.PACMAN, DistroCatalog.ARCH_ARM.packageManager)
         assertEquals(PackageManagerType.APT, DistroCatalog.KALI_ROLLING.packageManager)
@@ -238,10 +240,11 @@ class DistroCatalogTest {
     }
 
     @Test
-    fun testUbuntuAndDebian_candidateShells_useStandardBashHierarchy() {
+    fun testUbuntuDebianAndFedora_candidateShells_useStandardBashHierarchy() {
         val expected = listOf("/bin/bash", "/usr/bin/bash", "/bin/sh")
         assertEquals(expected, DistroCatalog.UBUNTU_26_04.candidateShells)
         assertEquals(expected, DistroCatalog.DEBIAN_12.candidateShells)
+        assertEquals(expected, DistroCatalog.FEDORA_44.candidateShells)
     }
 
     @Test
@@ -252,5 +255,69 @@ class DistroCatalogTest {
         assertFalse("Script must not link /bin/sh to /bin/bash", script.contains("ln -sf /bin/sh /bin/bash"))
         assertFalse("Script must not link /bin/sh to /usr/bin/bash", script.contains("ln -sf /bin/sh /usr/bin/bash"))
         assertTrue("Script must link /bin/bash to /usr/bin/bash once bash is installed", script.contains("ln -sf /bin/bash /usr/bin/bash"))
+    }
+
+    @Test
+    fun testFedora44_configurationAndOverrides() {
+        val fedora = DistroCatalog.FEDORA_44
+        assertEquals("fedora_44", fedora.id)
+        assertEquals("Fedora 44", fedora.name)
+        assertEquals("44", fedora.version)
+        assertEquals("Leading-Edge & RPM", fedora.tag)
+        assertEquals(PackageManagerType.DNF, fedora.packageManager)
+        assertEquals("/bin/bash", fedora.defaultShell)
+        assertEquals(142, fedora.downloadSizeMb)
+        assertEquals(480, fedora.installedSizeMb)
+        assertEquals(0xFF51A2DA, fedora.colorHex)
+
+        val arm64Url = fedora.getDownloadUrl(SystemArchitecture.ARM64)
+        assertNotNull("Fedora must have ARM64 download URL", arm64Url)
+        assertTrue("Fedora ARM64 URL must point to download.fedoraproject.org", arm64Url!!.contains("download.fedoraproject.org"))
+        assertTrue("Fedora ARM64 URL must be WSL rootfs", arm64Url.endsWith(".wsl"))
+
+        val x86Url = fedora.getDownloadUrl(SystemArchitecture.X86_64)
+        assertNotNull("Fedora must have x86_64 download URL", x86Url)
+        assertTrue("Fedora x86_64 URL must point to download.fedoraproject.org", x86Url!!.contains("download.fedoraproject.org"))
+
+        // First launch script
+        val script = fedora.buildFirstLaunchSetupScript("fedoraRoot", "fedoraUser", "fedoraPass", true)
+        assertTrue("Script must configure fedoraUser in passwd", script.contains("fedoraUser"))
+        assertTrue("Script must configure wheel group", script.contains("wheel"))
+        assertTrue("Script must configure sudoers.d", script.contains("sudoers.d/fedoraUser"))
+        assertTrue("Script must configure PAM su permit", script.contains("/etc/pam.d/su"))
+
+        // Software package overrides
+        val xfceInstall = fedora.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Fedora xfce install command must exist", xfceInstall)
+        assertTrue("Fedora xfce install command must use dnf", xfceInstall!!.contains("dnf install -y"))
+        assertTrue("Fedora xfce install command must install tigervnc-server", xfceInstall.contains("tigervnc-server"))
+
+        val xfceLaunch = fedora.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Fedora xfce launch command must exist", xfceLaunch)
+        assertTrue("Fedora xfce launch command must start vncserver on :1", xfceLaunch!!.contains("vncserver :1"))
+
+        val expectedBinaries = fedora.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Fedora expected binaries must exist", expectedBinaries)
+        assertTrue("Must include startxfce4", expectedBinaries!!.contains("usr/bin/startxfce4"))
+        assertTrue("Must include vncserver", expectedBinaries.contains("usr/bin/vncserver"))
+
+        assertEquals("Fedora xfce_desktop version must be 5", 5, fedora.getSoftwarePackageVersion("xfce_desktop"))
+
+        val pythonInstall = fedora.getSoftwarePackageInstallCommand("python_dev")
+        assertTrue("Fedora python install must use dnf", pythonInstall!!.contains("dnf install -y python3"))
+
+        val nodeInstall = fedora.getSoftwarePackageInstallCommand("node_dev")
+        assertTrue("Fedora node install must use dnf", nodeInstall!!.contains("dnf install -y nodejs"))
+
+        val androidInstall = fedora.getSoftwarePackageInstallCommand("android_dev")
+        assertTrue("Fedora android install must use dnf", androidInstall!!.contains("dnf install -y java-17-openjdk-headless"))
+
+        val nginxInstall = fedora.getSoftwarePackageInstallCommand("nginx_web")
+        assertTrue("Fedora nginx install must use dnf", nginxInstall!!.contains("dnf install -y nginx"))
+        assertTrue("Fedora nginx install must remap port 80", nginxInstall.contains("8080"))
+
+        val sshInstall = fedora.getSoftwarePackageInstallCommand("openssh_server", 2222)
+        assertTrue("Fedora ssh install must use dnf", sshInstall!!.contains("dnf install -y openssh-server"))
+        assertTrue("Fedora ssh install must configure port 2222", sshInstall.contains("Port 2222"))
     }
 }

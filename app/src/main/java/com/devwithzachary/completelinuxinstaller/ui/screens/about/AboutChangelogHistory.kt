@@ -27,6 +27,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "September 2026",
         initialExpanded = true,
         highlights = listOf(
+            "Fedora 44 Support: Choose and install official Fedora 44 rootfs images with native DNF package manager support and signature Fedora Blue accents.",
+            "Tailored 1-Click Software Presets: Full DNF-based presets for XFCE 4 Desktop & VNC, Python 3, Node.js, Android Dev, NGINX, and OpenSSH Server.",
             "System Hardening: Fixed PRoot socket memory sizing and GID emulation in native extensions.",
             "Native Runtime Stability: Eliminated compiler warnings across all 32-bit and 64-bit architectures (arm64-v8a, armeabi-v7a, x86_64) for clean builds."
         )

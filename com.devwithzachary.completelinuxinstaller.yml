@@ -17,7 +17,7 @@ Binaries:
 Builds:
   - versionName: 1.6.0
     versionCode: 13
-    commit: 94deea6b9a28f059140ac09052bb68560ed23876
+    commit: 28861065908a70de0a88bb54dbca51c3cd4b2360
     subdir: app
     sudo:
       - apt-get update
