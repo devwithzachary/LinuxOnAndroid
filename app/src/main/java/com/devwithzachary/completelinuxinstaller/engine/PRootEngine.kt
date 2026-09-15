@@ -11,7 +11,7 @@ data class PRootConfig(
     val rootfsDir: File,
     val tmpDir: File,
     val bindSdCard: Boolean = true,
-    val customMounts: List<String> = emptyList(),
+    val externalDirectory: File? = null,
     val workingDir: String = "/root",
     val defaultShell: String = "/bin/bash"
 )
@@ -198,6 +198,8 @@ class PRootEngine(val context: Context) {
                 pathScript.setExecutable(true, false)
             } catch (_: Exception) {}
         }
+        FastfetchConfig.ensureFastfetchConfig(targetRootfs)
+        NetworkShims.ensureNetworkShims(targetRootfs, context)
         val loginDefs = File(etcDir, "login.defs")
         if (loginDefs.exists()) {
             try {
@@ -427,20 +429,70 @@ class PRootEngine(val context: Context) {
                 if (appExternalFilesDir != null) {
                     mounts.add("${appExternalFilesDir.absolutePath}:/sdcard/AppStorage")
                 }
-
                 val storageDir = File("/storage")
                 if (storageDir.exists()) {
                     mounts.add("/storage")
                 }
             }
-            mounts.addAll(config.customMounts)
+
+            // Auto-mount container's dedicated external files directory at /external
+            val effectiveExternalDir = config.externalDirectory ?: run {
+                try {
+                    val cm = ContainerManager(context)
+                    val container = cm.containers.value.find { it.rootDirPath == config.rootfsDir.absolutePath }
+                    if (container != null && container.externalFolderName.isNotBlank()) {
+                        container.getExternalDirectory(context)
+                    } else null
+                } catch (_: Exception) { null }
+            }
+            if (effectiveExternalDir != null && effectiveExternalDir.exists()) {
+                val guestExternal = File(config.rootfsDir, "external")
+                if (!guestExternal.exists()) {
+                    try { guestExternal.mkdirs() } catch (_: Exception) {}
+                }
+                mounts.add("${effectiveExternalDir.absolutePath}:/external")
+            }
 
             for (m in mounts) {
                 if (m.contains(":")) {
-                    cmdList.add("-b")
-                    cmdList.add(m)
+                    val parts = m.split(":", limit = 2)
+                    val hostPath = parts[0].trim()
+                    val guestPath = parts[1].trim()
+                    val hostFile = File(hostPath)
+                    // If host directory does not exist, attempt to create it if within external storage
+                    if (!hostFile.exists() && (hostPath.startsWith("/sdcard") || hostPath.startsWith("/storage"))) {
+                        try { hostFile.mkdirs() } catch (_: Exception) {}
+                    }
+                    if (hostFile.exists()) {
+                        // Ensure guest mountpoint exists inside rootfs to prevent PRoot ENOENT startup errors
+                        val guestMountpoint = File(config.rootfsDir, guestPath.removePrefix("/"))
+                        if (!guestMountpoint.exists()) {
+                            try { guestMountpoint.mkdirs() } catch (_: Exception) {}
+                        }
+                        cmdList.add("-b")
+                        cmdList.add("$hostPath:$guestPath")
+                    } else {
+                        Log.w(TAG, "Skipping custom bind mount; host path does not exist: $hostPath")
+                    }
                 } else {
                     addBindMount(cmdList, m)
+                }
+            }
+
+            val nativeLibDir = File(context.applicationInfo.nativeLibraryDir)
+            if (nativeLibDir.exists()) {
+                addBindMount(cmdList, nativeLibDir.absolutePath)
+                val loaderFile = File(nativeLibDir, "libproot_loader.so")
+                if (loaderFile.exists() && loaderFile.length() > 0L) {
+                    try {
+                        val guestUsrLocalLib = File(config.rootfsDir, "usr/local/lib").apply { mkdirs() }
+                        val guestLoader = File(guestUsrLocalLib, "libproot_loader.so")
+                        if (!guestLoader.exists() || guestLoader.length() != loaderFile.length()) {
+                            loaderFile.copyTo(guestLoader, overwrite = true)
+                            guestLoader.setExecutable(true, false)
+                            guestLoader.setReadable(true, false)
+                        }
+                    } catch (_: Exception) {}
                 }
             }
 

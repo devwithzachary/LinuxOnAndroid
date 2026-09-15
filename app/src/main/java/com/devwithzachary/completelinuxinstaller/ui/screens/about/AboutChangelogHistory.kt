@@ -27,8 +27,20 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "September 2026",
         initialExpanded = true,
         highlights = listOf(
+            "1-Click Docker & Container Tools: Pull and run containers without root via udocker, with official Docker CLI and Docker Compose support across all distributions.",
+            "Browser Web Terminal (ttyd): Share and access your full Linux shell from any web browser over local Wi-Fi with zero passwords or SSH clients required.",
+            "Smart Port Handling & Quick Launcher: Added 1-tap Web Terminal launcher in Container Overview with intelligent port fallback between 8080 and 7681.",
+            "1-Click VS Code Server: Install and launch code-server to run full Visual Studio Code in Google Chrome or any browser with extensions, syntax highlighting, and integrated terminal.",
+            "Universal code-server Support: Multi-distro compatibility across Ubuntu, Debian, Fedora, Alpine, Arch, Kali, and Void with conflict-free port management.",
+            "Fedora 44 Support: Choose and install official Fedora 44 rootfs images with native DNF package manager support and signature Fedora Blue accents.",
+            "Tailored 1-Click Software Presets: Full DNF-based presets for XFCE 4 Desktop & VNC, Python 3, Node.js, Android Dev, NGINX, and OpenSSH Server.",
+            "TigerVNC & SELinux Hardening: Eliminated TigerVNC wrapper parameter syntax errors and suppressed SELinux netlink warnings for clean desktop launches.",
             "System Hardening: Fixed PRoot socket memory sizing and GID emulation in native extensions.",
-            "Native Runtime Stability: Eliminated compiler warnings across all 32-bit and 64-bit architectures (arm64-v8a, armeabi-v7a, x86_64) for clean builds."
+            "Native Runtime Stability: Eliminated compiler warnings across all 32-bit and 64-bit architectures (arm64-v8a, armeabi-v7a, x86_64) for clean builds.",
+            "Terminal Typography Options: Added Cursive, Casual, Serif, and Sans Serif fonts with optimized character spacing and automatic glyph scaling.",
+            "Dedicated Storage & Import/Export (/external): Automatic per-container external storage mounted at /external with full POSIX permissions, clickable file manager launcher, and SAF import/export bridge.",
+            "Terminal Text Selection: Fixed multi-screen selection to stay anchored to buffer text while scrolling, with edge-drag auto-scrolling handles and buffer-wide Select All.",
+            "VNC & Network Diagnostics: Resolved Android 10+ SELinux blocks with transparent netstat, ss, and ip shims, added full vncserver -list session tracking, and enabled LAN IP resolution for hostname -i."
         )
     ),
     ReleaseChangelog(

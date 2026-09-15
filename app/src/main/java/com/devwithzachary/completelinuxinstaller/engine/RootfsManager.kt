@@ -120,8 +120,9 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         username: String = "ubuntu",
         userPassword: String = "ubuntu"
     ): Flow<DownloadState> = channelFlow {
-        send(DownloadState.Downloading(0L, 100L, 0))
-        val isXz = distroDef.getDownloadUrl(com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getForSystemArch(android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64"))?.endsWith(".xz") == true
+        val arch = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getForSystemArch(android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64")
+        val downloadUrl = distroDef.getDownloadUrl(arch) ?: distroDef.downloadUrls[com.devwithzachary.completelinuxinstaller.model.SystemArchitecture.ARM64]!!
+        val isXz = downloadUrl.endsWith(".xz")
         val archiveFile = File(context.cacheDir, if (isXz) "rootfs_base.tar.xz" else "rootfs_base.tar.gz")
 
         try {
@@ -129,8 +130,6 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 targetDir.mkdirs()
             }
 
-            val arch = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getForSystemArch(android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64")
-            val downloadUrl = distroDef.getDownloadUrl(arch) ?: distroDef.downloadUrls[com.devwithzachary.completelinuxinstaller.model.SystemArchitecture.ARM64]!!
             Log.d(TAG, "Starting download of ${distroDef.name} rootfs from: $downloadUrl")
 
             val url = URL(downloadUrl)
@@ -1050,6 +1049,32 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             } catch (_: Exception) {}
         }
 
+        if (distroDef.packageManager == com.devwithzachary.completelinuxinstaller.model.PackageManagerType.DNF) {
+            val dnfDir = File(etcDir, "dnf").apply { if (!exists()) mkdirs() }
+            val dnfConf = File(dnfDir, "dnf.conf")
+            try {
+                if (dnfConf.exists()) {
+                    val content = dnfConf.readText()
+                    if (!content.contains("keepcache")) {
+                        dnfConf.appendText("\nkeepcache=0\n")
+                    }
+                }
+            } catch (_: Exception) {}
+
+            val selinuxDir = File(etcDir, "selinux").apply { if (!exists()) mkdirs() }
+            val selinuxConf = File(selinuxDir, "config")
+            try {
+                if (selinuxConf.exists()) {
+                    val content = selinuxConf.readText()
+                    if (content.contains("SELINUX=enforcing") || content.contains("SELINUX=permissive")) {
+                        selinuxConf.writeText(content.replace(Regex("(?m)^SELINUX=.*"), "SELINUX=disabled"))
+                    }
+                } else {
+                    selinuxConf.writeText("SELINUX=disabled\nSELINUXTYPE=targeted\n")
+                }
+            } catch (_: Exception) {}
+        }
+
         // Ensure execution and read permissions across all system binary directories and uutils/rust-coreutils
         val binaryDirs = listOf(
             File(targetDir, "bin"),
@@ -1076,6 +1101,9 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 } catch (_: Exception) {}
             }
         }
+
+        FastfetchConfig.ensureFastfetchConfig(targetDir)
+        NetworkShims.ensureNetworkShims(targetDir)
     }
 
     fun initializeDistroFallback(

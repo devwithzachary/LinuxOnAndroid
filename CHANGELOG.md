@@ -2,7 +2,62 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
-## [1.7.0] - 2026-09-09
+## [1.7.0] - 2026-09-15
+
+### 🌐 PRoot Network Diagnostics & VNC Session Management
+- **Transparent Network Shims (netstat, ss, ip)**: Injected intelligent shims into `/usr/local/bin` that bypass Android 10+ SELinux restrictions (proc_net read denials and netlink permission errors). Standard diagnostic commands like `netstat -ltnp | grep 5901` and `ss -tl` now accurately report listening server sockets and associated process names.
+- **TigerVNC Session Management (vncserver -list & -kill)**: Overhauled the TigerVNC wrapper script across all distributions to fully support `vncserver -list` (displaying active X displays, RFB ports, and PIDs), graceful termination with lock/socket cleanup via `vncserver -kill :<display>`, and `-help` documentation.
+- **Local & Wi-Fi Connection Hints**: Starting TigerVNC now displays actionable local (`127.0.0.1:<port>`) and local Wi-Fi connection addresses (`<wifi_ip>:<port>`), along with session management commands.
+- **Accurate Local IP Resolution (hostname -i)**: Automatically maps the host device's primary Wi-Fi/LAN IPv4 address to the container hostname in `/etc/hosts` and `/usr/local/bin/hostname`, ensuring `hostname -i` and `hostname -I` resolve to the network IP rather than solely returning `127.0.0.1`.
+- **Network Interface Synchronization**: Generates `/etc/network/proot_interfaces.conf` from Android host network interfaces to provide seamless fallback for `ip addr` when netlink socket queries fail.
+
+### 🐳 1-Click Docker & Container Tools
+- **Rootless Container Execution (udocker)**: Added a 1-click preset in the Software Hub to install and configure Docker tools with udocker, allowing users to pull and run containers from Docker Hub directly in Android user-space without root privileges or kernel cgroup requirements.
+- **Official Docker CLI & Docker Compose**: Installs standard docker and docker-compose tools, with smart CLI delegation to udocker for seamless local execution while retaining full support for remote daemons via DOCKER_HOST.
+- **Universal Multi-Distro Support**: Tailored package installations across all 7 supported distributions (Ubuntu, Debian, Fedora, Alpine, Arch Linux, Kali, and Void) with automated user-space engine initialization.
+- **System Monitor Integration**: Real-time detection and service naming for standard Docker daemon network ports (2375 HTTP, 2376 TLS).
+
+### 🌐 Browser-Based Web Terminal (ttyd Local Sharing)
+- **Local Wi-Fi Web Terminal**: Added a 1-click preset in the Software Hub to install and launch ttyd, allowing instant full terminal access in any browser on your laptop, desktop, or tablet over local Wi-Fi without needing an SSH client or credentials.
+- **Zero-Password Interactive Access**: Runs with `--writable` (`-W`) and automatically attaches to `/bin/bash` (or `/bin/sh`) inside the container rootfs for instant web-based xterm access.
+- **Intelligent Port Fallback**: Listens on port 8080 by default, with automatic detection and seamless fallback to port 7681 if port 8080 is occupied by NGINX or VS Code Server.
+- **Dedicated Quick Service Launcher**: Integrated 1-tap "Web Terminal" launcher button into Container Overview Quick Services, refactoring the service panel into balanced rows for classic daemons and web workspaces.
+- **Universal Multi-Distro Support**: Configured across Ubuntu, Debian, Fedora, Alpine, Arch, Kali, and Void with automated fallback to the official upstream standalone ttyd binary.
+- **System Monitor Integration**: Detects ttyd listening on ports 8080 and 7681 with 1-click "Open in Browser" action.
+
+### 💻 1-Click VS Code Server (code-server)
+- **Visual Studio Code in the Browser**: Added a 1-click preset in the Software Hub to install and launch code-server, bringing the full VS Code desktop IDE experience (extensions, syntax highlighting, file explorer, and integrated terminal) directly into Google Chrome or any browser on your phone, tablet, or PC.
+- **Universal Multi-Distro Support**: Fully configured across all 7 supported distributions (Ubuntu 26.04, Debian 12, Fedora 44, Alpine 3.21, Arch Linux ARM, Kali Rolling, and Void Linux) with automated fallback to standalone self-contained binaries.
+- **Port Conflict Handling & Instant Access**: Automatically launches with passwordless authentication (`--auth none`) on port 8080 (or port 8443 if 8080 is occupied by NGINX).
+- **Quick Service Launcher**: Added a dedicated VS Code launcher button to Container Overview Quick Services for 1-tap startup.
+- **System Monitor Integration**: Real-time detection of VS Code Server listening on ports 8080 and 8443 with 1-click "Open in Browser" action.
+
+### 🐧 Fedora Distribution & DNF Package Management
+- **Official Fedora 44 Support**: Added official support for Fedora 44 as a full container distribution in the Multi-Distro Setup Wizard with signature Fedora Blue theme accents.
+- **Upstream Release Images**: Downloads pure, official rootfs builds directly from `download.fedoraproject.org` for ARM64 and x86_64, eliminating dependencies on third-party images.
+- **Native DNF Package Manager**: Full bootstrap and command-line integration for Fedora's `dnf` package manager with automated cache controls (`keepcache=0`) to preserve device storage.
+- **Complete 1-Click Software Stacks**: Tailored installation and launch scripts for XFCE 4 Desktop with TigerVNC, Python 3 Developer Stack, Node.js Stack, Android Development Environment, NGINX Web Server (remapped to port 8080), and OpenSSH Server with PAM-permit authentication and permission management.
+- **Cross-Architecture User Provisioning**: Automated user and wheel group account initialization with password configuration, PAM security definitions, and non-root sudo access.
+- **SELinux Container Hardening**: Automatically configures `/etc/selinux/config` with `SELINUX=disabled` on DNF rootfs images to suppress `selinux_status_open()` netlink warnings in PRoot.
+- **TigerVNC Server Wrapper Stability**: Hardened TigerVNC server wrapper script generation, eliminating bash parameter escaping errors and ensuring reliable XFCE desktop initialization.
+
+### 📂 Dedicated Per-Container Storage & Import/Export Bridge (`/external`)
+- **App-Specific External Storage Directory**: Automatically provisions a dedicated camelCase folder for each container under `/sdcard/Android/data/com.devwithzachary.completelinuxinstaller/files/<containerName>` (e.g. `ubuntuContainer`, `voidLinux`) and auto-mounts it to `/external` inside Linux.
+- **Unrestricted POSIX Permissions**: Because it resides in app-specific storage, all file types (.sh scripts, .zip archives, source code, binaries) have full POSIX read, write, and execute permissions without Scoped Storage filtering or restricted permissions.
+- **In-App SAF Import/Export Bridge**: Easily import any file from Android storage or Downloads directly into `/external` via system document pickers, and export files from `/external` to Android storage with 1-tap.
+- **1-Tap File Manager Integration**: Clickable directory card in Container Settings displays the full folder path and launches your file manager directly to that container's folder with automatic clipboard fallback.
+- **Automatic Startup Migration**: Automatically migrates existing and legacy containers on first launch, ensuring external directories are assigned, disambiguated with numbers for collisions, and created on disk.
+
+### 🎨 Terminal Theming & Fun Typography Options
+- **Expanded Font Selection**: Added playful and expressive font family options (Cursive, Casual, Serif, and Sans Serif) to Settings alongside classic developer monospace fonts (JetBrains Mono, Ubuntu Mono, System Monospace) and the CyberGlyphs symbol set.
+- **Optimized Character Spacing & Glyph Scaling**: Balanced character cell advance widths and added automatic horizontal glyph scaling for proportional fonts to eliminate wide gaps between letters while preserving strict monospace grid alignment for developer fonts.
+- **Dynamic In-Terminal Rendering & Preview**: All fonts automatically render across active terminal sessions and update the interactive live theme preview box in Settings.
+
+### 🔤 Terminal Text Selection & Multi-Screen Scrolling
+- **Buffer-Anchored Selection**: Fixed text selection so coordinates are tracked in absolute buffer space across scrollback history and active screen lines, ensuring selected text remains firmly anchored to content when swiping, dragging, or scrolling the terminal.
+- **Edge-Drag Auto-Scrolling Handles**: Dragging either selection handle near or past the top or bottom edges of the screen automatically scrolls the terminal and dynamically expands the selection across multi-screen output.
+- **Multi-Screen Text Copying**: Updated `getSelectedText` to extract lines across any number of scrollback and visible screen rows, eliminating previous screen-clamping limits.
+- **Buffer-Wide Select All**: "Select All" in the selection toolbar and context menu now highlights the entire terminal scrollback and active buffer.
 
 ### ⚙️ System Architecture & Codebase Hardening
 - **Native Runtime Stability & Bug Fixes**: Corrected socketcall memory allocation and pointer sizing in `port_switch`, fixed an unconditional GID overwrite in `fake_id0`, resolved IPv6 UDP condition handling, and initialized tracee seccomp result registers.

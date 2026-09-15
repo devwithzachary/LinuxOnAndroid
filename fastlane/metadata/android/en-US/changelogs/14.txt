@@ -1,2 +1,6 @@
-• System Hardening: Fixed PRoot socket memory sizing, corrected GID emulation, and hardened native runtime stability.
-• Zero-Warning Builds: Clean compiler passes across all 32-bit and 64-bit native ABIs and Kotlin Compose UI.
+• Docker Support: 1-click udocker, Docker CLI & Compose across distros.
+• Web Terminal & VS Code: 1-click presets for shell & IDE via browser.
+• Fedora 44: Official rootfs with DNF package manager & software stacks.
+• Shared Storage: Per-container folder at /external with SAF bridge.
+• Terminal Upgrades: Multi-screen selection, scrolling handles & new fonts.
+• VNC & Network Fixes: Added vncserver -list, LAN hostname -i, netstat & ss.

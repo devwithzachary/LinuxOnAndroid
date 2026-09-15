@@ -6,13 +6,14 @@ import org.junit.Test
 class DistroCatalogTest {
 
     @Test
-    fun testAllDistros_containsExpectedSixDistros() {
+    fun testAllDistros_containsExpectedSevenDistros() {
         val distros = DistroCatalog.ALL_DISTROS
-        assertEquals(6, distros.size)
+        assertEquals(7, distros.size)
 
         val ids = distros.map { it.id }
         assertTrue("Must contain ubuntu_26_04", ids.contains("ubuntu_26_04"))
         assertTrue("Must contain debian_12", ids.contains("debian_12"))
+        assertTrue("Must contain fedora_44", ids.contains("fedora_44"))
         assertTrue("Must contain alpine_3_21", ids.contains("alpine_3_21"))
         assertTrue("Must contain arch_arm", ids.contains("arch_arm"))
         assertTrue("Must contain kali_rolling", ids.contains("kali_rolling"))
@@ -43,6 +44,7 @@ class DistroCatalogTest {
     fun testDistros_packageManagersMappedCorrectly() {
         assertEquals(PackageManagerType.APT, DistroCatalog.UBUNTU_26_04.packageManager)
         assertEquals(PackageManagerType.APT, DistroCatalog.DEBIAN_12.packageManager)
+        assertEquals(PackageManagerType.DNF, DistroCatalog.FEDORA_44.packageManager)
         assertEquals(PackageManagerType.APK, DistroCatalog.ALPINE_3_21.packageManager)
         assertEquals(PackageManagerType.PACMAN, DistroCatalog.ARCH_ARM.packageManager)
         assertEquals(PackageManagerType.APT, DistroCatalog.KALI_ROLLING.packageManager)
@@ -75,7 +77,7 @@ class DistroCatalogTest {
 
     @Test
     fun testDistros_haveOneClickSoftwarePackageCommands() {
-        val packageIds = listOf("xfce_desktop", "python_dev", "node_dev", "android_dev", "nginx_web", "openssh_server")
+        val packageIds = listOf("xfce_desktop", "python_dev", "node_dev", "android_dev", "nginx_web", "openssh_server", "code_server", "web_terminal", "docker_tools")
         for (distro in DistroCatalog.ALL_DISTROS) {
             for (pkgId in packageIds) {
                 val cmd = distro.getSoftwarePackageInstallCommand(pkgId, 2222)
@@ -238,10 +240,11 @@ class DistroCatalogTest {
     }
 
     @Test
-    fun testUbuntuAndDebian_candidateShells_useStandardBashHierarchy() {
+    fun testUbuntuDebianAndFedora_candidateShells_useStandardBashHierarchy() {
         val expected = listOf("/bin/bash", "/usr/bin/bash", "/bin/sh")
         assertEquals(expected, DistroCatalog.UBUNTU_26_04.candidateShells)
         assertEquals(expected, DistroCatalog.DEBIAN_12.candidateShells)
+        assertEquals(expected, DistroCatalog.FEDORA_44.candidateShells)
     }
 
     @Test
@@ -253,4 +256,208 @@ class DistroCatalogTest {
         assertFalse("Script must not link /bin/sh to /usr/bin/bash", script.contains("ln -sf /bin/sh /usr/bin/bash"))
         assertTrue("Script must link /bin/bash to /usr/bin/bash once bash is installed", script.contains("ln -sf /bin/bash /usr/bin/bash"))
     }
+
+    @Test
+    fun testFedora44_configurationAndOverrides() {
+        val fedora = DistroCatalog.FEDORA_44
+        assertEquals("fedora_44", fedora.id)
+        assertEquals("Fedora 44", fedora.name)
+        assertEquals("44", fedora.version)
+        assertEquals("Leading-Edge & RPM", fedora.tag)
+        assertEquals(PackageManagerType.DNF, fedora.packageManager)
+        assertEquals("/bin/bash", fedora.defaultShell)
+        assertEquals(142, fedora.downloadSizeMb)
+        assertEquals(480, fedora.installedSizeMb)
+        assertEquals(0xFF51A2DA, fedora.colorHex)
+
+        val arm64Url = fedora.getDownloadUrl(SystemArchitecture.ARM64)
+        assertNotNull("Fedora must have ARM64 download URL", arm64Url)
+        assertTrue("Fedora ARM64 URL must point to download.fedoraproject.org", arm64Url!!.contains("download.fedoraproject.org"))
+        assertTrue("Fedora ARM64 URL must be WSL rootfs", arm64Url.endsWith(".wsl"))
+
+        val x86Url = fedora.getDownloadUrl(SystemArchitecture.X86_64)
+        assertNotNull("Fedora must have x86_64 download URL", x86Url)
+        assertTrue("Fedora x86_64 URL must point to download.fedoraproject.org", x86Url!!.contains("download.fedoraproject.org"))
+
+        // First launch script
+        val script = fedora.buildFirstLaunchSetupScript("fedoraRoot", "fedoraUser", "fedoraPass", true)
+        assertTrue("Script must configure fedoraUser in passwd", script.contains("fedoraUser"))
+        assertTrue("Script must configure wheel group", script.contains("wheel"))
+        assertTrue("Script must configure sudoers.d", script.contains("sudoers.d/fedoraUser"))
+        assertTrue("Script must configure PAM su permit", script.contains("/etc/pam.d/su"))
+
+        // Software package overrides
+        assertTrue("Fedora setup script must disable SELinux", script.contains("SELINUX=disabled"))
+
+        val xfceInstall = fedora.getSoftwarePackageInstallCommand("xfce_desktop")
+        assertNotNull("Fedora xfce install command must exist", xfceInstall)
+        assertTrue("Fedora xfce install command must use dnf", xfceInstall!!.contains("dnf install -y"))
+        assertTrue("Fedora xfce install command must install tigervnc-server", xfceInstall.contains("tigervnc-server"))
+        assertTrue("Fedora xfce install command must disable SELinux", xfceInstall.contains("SELINUX=disabled"))
+        assertTrue("Fedora xfce install command must deploy TigerVNC wrapper", xfceInstall.contains("TigerVNC server wrapper for PRoot environments"))
+        assertFalse("Fedora wrapper script must not contain escaped dollar parameter \$#", xfceInstall.contains("\\$#"))
+        assertFalse("Fedora wrapper script must not contain escaped command substitution \\$(", xfceInstall.contains("\\$("))
+
+        val xfceLaunch = fedora.getSoftwarePackageLaunchCommand("xfce_desktop")
+        assertNotNull("Fedora xfce launch command must exist", xfceLaunch)
+        assertTrue("Fedora xfce launch command must start vncserver on :1", xfceLaunch!!.contains("vncserver :1"))
+
+        val expectedBinaries = fedora.getSoftwarePackageExpectedBinaries("xfce_desktop")
+        assertNotNull("Fedora expected binaries must exist", expectedBinaries)
+        assertTrue("Must include startxfce4", expectedBinaries!!.contains("usr/bin/startxfce4"))
+        assertTrue("Must include vncserver", expectedBinaries.contains("usr/bin/vncserver"))
+
+        assertEquals("Fedora xfce_desktop version must be 5", 5, fedora.getSoftwarePackageVersion("xfce_desktop"))
+
+        val pythonInstall = fedora.getSoftwarePackageInstallCommand("python_dev")
+        assertTrue("Fedora python install must use dnf", pythonInstall!!.contains("dnf install -y python3"))
+        assertTrue("Fedora python install must disable SELinux", pythonInstall.contains("SELINUX=disabled"))
+
+        val nodeInstall = fedora.getSoftwarePackageInstallCommand("node_dev")
+        assertTrue("Fedora node install must use dnf", nodeInstall!!.contains("dnf install -y nodejs"))
+
+        val androidInstall = fedora.getSoftwarePackageInstallCommand("android_dev")
+        assertTrue("Fedora android install must use dnf", androidInstall!!.contains("dnf install -y java-17-openjdk-headless"))
+
+        val nginxInstall = fedora.getSoftwarePackageInstallCommand("nginx_web")
+        assertTrue("Fedora nginx install must use dnf", nginxInstall!!.contains("dnf install -y nginx"))
+        assertTrue("Fedora nginx install must remap port 80", nginxInstall.contains("8080"))
+
+        val sshInstall = fedora.getSoftwarePackageInstallCommand("openssh_server", 2222)
+        assertTrue("Fedora ssh install must use dnf", sshInstall!!.contains("dnf install -y openssh-server"))
+        assertTrue("Fedora ssh install must configure port 2222", sshInstall.contains("Port 2222"))
+    }
+
+    @Test
+    fun testCodeServerPreset_definedAndValid() {
+        val presets = SoftwarePackage.getPresets()
+        val codePkg = presets.find { it.id == "code_server" }
+        assertNotNull("code_server preset must be present", codePkg)
+        assertEquals("VS Code Server (code-server)", codePkg!!.name)
+        assertEquals(SoftwareCategory.DEVELOPMENT, codePkg.category)
+        assertEquals("Code", codePkg.iconName)
+        assertTrue("Expected binaries must include usr/bin/code-server", codePkg.expectedBinaries.contains("usr/bin/code-server"))
+
+        val launchCmd = codePkg.launchCommand
+        assertNotNull("code_server must have launch command", launchCmd)
+        assertTrue("Launch command must specify 0.0.0.0 bind address", launchCmd!!.contains("--bind-addr 0.0.0.0:"))
+        assertTrue("Launch command must disable authentication for instant access", launchCmd.contains("--auth none"))
+        assertTrue("Launch command must support fallback to 8443 if 8080 is in use", launchCmd.contains("PORT=8443"))
+    }
+
+    @Test
+    fun testCodeServer_isBinaryPresentAliasDetection() {
+        val tempDir = java.nio.file.Files.createTempDirectory("loa_test_rootfs").toFile()
+        try {
+            val usrLocalBin = java.io.File(tempDir, "usr/local/bin").apply { mkdirs() }
+            val dummyBinary = java.io.File(usrLocalBin, "code-server")
+            dummyBinary.writeText("#!/bin/sh\nexit 0\n")
+
+            // Even though binary is at usr/local/bin/code-server, checking usr/bin/code-server must resolve to true
+            assertTrue(
+                "isBinaryPresent for usr/bin/code-server must resolve usr/local/bin/code-server alias",
+                SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/code-server")
+            )
+            assertTrue(
+                "isBinaryPresent for usr/local/bin/code-server must be true",
+                SoftwarePackage.isBinaryPresent(tempDir, "usr/local/bin/code-server")
+            )
+        } finally {
+            tempDir.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun testCodeServer_distroSpecificInstallCommands() {
+        val fedoraCmd = DistroCatalog.FEDORA_44.getSoftwarePackageInstallCommand("code_server")
+        assertNotNull(fedoraCmd)
+        assertTrue("Fedora code-server install must use dnf", fedoraCmd!!.contains("dnf install -y"))
+        assertTrue("Fedora code-server install must run install.sh", fedoraCmd.contains("install.sh"))
+
+        val archCmd = DistroCatalog.ARCH_ARM.getSoftwarePackageInstallCommand("code_server")
+        assertNotNull(archCmd)
+        assertTrue("Arch code-server install must use standalone prefix to bypass makepkg root restriction", archCmd!!.contains("--method=standalone"))
+
+        val voidCmd = DistroCatalog.VOID_ROLLING.getSoftwarePackageInstallCommand("code_server")
+        assertNotNull(voidCmd)
+        assertTrue("Void code-server install must use standalone method", voidCmd!!.contains("--method=standalone"))
+
+        val alpineCmd = DistroCatalog.ALPINE_3_21.getSoftwarePackageInstallCommand("code_server")
+        assertNotNull(alpineCmd)
+        assertTrue("Alpine code-server install must install npm/nodejs or standalone", alpineCmd!!.contains("npm install -g code-server") || alpineCmd.contains("--method=standalone"))
+    }
+
+    @Test
+    fun testWebTerminal_distroSpecificInstallCommands() {
+        val fedoraCmd = DistroCatalog.FEDORA_44.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(fedoraCmd)
+        assertTrue("Fedora web_terminal install must use dnf", fedoraCmd!!.contains("dnf install -y"))
+        assertTrue("Fedora web_terminal install must install ttyd", fedoraCmd.contains("ttyd"))
+
+        val alpineCmd = DistroCatalog.ALPINE_3_21.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(alpineCmd)
+        assertTrue("Alpine web_terminal install must use apk", alpineCmd!!.contains("apk add"))
+        assertTrue("Alpine web_terminal install must install ttyd", alpineCmd.contains("ttyd"))
+
+        val archCmd = DistroCatalog.ARCH_ARM.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(archCmd)
+        assertTrue("Arch web_terminal install must use pacman", archCmd!!.contains("pacman -S"))
+        assertTrue("Arch web_terminal install must install ttyd", archCmd.contains("ttyd"))
+
+        val voidCmd = DistroCatalog.VOID_ROLLING.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(voidCmd)
+        assertTrue("Void web_terminal install must use xbps", voidCmd!!.contains("xbps-install"))
+        assertTrue("Void web_terminal install must install ttyd", voidCmd.contains("ttyd"))
+
+        val ubuntuCmd = DistroCatalog.UBUNTU_26_04.getSoftwarePackageInstallCommand("web_terminal")
+        assertNotNull(ubuntuCmd)
+        assertTrue("Ubuntu web_terminal install must use apt", ubuntuCmd!!.contains("apt-get install -y"))
+        assertTrue("Ubuntu web_terminal install must install ttyd", ubuntuCmd.contains("ttyd"))
+    }
+
+    @Test
+    fun testDockerTools_distroSpecificInstallCommands() {
+        val fedoraCmd = DistroCatalog.FEDORA_44.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(fedoraCmd)
+        assertTrue("Fedora docker_tools must use dnf", fedoraCmd!!.contains("dnf install -y"))
+        assertTrue("Fedora docker_tools must install udocker", fedoraCmd.contains("udocker"))
+
+        val alpineCmd = DistroCatalog.ALPINE_3_21.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(alpineCmd)
+        assertTrue("Alpine docker_tools must use apk", alpineCmd!!.contains("apk add"))
+        assertTrue("Alpine docker_tools must install udocker", alpineCmd.contains("udocker"))
+
+        val archCmd = DistroCatalog.ARCH_ARM.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(archCmd)
+        assertTrue("Arch docker_tools must use pacman", archCmd!!.contains("pacman -S"))
+        assertTrue("Arch docker_tools must install udocker", archCmd.contains("udocker"))
+
+        val voidCmd = DistroCatalog.VOID_ROLLING.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(voidCmd)
+        assertTrue("Void docker_tools must use xbps", voidCmd!!.contains("xbps-install"))
+        assertTrue("Void docker_tools must install udocker", voidCmd.contains("udocker"))
+
+        val ubuntuCmd = DistroCatalog.UBUNTU_26_04.getSoftwarePackageInstallCommand("docker_tools")
+        assertNotNull(ubuntuCmd)
+        assertTrue("Ubuntu docker_tools must use apt", ubuntuCmd!!.contains("apt-get install -y"))
+        assertTrue("Ubuntu docker_tools must install udocker", ubuntuCmd.contains("udocker"))
+    }
+
+    @Test
+    fun testDockerTools_commonWrapperAndPipelineConfigured() {
+        val wrapper = DistroCatalog.COMMON_DOCKER_WRAPPER
+        assertTrue("Must include [DEFAULT] INI section header for ConfigParser", wrapper.contains("[DEFAULT]"))
+        assertTrue("Must configure valid_host_env in udocker.conf", wrapper.contains("valid_host_env"))
+        assertTrue("Must include PROOT_LOADER in valid_host_env", wrapper.contains("PROOT_LOADER"))
+        assertTrue("Must handle root execution with udocker --allow-root", wrapper.contains("udocker --allow-root"))
+        assertTrue("Must check for /usr/local/lib/libproot_loader.so", wrapper.contains("/usr/local/lib/libproot_loader.so"))
+
+        for (distro in DistroCatalog.ALL_DISTROS) {
+            val cmd = distro.getSoftwarePackageInstallCommand("docker_tools")
+            assertNotNull("Distro ${distro.name} must have docker_tools install command", cmd)
+            assertTrue("Distro ${distro.name} must include COMMON_DOCKER_WRAPPER", cmd!!.contains("/etc/udocker.conf"))
+            assertTrue("Distro ${distro.name} must include UDOCKER_INSTALL_PIPELINE", cmd.contains("pip"))
+        }
+    }
 }
+

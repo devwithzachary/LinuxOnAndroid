@@ -40,22 +40,44 @@ class TerminalEmulator(
         scrollOffset = 0
     }
 
-    fun getRenderRow(r: Int): Array<TerminalChar> {
-        val row = if (scrollOffset == 0 || scrollback.isEmpty()) {
-            if (r < grid.size) grid[r] else Array(cols) { TerminalChar() }
-        } else {
-            val totalHistory = scrollback.size
-            val targetIndex = (totalHistory + r) - scrollOffset
-            when {
-                targetIndex < 0 -> Array(cols) { TerminalChar() }
-                targetIndex < totalHistory -> scrollback[targetIndex]
-                else -> {
-                    val gridIndex = targetIndex - totalHistory
-                    if (gridIndex < grid.size) grid[gridIndex] else Array(cols) { TerminalChar() }
-                }
+    val totalBufferRows: Int
+        get() = scrollback.size + rows
+
+    /**
+     * Converts a visible screen row index (0 until rows) to an absolute buffer row index (0 until totalBufferRows).
+     */
+    fun screenToBufferRow(r: Int): Int {
+        if (totalBufferRows <= 0) return 0
+        val target = (scrollback.size + r) - scrollOffset
+        return target.coerceIn(0, totalBufferRows - 1)
+    }
+
+    /**
+     * Converts an absolute buffer row index (0 until totalBufferRows) to a visible screen row index.
+     * Note that the resulting screen row may be negative (scrolled past top) or >= rows (scrolled past bottom).
+     */
+    fun bufferToScreenRow(bufferRow: Int): Int {
+        return bufferRow - (scrollback.size - scrollOffset)
+    }
+
+    /**
+     * Retrieves characters for an absolute buffer row index (0 until totalBufferRows).
+     */
+    fun getBufferRow(bufferRow: Int): Array<TerminalChar> {
+        val totalHistory = scrollback.size
+        val row = when {
+            bufferRow < 0 -> Array(cols) { TerminalChar() }
+            bufferRow < totalHistory -> scrollback[bufferRow]
+            else -> {
+                val gridIndex = bufferRow - totalHistory
+                if (gridIndex in 0 until rows && gridIndex < grid.size) grid[gridIndex] else Array(cols) { TerminalChar() }
             }
         }
         return if (row.size == cols) row else Array(cols) { c -> if (c < row.size) row[c] else TerminalChar() }
+    }
+
+    fun getRenderRow(r: Int): Array<TerminalChar> {
+        return getBufferRow(screenToBufferRow(r))
     }
 
     var cursorX = 0
@@ -611,11 +633,11 @@ class TerminalEmulator(
         return sb.toString().trimEnd()
     }
 
-    fun getWordAt(row: Int, col: Int): Pair<Int, Int> {
-        if (rows == 0 || cols == 0) return Pair(0, 0)
-        val r = row.coerceIn(0, rows - 1)
+    fun getWordAtBuffer(bufferRow: Int, col: Int): Pair<Int, Int> {
+        if (totalBufferRows == 0 || cols == 0) return Pair(0, 0)
+        val bR = bufferRow.coerceIn(0, totalBufferRows - 1)
         val c = col.coerceIn(0, cols - 1)
-        val rowChars = getRenderRow(r)
+        val rowChars = getBufferRow(bR)
         val ch = rowChars.getOrNull(c)?.ch ?: ' '
 
         fun isWordChar(char: Char): Boolean =
@@ -653,21 +675,25 @@ class TerminalEmulator(
         return Pair(startC, endC)
     }
 
+    fun getWordAt(row: Int, col: Int): Pair<Int, Int> =
+        getWordAtBuffer(screenToBufferRow(row), col)
+
     fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String {
-        if (rows == 0 || cols == 0) return ""
-        val sR = startRow.coerceIn(0, rows - 1)
+        if (totalBufferRows == 0 || cols == 0) return ""
+        val maxR = totalBufferRows - 1
+        val sR = startRow.coerceIn(0, maxR)
         val sC = startCol.coerceIn(0, cols - 1)
-        val eR = endRow.coerceIn(0, rows - 1)
+        val eR = endRow.coerceIn(0, maxR)
         val eC = endCol.coerceIn(0, cols - 1)
 
-        val startLinear = sR * cols + sC
-        val endLinear = eR * cols + eC
+        val startLinear = sR.toLong() * cols + sC
+        val endLinear = eR.toLong() * cols + eC
         val (fromR, fromC) = if (startLinear <= endLinear) Pair(sR, sC) else Pair(eR, eC)
         val (toR, toC) = if (startLinear <= endLinear) Pair(eR, eC) else Pair(sR, sC)
 
         val sb = StringBuilder()
         for (r in fromR..toR) {
-            val rowChars = getRenderRow(r)
+            val rowChars = getBufferRow(r)
             val c1 = if (r == fromR) fromC else 0
             val c2 = if (r == toR) toC else cols - 1
 
@@ -679,7 +705,7 @@ class TerminalEmulator(
             if (r < toR) {
                 sb.append(lineStr.trimEnd()).append("\n")
             } else {
-                sb.append(lineStr)
+                sb.append(if (toC >= cols - 1) lineStr.trimEnd() else lineStr)
             }
         }
         return sb.toString()

@@ -12,7 +12,7 @@ class SoftwarePackageTest {
     fun testGetPresets_returnsNonEmptyList() {
         val presets = SoftwarePackage.getPresets()
         assertTrue("Preset package list should not be empty", presets.isNotEmpty())
-        assertEquals(6, presets.size)
+        assertEquals(9, presets.size)
     }
 
     @Test
@@ -113,12 +113,51 @@ class SoftwarePackageTest {
     }
 
     @Test
+    fun testPreset_web_terminal_definedAndValid() {
+        val presets = SoftwarePackage.getPresets()
+        val webPkg = presets.find { it.id == "web_terminal" }
+        assertNotNull("web_terminal preset must exist", webPkg)
+        webPkg?.let {
+            assertEquals("Browser Web Terminal (ttyd)", it.name)
+            assertEquals(SoftwareCategory.NETWORKING, it.category)
+            assertEquals("Terminal", it.iconName)
+            assertTrue("Expected binaries must include usr/bin/ttyd", it.expectedBinaries.contains("usr/bin/ttyd"))
+            val cmd = it.launchCommand
+            assertNotNull("launchCommand must exist for web_terminal", cmd)
+            assertTrue("launchCommand must use writable flag -W", cmd?.contains("-W") == true)
+            assertTrue("launchCommand must support fallback to 7681", cmd?.contains("PORT=7681") == true)
+            assertTrue("launchCommand must setup ptmx permissions", cmd?.contains("/dev/ptmx") == true)
+            assertNotNull("postInstallNotes must exist for web_terminal", it.postInstallNotes)
+        }
+    }
+
+    @Test
+    fun testPreset_docker_tools_definedAndValid() {
+        val presets = SoftwarePackage.getPresets()
+        val dockerPkg = presets.find { it.id == "docker_tools" }
+        assertNotNull("docker_tools preset must exist", dockerPkg)
+        dockerPkg?.let {
+            assertEquals("Docker & Container Tools", it.name)
+            assertEquals(SoftwareCategory.DEVELOPMENT, it.category)
+            assertEquals("Apps", it.iconName)
+            assertTrue("Expected binaries must include usr/bin/docker", it.expectedBinaries.contains("usr/bin/docker"))
+            val cmd = it.launchCommand
+            assertNotNull("launchCommand must exist for docker_tools", cmd)
+            assertTrue("launchCommand must check udocker and docker", cmd?.contains("udocker") == true && cmd.contains("docker"))
+            assertTrue("postInstallNotes must explain udocker and DOCKER_HOST", it.postInstallNotes?.contains("udocker") == true && it.postInstallNotes.contains("DOCKER_HOST"))
+        }
+    }
+
+    @Test
     fun testIsBinaryPresent_regularFileAndAliases() {
         val tempDir = java.io.File(System.getProperty("java.io.tmpdir"), "test_rootfs_bin_" + System.currentTimeMillis()).apply { mkdirs() }
         try {
             val usrBin = java.io.File(tempDir, "usr/bin").apply { mkdirs() }
+            val usrLocalBin = java.io.File(tempDir, "usr/local/bin").apply { mkdirs() }
             val startxfce4 = java.io.File(usrBin, "startxfce4").apply { createNewFile() }
             val tigervncserver = java.io.File(usrBin, "tigervncserver").apply { createNewFile() }
+            val ttydBinary = java.io.File(usrLocalBin, "ttyd").apply { createNewFile() }
+            val udockerBinary = java.io.File(usrLocalBin, "udocker").apply { createNewFile() }
 
             // startxfce4 should be detected directly
             assertTrue("startxfce4 must be present", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/startxfce4"))
@@ -126,8 +165,19 @@ class SoftwarePackageTest {
             // vncserver should be detected via tigervncserver alias
             assertTrue("vncserver must be detected via tigervncserver alias", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/vncserver"))
 
+            // ttyd at usr/local/bin/ttyd should be detected when checking usr/bin/ttyd alias
+            assertTrue("ttyd must be detected via alias", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/ttyd"))
+            assertTrue("ttyd direct usr/local/bin check must be true", SoftwarePackage.isBinaryPresent(tempDir, "usr/local/bin/ttyd"))
+
+            // udocker at usr/local/bin/udocker should be detected when checking usr/bin/docker alias
+            assertTrue("docker alias must detect udocker", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/docker"))
+            assertTrue("udocker direct usr/local/bin check must be true", SoftwarePackage.isBinaryPresent(tempDir, "usr/local/bin/udocker"))
+
             // Non-existent binary returns false
             assertFalse("nonexistent binary must return false", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/nonexistent_xyz"))
+            assertFalse("nonexistent code-server binary must safely return false without recursion", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/code-server"))
+            assertFalse("nonexistent code-server usr/local/bin must safely return false without recursion", SoftwarePackage.isBinaryPresent(tempDir, "usr/local/bin/code-server"))
+            assertFalse("nonexistent ttyd in other dir must return false", SoftwarePackage.isBinaryPresent(tempDir, "usr/bin/missing-ttyd"))
         } finally {
             tempDir.deleteRecursively()
         }

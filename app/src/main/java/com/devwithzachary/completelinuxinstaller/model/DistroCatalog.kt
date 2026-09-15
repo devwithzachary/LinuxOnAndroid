@@ -89,6 +89,37 @@ data class DistroDefinition(
 
 object DistroCatalog {
 
+    const val COMMON_DOCKER_WRAPPER =
+        "mkdir -p /etc && " +
+            "printf '[DEFAULT]\\nvalid_host_env = TERM, PATH, PROOT_TMP_DIR, PROOT_LOADER, PROOT_LOADER32, PROOT_NO_SECCOMP, PROOT_FORCE_SETID, PROOT_LINK2SYMLINK\\n' > /etc/udocker.conf && " +
+            "(udocker --allow-root install --force 2>/dev/null || udocker install --force 2>/dev/null || true) && " +
+            "mkdir -p /usr/local/bin && " +
+            "printf '%s\\n' '#!/bin/sh\n" +
+            "if [ -x /usr/bin/docker ] && ([ -n \"\\\$DOCKER_HOST\" ] || [ -S /var/run/docker.sock ]) && /usr/bin/docker info >/dev/null 2>&1; then\n" +
+            "  exec /usr/bin/docker \"\\\$@\"\n" +
+            "fi\n" +
+            "if command -v udocker >/dev/null 2>&1; then\n" +
+            "  export PROOT_NO_SECCOMP=1\n" +
+            "  if [ -f /usr/local/lib/libproot_loader.so ]; then\n" +
+            "    export PROOT_LOADER=/usr/local/lib/libproot_loader.so\n" +
+            "  elif [ -f /usr/lib/libproot_loader.so ]; then\n" +
+            "    export PROOT_LOADER=/usr/lib/libproot_loader.so\n" +
+            "  fi\n" +
+            "  if [ \"\\\$(id -u)\" = \"0\" ]; then\n" +
+            "    exec udocker --allow-root \"\\\$@\"\n" +
+            "  else\n" +
+            "    exec udocker \"\\\$@\"\n" +
+            "  fi\n" +
+            "fi\n" +
+            "if [ -x /usr/bin/docker ]; then\n" +
+            "  exec /usr/bin/docker \"\\\$@\"\n" +
+            "fi\n" +
+            "echo \"Error: Neither docker nor udocker could be executed.\" >&2\n" +
+            "exit 1' > /usr/local/bin/docker && chmod 755 /usr/local/bin/docker"
+
+    const val UDOCKER_INSTALL_PIPELINE =
+        "(pip3 install --break-system-packages --no-cache-dir udocker || pip install --break-system-packages --no-cache-dir udocker || python3 -m pip install --break-system-packages --no-cache-dir udocker || (curl -fsSL https://github.com/indigo-dc/udocker/releases/download/1.3.17/udocker-1.3.17.tar.gz | tar -xz -C /tmp && cd /tmp/udocker-1.3.17 && python3 setup.py install --prefix=/usr/local && rm -rf /tmp/udocker-1.3.17) || true)"
+
     val UBUNTU_26_04 = DistroDefinition(
         id = "ubuntu_26_04",
         name = "Ubuntu 26.04 LTS",
@@ -151,6 +182,29 @@ object DistroCatalog {
             },
             "openssh_server" to { port ->
                 "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null && mkdir -p /run/sshd /var/run/sshd /var/empty /etc/ssh/sshd_config.d && apt-get update -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" && apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" openssh-server ca-certificates && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && echo \"Port $port\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"UsePAM no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"SetEnv PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"Subsystem sftp internal-sftp\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && (sed -i 's/^Subsystem.*sftp/#&/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^session.*pam_loginuid.so/#&/' /etc/pam.d/sshd 2>/dev/null || true) && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null && apt-get update -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" && apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" curl ca-certificates git procps && (curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
+            },
+            "web_terminal" to { _ ->
+                "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null && apt-get update -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" && (apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "mkdir -p /usr/sbin /etc /var/lib/dbus 2>/dev/null; " +
+                    "(grep -q ^messagebus: /etc/group || echo \"messagebus:x:101:\" >> /etc/group); " +
+                    "(grep -q ^messagebus: /etc/passwd || echo \"messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\" >> /etc/passwd); " +
+                    "(grep -q ^messagebus: /etc/shadow || echo \"messagebus:*:19700:0:99999:7:::\" >> /etc/shadow); " +
+                    "(grep -q ^docker: /etc/group || echo \"docker:x:102:\" >> /etc/group); " +
+                    "printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; " +
+                    "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
+                    "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && " +
+                    "dpkg --configure -a && " +
+                    "apt-get update -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" && " +
+                    "(apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" docker.io docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" docker-cli docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y -o Dpkg::Options::=\"--force-unsafe-io\" -o Dpkg::Options::=\"--force-overwrite\" -o Dpkg::Options::=\"--force-confdef\" -o Dpkg::Options::=\"--force-confold\" python3 python3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         )
     )
@@ -213,6 +267,28 @@ object DistroCatalog {
             },
             "openssh_server" to { port ->
                 "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y openssh-server ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty /etc/ssh/sshd_config.d && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && echo \"Port $port\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"UsePAM no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"SetEnv PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"Subsystem sftp internal-sftp\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && (sed -i 's/^Subsystem.*sftp/#&/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^session.*pam_loginuid.so/#&/' /etc/pam.d/sshd 2>/dev/null || true) && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y curl ca-certificates git procps && (curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
+            },
+            "web_terminal" to { _ ->
+                "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && (apt-get install -y ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "mkdir -p /usr/sbin /etc /var/lib/dbus 2>/dev/null; " +
+                    "(grep -q ^messagebus: /etc/group || echo \"messagebus:x:101:\" >> /etc/group); " +
+                    "(grep -q ^messagebus: /etc/passwd || echo \"messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\" >> /etc/passwd); " +
+                    "(grep -q ^messagebus: /etc/shadow || echo \"messagebus:*:19700:0:99999:7:::\" >> /etc/shadow); " +
+                    "(grep -q ^docker: /etc/group || echo \"docker:x:102:\" >> /etc/group); " +
+                    "printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; " +
+                    "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
+                    "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && " +
+                    "dpkg --configure -a && apt-get update && " +
+                    "(apt-get install -y docker.io docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y docker-cli docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y python3 python3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -287,6 +363,16 @@ object DistroCatalog {
             },
             "openssh_server" to { port ->
                 "apk update && apk add --no-cache openssh-server openssh ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty && ssh-keygen -A 2>/dev/null || true && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && echo \"Port $port\" >> /etc/ssh/ssh_config && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "apk update && apk add --no-cache curl ca-certificates git nodejs npm gcompat && (npm install -g code-server --unsafe-perm || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
+            },
+            "web_terminal" to { _ ->
+                "apk update && (apk add --no-cache ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "apk update && (apk add --no-cache docker-cli docker-cli-compose python3 py3-pip curl ca-certificates tar || apk add --no-cache python3 py3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         )
     )
@@ -348,6 +434,16 @@ object DistroCatalog {
             },
             "openssh_server" to { port ->
                 "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/; s/^SigLevel.*/SigLevel = Never/; s/^LocalFileSigLevel.*/LocalFileSigLevel = Never/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm openssh ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && echo \"Port $port\" >> /etc/ssh/ssh_config && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/; s/^SigLevel.*/SigLevel = Never/; s/^LocalFileSigLevel.*/LocalFileSigLevel = Never/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm curl ca-certificates git procps-ng && (curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local || curl -fsSL https://code-server.dev/install.sh | sh)"
+            },
+            "web_terminal" to { _ ->
+                "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/; s/^SigLevel.*/SigLevel = Never/; s/^LocalFileSigLevel.*/LocalFileSigLevel = Never/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm curl ca-certificates && (pacman -S --noconfirm ttyd || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/; s/^SigLevel.*/SigLevel = Never/; s/^LocalFileSigLevel.*/LocalFileSigLevel = Never/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm curl ca-certificates tar python python-pip && (pacman -S --noconfirm docker docker-compose || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -431,6 +527,31 @@ object DistroCatalog {
             "openssh_server" to { port ->
                 "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +
                     "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y openssh-server ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty /etc/ssh/sshd_config.d && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && echo \"Port $port\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"UsePAM no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"SetEnv PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && echo \"Subsystem sftp internal-sftp\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && (sed -i 's/^Subsystem.*sftp/#&/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^session.*pam_loginuid.so/#&/' /etc/pam.d/sshd 2>/dev/null || true) && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +
+                    "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y curl ca-certificates git procps && (curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
+            },
+            "web_terminal" to { _ ->
+                "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +
+                    "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && (apt-get install -y ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +
+                    "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "mkdir -p /usr/sbin /etc /var/lib/dbus 2>/dev/null; " +
+                    "(grep -q ^messagebus: /etc/group || echo \"messagebus:x:101:\" >> /etc/group); " +
+                    "(grep -q ^messagebus: /etc/passwd || echo \"messagebus:x:101:101:D-Bus Message System Daemon:/nonexistent:/bin/false\" >> /etc/passwd); " +
+                    "(grep -q ^messagebus: /etc/shadow || echo \"messagebus:*:19700:0:99999:7:::\" >> /etc/shadow); " +
+                    "(grep -q ^docker: /etc/group || echo \"docker:x:102:\" >> /etc/group); " +
+                    "printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; " +
+                    "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
+                    "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && " +
+                    "dpkg --configure -a && apt-get update && " +
+                    "(apt-get install -y docker.io docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y docker-cli docker-compose python3 python3-pip curl ca-certificates tar || " +
+                    "apt-get install -y python3 python3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -451,36 +572,97 @@ object DistroCatalog {
         )
     )
 
-    private const val VOID_VNCSERVER_WRAPPER =
-        "rm -f /usr/bin/vncserver /usr/local/bin/vncserver 2>/dev/null || true; " +
+    private const val COMMON_VNCSERVER_WRAPPER =
+        "rm -f /usr/bin/vncserver /usr/local/bin/vncserver /usr/local/sbin/vncserver 2>/dev/null || true; " +
             "printf '#!/bin/sh\\n" +
             "# LinuxOnAndroid TigerVNC server wrapper for PRoot environments\\n" +
-            "DISP=\":1\"; KILL=0; GEOM=\"1280x720\"; DEPTH=\"24\"; XSTARTUP=\"/etc/vnc/xstartup\"; SECTYPES=\"None,VncAuth\"\\n" +
-            "while [ \\\$# -gt 0 ]; do\\n" +
-            "  case \"\\\$1\" in\\n" +
-            "    -kill) KILL=1; shift; [ -n \"\\\$1\" ] && DISP=\"\\\$1\" && shift ;;\\n" +
-            "    -geometry) shift; GEOM=\"\\\$1\"; shift ;;\\n" +
-            "    -depth) shift; DEPTH=\"\\\$1\"; shift ;;\\n" +
-            "    -xstartup) shift; XSTARTUP=\"\\\$1\"; shift ;;\\n" +
-            "    -SecurityTypes) shift; SECTYPES=\"\\\$1\"; shift ;;\\n" +
-            "    :*) DISP=\"\\\$1\"; shift ;;\\n" +
+            "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\\n" +
+            "ACTION=\"start\"; DISP=\":1\"; GEOM=\"1280x720\"; DEPTH=\"24\"; XSTARTUP=\"/etc/vnc/xstartup\"; SECTYPES=\"None,VncAuth\"\\n" +
+            "while [ \$# -gt 0 ]; do\\n" +
+            "  case \"\$1\" in\\n" +
+            "    -list) ACTION=\"list\"; shift ;;\\n" +
+            "    -kill) ACTION=\"kill\"; shift; [ -n \"\$1\" ] && [ \"\$1\" != \"-*\" ] && DISP=\"\$1\" && shift ;;\\n" +
+            "    -geometry) shift; GEOM=\"\$1\"; shift ;;\\n" +
+            "    -depth) shift; DEPTH=\"\$1\"; shift ;;\\n" +
+            "    -xstartup) shift; XSTARTUP=\"\$1\"; shift ;;\\n" +
+            "    -SecurityTypes) shift; SECTYPES=\"\$1\"; shift ;;\\n" +
+            "    -help|--help|-h) ACTION=\"help\"; shift ;;\\n" +
+            "    :*) DISP=\"\$1\"; shift ;;\\n" +
             "    *) shift ;;\\n" +
             "  esac\\n" +
             "done\\n" +
-            "DISP_NUM=\\\$(echo \"\\\$DISP\" | tr -d \":\"); [ -z \"\\\$DISP_NUM\" ] && DISP_NUM=\"1\"\\n" +
-            "if [ \"\\\$KILL\" -eq 1 ]; then\\n" +
-            "  pkill -f \"Xvnc :\\\$DISP_NUM\" 2>/dev/null || killall -9 Xvnc 2>/dev/null || true\\n" +
-            "  rm -f \"/tmp/.X\\\${DISP_NUM}-lock\" \"/tmp/.X11-unix/X\\\${DISP_NUM}\" 2>/dev/null || true\\n" +
-            "  echo \"Killed VNC server on display :\\\$DISP_NUM\"; exit 0\\n" +
+            "DISP_NUM=\$(echo \"\$DISP\" | tr -d \":\"); [ -z \"\$DISP_NUM\" ] && DISP_NUM=\"1\"\\n" +
+            "if [ \"\$ACTION\" = \"help\" ]; then\\n" +
+            "  echo \"TigerVNC server wrapper for LinuxOnAndroid (PRoot)\"\\n" +
+            "  echo \"\"\\n" +
+            "  echo \"Usage:\"\\n" +
+            "  echo \"  vncserver [:<display>] [-geometry <width>x<height>] [-depth <depth>] [-SecurityTypes <types>]\"\\n" +
+            "  echo \"  vncserver -list\"\\n" +
+            "  echo \"  vncserver -kill :<display>\"\\n" +
+            "  exit 0\\n" +
             "fi\\n" +
-            "mkdir -p /tmp/.X11-unix /tmp/.ICE-unix \"\\\$HOME/.vnc\" \"\\\$HOME/.config/tigervnc\" /root/.vnc 2>/dev/null; chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true\\n" +
-            "pkill -f \"Xvnc :\\\$DISP_NUM\" 2>/dev/null || true; rm -f \"/tmp/.X\\\${DISP_NUM}-lock\" \"/tmp/.X11-unix/X\\\${DISP_NUM}\" 2>/dev/null || true\\n" +
-            "PW=\"\"; if [ -f \"\\\$HOME/.vnc/passwd\" ]; then PW=\"-rfbauth \\\$HOME/.vnc/passwd\"; elif [ -f \"\\\$HOME/.config/tigervnc/passwd\" ]; then PW=\"-rfbauth \\\$HOME/.config/tigervnc/passwd\"; elif [ -f \"/root/.vnc/passwd\" ]; then PW=\"-rfbauth /root/.vnc/passwd\"; fi\\n" +
-            "echo \"Starting Xvnc on display :\\\$DISP_NUM (\\\$GEOM, depth \\\$DEPTH)...\"\\n" +
-            "Xvnc \":\\\$DISP_NUM\" -geometry \"\\\$GEOM\" -depth \"\\\$DEPTH\" \\\$PW -SecurityTypes \"\\\$SECTYPES\" -UseBlacklist=0 -ac >/dev/null 2>&1 &\\n" +
+            "if [ \"\$ACTION\" = \"list\" ]; then\\n" +
+            "  echo \"TigerVNC server sessions:\"\\n" +
+            "  echo \"\"\\n" +
+            "  printf \"%-14s %-11s %s\\\\n\" \"X DISPLAY #\" \"RFB PORT\" \"PROCESS ID\"\\n" +
+            "  FOUND=0\\n" +
+            "  FOUND_DISPS=\"\"\\n" +
+            "  for lock in /tmp/.X*-lock; do\\n" +
+            "    [ -e \"\$lock\" ] || continue\\n" +
+            "    D_NUM=\$(basename \"\$lock\" | sed 's/\\.X//;s/-lock//')\\n" +
+            "    PID=\$(cat \"\$lock\" 2>/dev/null | tr -d ' ' | tr -d '\\n')\\n" +
+            "    if [ -n \"\$PID\" ] && ( [ -d \"/proc/\$PID\" ] || kill -0 \"\$PID\" 2>/dev/null ); then\\n" +
+            "      PORT=\$((5900 + D_NUM))\\n" +
+            "      FOUND_DISPS=\"\${FOUND_DISPS}:\$D_NUM:\"\\n" +
+            "      printf \"%-14s %-11s %s\\\\n\" \":\$D_NUM\" \"\$PORT\" \"\$PID\"\\n" +
+            "      FOUND=1\\n" +
+            "    fi\\n" +
+            "  done\\n" +
+            "  PROCS=\$( (ps -ef 2>/dev/null || ps aux 2>/dev/null) | grep -v grep | grep -v libproot | grep -v printf | grep Xvnc )\\n" +
+            "  if [ -n \"\$PROCS\" ]; then\\n" +
+            "    echo \"\$PROCS\" | while read -r line; do\\n" +
+            "      PID=\$(echo \"\$line\" | awk '{print \$2}')\\n" +
+            "      D=\$(echo \"\$line\" | grep -E -o ':[0-9]+' | head -n1)\\n" +
+            "      D_NUM=\$(echo \"\$D\" | tr -d ':')\\n" +
+            "      PORT=\"\"\\n" +
+            "      RFB_ARG=\$(echo \"\$line\" | grep -E -o '\\-rfbport [0-9]+' | awk '{print \$2}')\\n" +
+            "      [ -n \"\$RFB_ARG\" ] && PORT=\"\$RFB_ARG\" || PORT=\$((5900 + D_NUM))\\n" +
+            "      case \"\$FOUND_DISPS\" in\\n" +
+            "        *\":\$D_NUM:\"*) ;;\\n" +
+            "        *) [ -n \"\$D\" ] && [ -n \"\$PORT\" ] && [ -n \"\$PID\" ] && printf \"%-14s %-11s %s\\\\n\" \"\$D\" \"\$PORT\" \"\$PID\" ;;\\n" +
+            "      esac\\n" +
+            "    done\\n" +
+            "  fi\\n" +
+            "  if [ \"\$FOUND\" -eq 0 ] && [ -z \"\$PROCS\" ]; then\\n" +
+            "    echo \"No active VNC server sessions found.\"\\n" +
+            "  fi\\n" +
+            "  exit 0\\n" +
+            "fi\\n" +
+            "if [ \"\$ACTION\" = \"kill\" ]; then\\n" +
+            "  LOCK=\"/tmp/.X\${DISP_NUM}-lock\"\\n" +
+            "  if [ -e \"\$LOCK\" ]; then\\n" +
+            "    LPID=\$(cat \"\$LOCK\" 2>/dev/null | tr -d ' ' | tr -d '\\n')\\n" +
+            "    [ -n \"\$LPID\" ] && kill \"\$LPID\" 2>/dev/null || true\\n" +
+            "  fi\\n" +
+            "  pkill -f \"Xvnc :\$DISP_NUM\" 2>/dev/null || killall -9 Xvnc 2>/dev/null || true\\n" +
+            "  rm -f \"/tmp/.X\${DISP_NUM}-lock\" \"/tmp/.X11-unix/X\${DISP_NUM}\" 2>/dev/null || true\\n" +
+            "  echo \"Killed VNC server on display :\$DISP_NUM\"; exit 0\\n" +
+            "fi\\n" +
+            "mkdir -p /tmp/.X11-unix /tmp/.ICE-unix \"\$HOME/.vnc\" \"\$HOME/.config/tigervnc\" /root/.vnc 2>/dev/null; chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true\\n" +
+            "pkill -f \"Xvnc :\$DISP_NUM\" 2>/dev/null || true; rm -f \"/tmp/.X\${DISP_NUM}-lock\" \"/tmp/.X11-unix/X\${DISP_NUM}\" 2>/dev/null || true\\n" +
+            "PW=\"\"; if [ -f \"\$HOME/.vnc/passwd\" ]; then PW=\"-rfbauth \$HOME/.vnc/passwd\"; elif [ -f \"\$HOME/.config/tigervnc/passwd\" ]; then PW=\"-rfbauth \$HOME/.config/tigervnc/passwd\"; elif [ -f \"/root/.vnc/passwd\" ]; then PW=\"-rfbauth /root/.vnc/passwd\"; fi\\n" +
+            "RFB_PORT=\$((5900 + DISP_NUM))\\n" +
+            "echo \"Starting Xvnc on display :\$DISP_NUM (\$GEOM, depth \$DEPTH)...\"\\n" +
+            "Xvnc \":\$DISP_NUM\" -geometry \"\$GEOM\" -depth \"\$DEPTH\" \$PW -SecurityTypes \"\$SECTYPES\" -UseBlacklist=0 -ac >/dev/null 2>&1 &\\n" +
             "sleep 1\\n" +
-            "if [ -x \"\\\$XSTARTUP\" ]; then DISPLAY=\":\\\$DISP_NUM\" \"\\\$XSTARTUP\" >/dev/null 2>&1 & elif [ -x \"\\\$HOME/.vnc/xstartup\" ]; then DISPLAY=\":\\\$DISP_NUM\" \"\\\$HOME/.vnc/xstartup\" >/dev/null 2>&1 & elif command -v startxfce4 >/dev/null 2>&1; then DISPLAY=\":\\\$DISP_NUM\" startxfce4 >/dev/null 2>&1 & fi\\n" +
-            "echo \"VNC Server started on port \\\$((5900 + DISP_NUM)) (:\\\$DISP_NUM).\"\\n' > /usr/bin/vncserver && chmod 755 /usr/bin/vncserver && cp /usr/bin/vncserver /usr/local/bin/vncserver 2>/dev/null || true"
+            "if [ -x \"\$XSTARTUP\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$XSTARTUP\" >/dev/null 2>&1 & elif [ -x \"\$HOME/.vnc/xstartup\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$HOME/.vnc/xstartup\" >/dev/null 2>&1 & elif command -v startxfce4 >/dev/null 2>&1; then DISPLAY=\":\$DISP_NUM\" startxfce4 >/dev/null 2>&1 & fi\\n" +
+            "LAN_IP=\"\"; [ -f /etc/network/proot_interfaces.conf ] && LAN_IP=\$(grep '^PRIMARY_IP=' /etc/network/proot_interfaces.conf 2>/dev/null | cut -d= -f2); [ -z \"\$LAN_IP\" ] && [ -f /etc/hosts ] && LAN_IP=\$(grep -v '^#' /etc/hosts 2>/dev/null | grep -v '^127\\.' | grep -v '^::1' | awk '{print \$1}' | head -n1)\\n" +
+            "echo \"VNC Server started on port \$RFB_PORT (:\$DISP_NUM).\"\\n" +
+            "echo \"-> Local connection:  127.0.0.1:\$RFB_PORT\"\\n" +
+            "[ -n \"\$LAN_IP\" ] && [ \"\$LAN_IP\" != \"127.0.0.1\" ] && echo \"-> Wi-Fi connection:  \$LAN_IP:\$RFB_PORT\"\\n" +
+            "echo \"-> List sessions:     vncserver -list\"\\n" +
+            "echo \"-> Stop server:       vncserver -kill :\$DISP_NUM\"\\n' > /usr/bin/vncserver && chmod 755 /usr/bin/vncserver && cp /usr/bin/vncserver /usr/local/bin/vncserver 2>/dev/null || true; chmod 755 /usr/local/bin/vncserver 2>/dev/null || true"
+    private const val VOID_VNCSERVER_WRAPPER = COMMON_VNCSERVER_WRAPPER
 
     val VOID_ROLLING = DistroDefinition(
         id = "void_rolling",
@@ -575,6 +757,24 @@ object DistroCatalog {
                     "(sed -i 's/^#\\?Port .*/Port $port/' /etc/ssh/sshd_config 2>/dev/null || echo \"Port $port\" >> /etc/ssh/sshd_config) && " +
                     "chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && " +
                     "chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
+                    "xbps-install -y curl ca-certificates git procps-ng && " +
+                    "(curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local || curl -fsSL https://code-server.dev/install.sh | sh)"
+            },
+            "web_terminal" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
+                    "(xbps-install -y ttyd curl ca-certificates || xbps-install -y curl ca-certificates) && " +
+                    "if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+            },
+            "docker_tools" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
+                    "(xbps-install -y docker-cli docker-compose python3 python3-pip curl ca-certificates tar || xbps-install -y python3 python3-pip curl ca-certificates tar || true) && " +
+                    "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
             }
         ),
         softwarePackageLaunchCommands = mapOf(
@@ -616,9 +816,218 @@ object DistroCatalog {
         )
     )
 
+    val FEDORA_44 = DistroDefinition(
+        id = "fedora_44",
+        name = "Fedora 44",
+        version = "44",
+        tag = "Leading-Edge & RPM",
+        description = "Modern, innovative Linux distribution featuring the DNF package manager and RPM ecosystem.",
+        packageManager = PackageManagerType.DNF,
+        defaultShell = "/bin/bash",
+        candidateShells = listOf("/bin/bash", "/usr/bin/bash", "/bin/sh"),
+        downloadSizeMb = 142,
+        installedSizeMb = 480,
+        colorHex = 0xFF51A2DA,
+        downloadUrls = mapOf(
+            SystemArchitecture.ARM64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-WSL-Base-44-1.7.aarch64.wsl",
+            SystemArchitecture.X86_64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/x86_64/images/Fedora-WSL-Base-44-1.7.x86_64.wsl",
+            SystemArchitecture.ARMV7 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-WSL-Base-44-1.7.aarch64.wsl"
+        ),
+        firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
+            "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                    "mkdir -p /etc/sudoers.d /etc/pam.d /etc/selinux /home/$username /run /var/run /var/log 2>/dev/null; " +
+                    "(grep -q ^$username: /etc/passwd || echo \"$username:x:1000:1000:$username:/home/$username:/bin/bash\" >> /etc/passwd); " +
+                    "(grep -q ^$username: /etc/group || echo \"$username:x:1000:\" >> /etc/group); " +
+                    "(grep -q ^wheel: /etc/group && sed -i 's/^wheel:.*/&,$username/' /etc/group || echo \"wheel:x:10:root,$username\" >> /etc/group); " +
+                    "(grep -q ^$username: /etc/shadow || echo \"$username:*:19700:0:99999:7:::\" >> /etc/shadow); " +
+                    "chown -R 1000:1000 /home/$username 2>/dev/null || true; " +
+                    "chmod 644 /etc/shadow /etc/shadow- /etc/passwd /etc/group 2>/dev/null || true; " +
+                    "echo \"$username ALL=(ALL:ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$username && chmod 0440 /etc/sudoers.d/$username; " +
+                    "printf 'auth sufficient pam_permit.so\\naccount sufficient pam_permit.so\\nsession sufficient pam_permit.so\\npassword sufficient pam_permit.so\\n' > /etc/pam.d/su 2>/dev/null || true; " +
+                    "cp /etc/pam.d/su /etc/pam.d/su-l 2>/dev/null || true; " +
+                    "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || printf 'SELINUX=disabled\\nSELINUXTYPE=targeted\\n' > /etc/selinux/config 2>/dev/null || true); " +
+                    "echo \"root:$rootPassword\" | chpasswd 2>/dev/null; passwd -u root 2>/dev/null || true; " +
+                    "echo \"$username:$userPassword\" | chpasswd 2>/dev/null; passwd -u $username 2>/dev/null || true; " +
+                    "chown -R 0:0 /etc/sudoers /etc/sudoers.d /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true"
+        },
+        softwarePackageCommands = mapOf(
+            "xfce_desktop" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "dnf install -y xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-terminal thunar dbus-x11 tigervnc-server novnc python3-websockify curl ca-certificates perl python3 && " +
+                        "$COMMON_VNCSERVER_WRAPPER && " +
+                        "rm -f /etc/tigervnc/vncserver-config-defaults 2>/dev/null || true; " +
+                        "mkdir -p /root/.vnc /etc/skel/.vnc /etc/vnc /tmp/.X11-unix /tmp/.ICE-unix && " +
+                        "chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true; " +
+                        "(echo fedora | vncpasswd -f > /root/.vnc/passwd 2>/dev/null || echo fedora | tigervncpasswd -f > /root/.vnc/passwd 2>/dev/null || true) && " +
+                        "chmod 600 /root/.vnc/passwd 2>/dev/null || true; " +
+                        "(echo fedora | vncpasswd -f > /etc/skel/.vnc/passwd 2>/dev/null || echo fedora | tigervncpasswd -f > /etc/skel/.vnc/passwd 2>/dev/null || true) && " +
+                        "chmod 600 /etc/skel/.vnc/passwd 2>/dev/null || true; " +
+                        "cat << 'EOF' > /usr/bin/bwrap\n" +
+                        "#!/usr/bin/env python3\n" +
+                        "import sys, os\n" +
+                        "args = sys.argv[1:]\n" +
+                        "exec_idx = -1\n" +
+                        "for i, arg in enumerate(args):\n" +
+                        "    if arg.startswith(\"/usr/\") and os.path.isfile(arg) and os.access(arg, os.X_OK):\n" +
+                        "        exec_idx = i\n" +
+                        "        break\n" +
+                        "if exec_idx >= 0:\n" +
+                        "    os.execv(args[exec_idx], args[exec_idx:])\n" +
+                        "else:\n" +
+                        "    sys.exit(0)\n" +
+                        "EOF\n" +
+                        "chmod 755 /usr/bin/bwrap 2>/dev/null || true; " +
+                        "cat << 'EOF' > /etc/vnc/xstartup\n" +
+                        "#!/bin/sh\n" +
+                        "unset SESSION_MANAGER\n" +
+                        "unset DBUS_SESSION_BUS_ADDRESS\n" +
+                        "export XDG_SESSION_TYPE=x11\n" +
+                        "export XDG_CURRENT_DESKTOP=XFCE\n" +
+                        "export DESKTOP_SESSION=xfce\n" +
+                        "export NO_AT_BRIDGE=1\n" +
+                        "export GDK_BACKEND=x11\n" +
+                        "export GTK_OVERLAY_SCROLLING=0\n" +
+                        "export GLYCIN_DISABLE_SANDBOX=1\n" +
+                        "export GLYCIN_ENABLE_SANDBOX=0\n" +
+                        "export LIBGL_ALWAYS_SOFTWARE=1\n" +
+                        "[ -r \$HOME/.Xresources ] && xrdb \$HOME/.Xresources 2>/dev/null || true\n" +
+                        "if command -v dbus-launch >/dev/null 2>&1; then\n" +
+                        "    eval \$(dbus-launch --sh-syntax --exit-with-session)\n" +
+                        "fi\n" +
+                        "xsetroot -solid \"#1e293b\" 2>/dev/null || true\n" +
+                        "xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true\n" +
+                        "xfsettingsd --daemon 2>/dev/null || true\n" +
+                        "xfwm4 --compositor=off --daemon 2>/dev/null || xfwm4 --compositor=off &\n" +
+                        "xfce4-panel &\n" +
+                        "Thunar --daemon 2>/dev/null &\n" +
+                        "if command -v xfdesktop >/dev/null 2>&1; then\n" +
+                        "    exec xfdesktop\n" +
+                        "elif command -v startxfce4 >/dev/null 2>&1; then\n" +
+                        "    exec startxfce4\n" +
+                        "else\n" +
+                        "    exec xterm\n" +
+                        "fi\n" +
+                        "EOF\n" +
+                        "chmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup; " +
+                        "printf 'securitytypes=None,VncAuth\\ngeometry=1280x720\\nlocalhost=no\\nalwaysshared=1\\n' > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config && " +
+                        "for u in /home/*; do if [ -d \"\$u\" ]; then " +
+                            "mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && " +
+                            "cp /etc/vnc/xstartup \"\$u/.vnc/xstartup\" && " +
+                            "cp /etc/vnc/config \"\$u/.vnc/config\" && " +
+                            "(echo fedora | vncpasswd -f > \"\$u/.vnc/passwd\" 2>/dev/null || echo fedora | tigervncpasswd -f > \"\$u/.vnc/passwd\" 2>/dev/null || true) && " +
+                            "(echo fedora | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || echo fedora | tigervncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true) && " +
+                            "chmod 755 \"\$u/.vnc/xstartup\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; " +
+                            "chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; " +
+                        "fi; done"
+            },
+            "python_dev" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "dnf install -y python3 python3-pip python3-devel git gcc gcc-c++ make neovim curl wget ca-certificates"
+            },
+            "node_dev" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "dnf install -y nodejs npm git gcc gcc-c++ make neovim curl wget ca-certificates"
+            },
+            "android_dev" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "dnf install -y java-17-openjdk-headless git curl wget unzip ca-certificates"
+            },
+            "nginx_web" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "dnf install -y nginx sqlite curl ca-certificates && " +
+                        "(sed -i 's/\\b80\\b/8080/g' /etc/nginx/nginx.conf /etc/nginx/conf.d/*.conf 2>/dev/null || true) && " +
+                        "(sed -i 's/^\\s*user\\s\\+nginx/#user nginx/' /etc/nginx/nginx.conf 2>/dev/null || true) && " +
+                        "mkdir -p /run /var/log/nginx /var/lib/nginx && chmod -R 777 /run /var/log/nginx /var/lib/nginx 2>/dev/null || true"
+            },
+            "openssh_server" to { port ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "dnf install -y openssh-server ca-certificates && " +
+                        "mkdir -p /run/sshd /var/run/sshd /var/empty /etc/ssh/sshd_config.d && " +
+                        "[ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && " +
+                        "ssh-keygen -A 2>/dev/null || true && " +
+                        "echo \"Port $port\" > /etc/ssh/sshd_config.d/00-linuxonandroid.conf && " +
+                        "echo \"PermitRootLogin yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && " +
+                        "echo \"PasswordAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && " +
+                        "echo \"KbdInteractiveAuthentication yes\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && " +
+                        "echo \"UsePAM no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && " +
+                        "echo \"StrictModes no\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && " +
+                        "echo \"SetEnv PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && " +
+                        "echo \"Subsystem sftp internal-sftp\" >> /etc/ssh/sshd_config.d/00-linuxonandroid.conf && " +
+                        "(sed -i 's/^Subsystem.*sftp/#&/' /etc/ssh/sshd_config 2>/dev/null || true) && " +
+                        "(sed -i 's/^#\\?UsePAM.*/UsePAM no/' /etc/ssh/sshd_config 2>/dev/null || true) && " +
+                        "(sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && " +
+                        "(sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && " +
+                        "(sed -i 's/^#\\?Port .*/Port $port/' /etc/ssh/sshd_config 2>/dev/null || echo \"Port $port\" >> /etc/ssh/sshd_config) && " +
+                        "chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && " +
+                        "chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            },
+            "code_server" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "dnf install -y curl ca-certificates git procps-ng && " +
+                        "(curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)"
+            },
+            "web_terminal" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "(dnf install -y --setopt=keepcache=0 ttyd curl ca-certificates procps-ng || dnf install -y --setopt=keepcache=0 curl ca-certificates procps-ng) && " +
+                        "if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi; dnf clean all"
+            },
+            "docker_tools" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
+                        "(dnf install -y --setopt=keepcache=0 docker-cli docker-compose python3 python3-pip curl ca-certificates tar || dnf install -y --setopt=keepcache=0 python3 python3-pip curl ca-certificates tar || true) && " +
+                        "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER && dnf clean all"
+            }
+        ),
+        softwarePackageLaunchCommands = mapOf(
+            "xfce_desktop" to { _ ->
+                "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                        "([ -f /usr/bin/vncserver ] && grep -q 'LinuxOnAndroid' /usr/bin/vncserver 2>/dev/null || ($COMMON_VNCSERVER_WRAPPER)); " +
+                        "rm -f /etc/tigervnc/vncserver-config-defaults 2>/dev/null || true; " +
+                        "mkdir -p /tmp/.X11-unix /tmp/.ICE-unix /root/.vnc && chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true; " +
+                        "[ -f /root/.vnc/passwd ] || (echo fedora | vncpasswd -f > /root/.vnc/passwd 2>/dev/null || echo fedora | tigervncpasswd -f > /root/.vnc/passwd 2>/dev/null || true); chmod 600 /root/.vnc/passwd 2>/dev/null || true; " +
+                        "for u in /home/*; do if [ -d \"\$u\" ]; then " +
+                            "mkdir -p \"\$u/.config/tigervnc\" \"\$u/.vnc\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; " +
+                            "[ -f \"\$u/.config/tigervnc/passwd\" ] || (echo fedora | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || echo fedora | tigervncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true); " +
+                            "[ -f \"\$u/.vnc/passwd\" ] || cp \"\$u/.config/tigervnc/passwd\" \"\$u/.vnc/passwd\" 2>/dev/null || true; " +
+                            "chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; " +
+                        "fi; done; " +
+                        "vncserver -kill :1 2>/dev/null || true; " +
+                        "rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 2>/dev/null; " +
+                        "vncserver :1 -xstartup /etc/vnc/xstartup -geometry 1280x720 -depth 24 -SecurityTypes None,VncAuth -UseBlacklist=0 --I-KNOW-THIS-IS-INSECURE"
+            },
+            "openssh_server" to { port ->
+                val validPort = if (port in 1..65535) port else 2222
+                "(sed -i 's/^Subsystem.*sftp/#&/' /etc/ssh/sshd_config 2>/dev/null || true); mkdir -p /run/sshd /var/run/sshd /var/empty && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true && (killall -9 sshd 2>/dev/null || true) && (/usr/sbin/sshd -p $validPort 2>/dev/null || /usr/bin/sshd -p $validPort)"
+            },
+            "nginx_web" to { _ ->
+                "mkdir -p /run /var/log/nginx /var/lib/nginx 2>/dev/null && chmod -R 777 /run /var/log/nginx /var/lib/nginx 2>/dev/null || true; nginx 2>/dev/null || /usr/sbin/nginx 2>/dev/null || /usr/bin/nginx 2>/dev/null"
+            }
+        ),
+        softwarePackageExpectedBinaries = mapOf(
+            "xfce_desktop" to listOf(
+                "usr/bin/startxfce4",
+                "usr/bin/vncserver",
+                "usr/bin/vncpasswd",
+                "etc/vnc/xstartup"
+            )
+        ),
+        softwarePackageVersions = mapOf(
+            "xfce_desktop" to 5
+        )
+    )
+
     val ALL_DISTROS = listOf(
         UBUNTU_26_04,
         DEBIAN_12,
+        FEDORA_44,
         ALPINE_3_21,
         ARCH_ARM,
         KALI_ROLLING,

@@ -47,6 +47,28 @@ class ContainerManager(private val context: Context) {
             }
             return result.ifEmpty { "localhost" }
         }
+
+        fun formatExternalFolderName(containerName: String, existingFolderNames: Set<String> = emptySet()): String {
+            val tokens = containerName.trim().split(Regex("[^a-zA-Z0-9]+")).filter { it.isNotEmpty() }
+            val base = if (tokens.isEmpty()) {
+                "container"
+            } else {
+                val first = tokens.first().lowercase()
+                val rest = tokens.drop(1).joinToString("") { token ->
+                    token.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                }
+                (first + rest).ifEmpty { "container" }
+            }
+
+            if (!existingFolderNames.contains(base)) {
+                return base
+            }
+            var suffix = 2
+            while (existingFolderNames.contains("$base$suffix")) {
+                suffix++
+            }
+            return "$base$suffix"
+        }
     }
 
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -70,6 +92,7 @@ class ContainerManager(private val context: Context) {
 
     fun loadAndMigrateContainers() {
         val loaded = loadContainersFromPrefs().toMutableList()
+        val assignedFolders = loaded.mapNotNull { it.externalFolderName.takeIf { f -> f.isNotBlank() } }.toMutableSet()
 
         // Automatic legacy migration:
         // If legacy ubuntu_rootfs exists and contains a real valid installation with an executable shell, register it
@@ -78,6 +101,8 @@ class ContainerManager(private val context: Context) {
             val alreadyRegistered = loaded.any { it.id == DEFAULT_CONTAINER_ID || it.rootDirPath == legacyUbuntuRootfsDir.absolutePath }
             if (isRealLegacy && !alreadyRegistered) {
                 Log.d(TAG, "Discovered legacy rootfs at ${legacyUbuntuRootfsDir.absolutePath}. Registering as $DEFAULT_CONTAINER_ID...")
+                val legacyFolder = formatExternalFolderName("Ubuntu 26.04", assignedFolders)
+                assignedFolders.add(legacyFolder)
                 val legacyContainer = ContainerInstance(
                     id = DEFAULT_CONTAINER_ID,
                     name = "Ubuntu 26.04",
@@ -90,8 +115,12 @@ class ContainerManager(private val context: Context) {
                     defaultUser = "ubuntu",
                     defaultShell = "/bin/bash",
                     packageManager = PackageManagerType.APT,
-                    colorHex = DistroCatalog.UBUNTU_26_04.colorHex
+                    colorHex = DistroCatalog.UBUNTU_26_04.colorHex,
+                    externalFolderName = legacyFolder
                 )
+                try {
+                    legacyContainer.getExternalDirectory(context)
+                } catch (_: Exception) {}
                 loaded.add(0, legacyContainer)
                 saveContainersToPrefs(loaded)
             }
@@ -103,34 +132,47 @@ class ContainerManager(private val context: Context) {
         val validContainers = loaded.filter { container ->
             isRealRootfs(container.rootDir)
         }.map { container ->
+            // Migration for older containers without externalFolderName:
+            val containerWithExternal = if (container.externalFolderName.isBlank()) {
+                needsSave = true
+                val newFolder = formatExternalFolderName(container.name, assignedFolders)
+                assignedFolders.add(newFolder)
+                container.copy(externalFolderName = newFolder)
+            } else {
+                container
+            }
+            try {
+                containerWithExternal.getExternalDirectory(context)
+            } catch (_: Exception) {}
+
             // If the container is a real rootfs but is missing the version marker, stamp it with the current app build version
-            val versionFile = File(container.rootDir, RootfsMigrationManager.VERSION_FILE_PATH)
+            val versionFile = File(containerWithExternal.rootDir, RootfsMigrationManager.VERSION_FILE_PATH)
             if (!versionFile.exists()) {
                 RootfsMigrationManager.writeVersion(
-                    container.rootDir,
+                    containerWithExternal.rootDir,
                     RootfsVersionInfo(
                         versionCode = BuildConfig.VERSION_CODE,
                         versionName = BuildConfig.VERSION_NAME,
-                        installedAt = container.installedAt,
+                        installedAt = containerWithExternal.installedAt,
                         lastUpgradedAt = System.currentTimeMillis()
                     )
                 )
             }
-            if (container.storageUsedMb <= 0L) {
-                val computed = calculateFastDiskUsageMb(container.rootDir)
+            if (containerWithExternal.storageUsedMb <= 0L) {
+                val computed = calculateFastDiskUsageMb(containerWithExternal.rootDir)
                 if (computed > 0L) {
                     needsSave = true
-                    container.copy(storageUsedMb = computed)
+                    containerWithExternal.copy(storageUsedMb = computed)
                 } else {
-                    container
+                    containerWithExternal
                 }
             } else {
-                container
+                containerWithExternal
             }
         }
 
         if (validContainers.size != loaded.size || needsSave) {
-            Log.d(TAG, "Updating ${validContainers.size} containers in prefs with storage sizes.")
+            Log.d(TAG, "Updating ${validContainers.size} containers in prefs with storage sizes and external folders.")
             saveContainersToPrefs(validContainers)
         } else {
             _containers.value = validContainers
@@ -139,6 +181,16 @@ class ContainerManager(private val context: Context) {
         if (_containers.value.isNotEmpty() && _containers.value.none { it.id == _defaultContainerId.value }) {
             val firstId = _containers.value.first().id
             setDefaultContainer(firstId)
+        }
+
+        // Ensure network shims are up-to-date across all registered containers
+        for (container in validContainers) {
+            val rootfs = File(container.rootDirPath)
+            if (rootfs.exists()) {
+                try {
+                    NetworkShims.ensureNetworkShims(rootfs, context)
+                } catch (_: Exception) {}
+            }
         }
 
         // Clean up any orphaned container directories on disk (from aborted/crashed installs or previous uninstalls)
@@ -184,6 +236,7 @@ class ContainerManager(private val context: Context) {
                 val pmName = obj.optString("packageManager", "APT")
                 val packageManager = try { PackageManagerType.valueOf(pmName) } catch (_: Exception) { PackageManagerType.APT }
                 val colorHex = obj.optLong("colorHex", DistroCatalog.getById(distroId).colorHex)
+                val externalFolderName = obj.optString("externalFolderName", "")
 
                 list.add(
                     ContainerInstance(
@@ -198,7 +251,8 @@ class ContainerManager(private val context: Context) {
                         defaultUser = defaultUser,
                         defaultShell = defaultShell,
                         packageManager = packageManager,
-                        colorHex = colorHex
+                        colorHex = colorHex,
+                        externalFolderName = externalFolderName
                     )
                 )
             }
@@ -226,6 +280,8 @@ class ContainerManager(private val context: Context) {
                 obj.put("defaultShell", c.defaultShell)
                 obj.put("packageManager", c.packageManager.name)
                 obj.put("colorHex", c.colorHex)
+                obj.put("externalFolderName", c.externalFolderName)
+
                 array.put(obj)
             }
             prefs.edit().putString(KEY_CONTAINERS_JSON, array.toString()).apply()
@@ -277,9 +333,13 @@ class ContainerManager(private val context: Context) {
         val rootfsDir = File(containerDir, "rootfs").apply { mkdirs() }
         val effectiveShell = defaultShell ?: distro.defaultShell
 
+        val assignedFolders = _containers.value.mapNotNull { it.externalFolderName.takeIf { f -> f.isNotBlank() } }.toSet()
+        val effectiveName = name.ifBlank { distro.name }
+        val externalFolder = formatExternalFolderName(effectiveName, assignedFolders)
+
         val newInstance = ContainerInstance(
             id = id,
-            name = name.ifBlank { distro.name },
+            name = effectiveName,
             distroId = distroId,
             distroName = distro.name,
             rootDirPath = rootfsDir.absolutePath,
@@ -289,8 +349,12 @@ class ContainerManager(private val context: Context) {
             defaultUser = defaultUser,
             defaultShell = effectiveShell,
             packageManager = distro.packageManager,
-            colorHex = distro.colorHex
+            colorHex = distro.colorHex,
+            externalFolderName = externalFolder
         )
+        try {
+            newInstance.getExternalDirectory(context)
+        } catch (_: Exception) {}
 
         val updated = _containers.value.toMutableList()
         updated.removeAll { it.id == id }
