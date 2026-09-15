@@ -28,10 +28,23 @@ Builds:
       - app/src/main/jniLibs
     build: ../scripts/build_native_libs.sh $$NDK$$
     ndk: 28.2.13676358
+  - versionName: 1.7.0
+    versionCode: 14
+    commit: 081eed03e91df5217a1ac106fcc37d191b599275
+    subdir: app
+    sudo:
+      - apt-get update
+      - apt-get install -y make gawk
+    gradle:
+      - yes
+    scandelete:
+      - app/src/main/jniLibs
+    build: ../scripts/build_native_libs.sh $$NDK$$
+    ndk: 28.2.13676358
 
 AllowedAPKSigningKeys: c532d763fd4ec838fa118005d9eb51ec13ce72167d2b0a1a8452ce36fc49199e
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.6.0
-CurrentVersionCode: 13
+CurrentVersion: 1.7.0
+CurrentVersionCode: 14

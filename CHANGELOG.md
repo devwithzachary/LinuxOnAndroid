@@ -2,7 +2,7 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
-## [1.7.0] - 2026-09-14
+## [1.7.0] - 2026-09-15
 
 ### 🌐 PRoot Network Diagnostics & VNC Session Management
 - **Transparent Network Shims (netstat, ss, ip)**: Injected intelligent shims into `/usr/local/bin` that bypass Android 10+ SELinux restrictions (proc_net read denials and netlink permission errors). Standard diagnostic commands like `netstat -ltnp | grep 5901` and `ss -tl` now accurately report listening server sockets and associated process names.
