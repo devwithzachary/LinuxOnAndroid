@@ -34,6 +34,13 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **SELinux Container Hardening**: Automatically configures `/etc/selinux/config` with `SELINUX=disabled` on DNF rootfs images to suppress `selinux_status_open()` netlink warnings in PRoot.
 - **TigerVNC Server Wrapper Stability**: Hardened TigerVNC server wrapper script generation, eliminating bash parameter escaping errors and ensuring reliable XFCE desktop initialization.
 
+### 📂 Dedicated Per-Container Storage & Import/Export Bridge (`/external`)
+- **App-Specific External Storage Directory**: Automatically provisions a dedicated camelCase folder for each container under `/sdcard/Android/data/com.devwithzachary.completelinuxinstaller/files/<containerName>` (e.g. `ubuntuContainer`, `voidLinux`) and auto-mounts it to `/external` inside Linux.
+- **Unrestricted POSIX Permissions**: Because it resides in app-specific storage, all file types (.sh scripts, .zip archives, source code, binaries) have full POSIX read, write, and execute permissions without Scoped Storage filtering or restricted permissions.
+- **In-App SAF Import/Export Bridge**: Easily import any file from Android storage or Downloads directly into `/external` via system document pickers, and export files from `/external` to Android storage with 1-tap.
+- **1-Tap File Manager Integration**: Clickable directory card in Container Settings displays the full folder path and launches your file manager directly to that container's folder with automatic clipboard fallback.
+- **Automatic Startup Migration**: Automatically migrates existing and legacy containers on first launch, ensuring external directories are assigned, disambiguated with numbers for collisions, and created on disk.
+
 ### 🎨 Terminal Theming & Fun Typography Options
 - **Expanded Font Selection**: Added playful and expressive font family options (Cursive, Casual, Serif, and Sans Serif) to Settings alongside classic developer monospace fonts (JetBrains Mono, Ubuntu Mono, System Monospace) and the CyberGlyphs symbol set.
 - **Optimized Character Spacing & Glyph Scaling**: Balanced character cell advance widths and added automatic horizontal glyph scaling for proportional fonts to eliminate wide gaps between letters while preserving strict monospace grid alignment for developer fonts.

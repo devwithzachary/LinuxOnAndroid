@@ -415,6 +415,18 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 onSetDnsServers = { s, containerId ->
                                     viewModel.setDnsServers(s, containerId)
                                 },
+                                onImportFiles = { cr, uris, containerId, onComplete ->
+                                    viewModel.importFilesToContainer(cr, uris, containerId, onComplete)
+                                },
+                                onExportFile = { cr, file, targetUri, onComplete ->
+                                    viewModel.exportFileFromContainer(cr, file, targetUri, onComplete)
+                                },
+                                onOpenExternalDirectory = { ctx, containerId ->
+                                    viewModel.openExternalDirectoryInFileManager(ctx, containerId)
+                                },
+                                onGetExternalFiles = { containerId ->
+                                    viewModel.getExternalFiles(containerId)
+                                },
                                 onRefreshMetrics = {
                                     viewModel.triggerMetricsRefresh()
                                 }

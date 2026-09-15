@@ -25,7 +25,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -52,6 +52,8 @@ import java.util.Date
 import java.util.Locale
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.engine.UpgradeState
+import android.content.Context
+import androidx.compose.ui.text.style.TextOverflow
 import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
 import com.devwithzachary.completelinuxinstaller.model.SoftwareCategory
 import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
@@ -106,6 +108,10 @@ fun ContainerDetailScreen(
     onDeleteUser: (username: String, containerId: String) -> Unit = { _, _ -> },
     onSetDefaultUser: (username: String, containerId: String) -> Unit = { _, _ -> },
     onSetDnsServers: (servers: List<String>, containerId: String) -> Unit = { _, _ -> },
+    onImportFiles: (contentResolver: ContentResolver, uris: List<Uri>, containerId: String, onComplete: (Int) -> Unit) -> Unit = { _, _, _, _ -> },
+    onExportFile: (contentResolver: ContentResolver, file: File, targetUri: Uri, onComplete: (Boolean) -> Unit) -> Unit = { _, _, _, _ -> },
+    onOpenExternalDirectory: (context: Context, containerId: String) -> Unit = { _, _ -> },
+    onGetExternalFiles: (containerId: String) -> List<File> = { emptyList() },
     onRefreshMetrics: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -321,6 +327,10 @@ fun ContainerDetailScreen(
                         onDeleteUser = { u -> onDeleteUser(u, container.id) },
                         onSetDefaultUser = { u -> onSetDefaultUser(u, container.id) },
                         onSetDnsServers = { s -> onSetDnsServers(s, container.id) },
+                        onImportFiles = { cr, uris, onComplete -> onImportFiles(cr, uris, container.id, onComplete) },
+                        onExportFile = { cr, file, targetUri, onComplete -> onExportFile(cr, file, targetUri, onComplete) },
+                        onOpenExternalDirectory = { ctx -> onOpenExternalDirectory(ctx, container.id) },
+                        onGetExternalFiles = { onGetExternalFiles(container.id) },
                         onDeleteContainer = { onDeleteContainer(container.id) }
                     )
                 }
@@ -830,6 +840,10 @@ private fun SettingsTabContent(
     onDeleteUser: (username: String) -> Unit,
     onSetDefaultUser: (username: String) -> Unit,
     onSetDnsServers: (servers: List<String>) -> Unit,
+    onImportFiles: (contentResolver: ContentResolver, uris: List<Uri>, onComplete: (Int) -> Unit) -> Unit,
+    onExportFile: (contentResolver: ContentResolver, file: File, targetUri: Uri, onComplete: (Boolean) -> Unit) -> Unit,
+    onOpenExternalDirectory: (context: Context) -> Unit,
+    onGetExternalFiles: () -> List<File>,
     onDeleteContainer: () -> Unit
 ) {
     val context = LocalContext.current
@@ -840,7 +854,33 @@ private fun SettingsTabContent(
     var showRootPasswordDialog by remember { mutableStateOf(false) }
     var showAddUserDialog by remember { mutableStateOf(false) }
     var showCustomDnsDialog by remember { mutableStateOf(false) }
+    var showExportFileDialog by remember { mutableStateOf(false) }
+    var fileToExport by remember { mutableStateOf<File?>(null) }
+    var externalFilesList by remember { mutableStateOf<List<File>>(emptyList()) }
+    var transferStatusMessage by remember { mutableStateOf<String?>(null) }
     var userToDelete by remember { mutableStateOf<String?>(null) }
+
+    val importFilesLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            onImportFiles(context.contentResolver, uris) { count ->
+                transferStatusMessage = "Successfully imported $count file(s) to /external"
+                externalFilesList = onGetExternalFiles()
+            }
+        }
+    }
+
+    val exportFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("*/*")
+    ) { uri ->
+        if (uri != null && fileToExport != null) {
+            onExportFile(context.contentResolver, fileToExport!!, uri) { success ->
+                transferStatusMessage = if (success) "Exported ${fileToExport!!.name} successfully" else "Failed to export ${fileToExport!!.name}"
+                fileToExport = null
+            }
+        }
+    }
 
     // Export launcher
     val exportLauncher = rememberLauncherForActivityResult(
@@ -1104,7 +1144,7 @@ private fun SettingsTabContent(
             }
         }
 
-        // 4. Storage Mount Configuration Card
+        // 4. Shared External Storage (/external) Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -1114,21 +1154,119 @@ private fun SettingsTabContent(
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("Storage Mount Configuration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.FolderShared, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("Shared External Storage (/external)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
 
                 Text(
-                    text = "Configure host filesystem bind-mounts into this container (/sdcard, /storage/emulated/0, Downloads, Documents).",
+                    text = "This dedicated Android storage folder is automatically mounted into ${container.name} at /external. Because it resides in app-specific storage, all file types (.sh, .zip, scripts, code, binaries) have full POSIX read, write, and execute permissions.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                // Clickable directory box
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onOpenExternalDirectory(context) }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = container.getExternalDisplayPath(context),
+                                fontSize = 12.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Tap to open folder in File Manager",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open", modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                // Import / Export Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { importFilesLauncher.launch(arrayOf("*/*")) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Import Files", fontSize = 13.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            externalFilesList = onGetExternalFiles()
+                            showExportFileDialog = true
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Export File", fontSize = 13.sp)
+                    }
+                }
+
+                if (transferStatusMessage != null) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = transferStatusMessage ?: "",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { transferStatusMessage = null },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1617,6 +1755,84 @@ private fun SettingsTabContent(
             confirmButton = {
                 Button(onClick = onDismissUpgradeState) {
                     Text("Done")
+                }
+            }
+        )
+    }
+
+    if (showExportFileDialog) {
+        AlertDialog(
+            onDismissRequest = { showExportFileDialog = false },
+            icon = {
+                Icon(
+                    Icons.Default.FileUpload,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
+                )
+            },
+            title = { Text("Export File from /external", fontWeight = FontWeight.Bold) },
+            text = {
+                if (externalFilesList.isEmpty()) {
+                    Text(
+                        "No files found in /external to export.\n\nPlace or generate files inside /external in your container (e.g. cp myfile.sh /external/), then export them to Android storage here.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("Select a file to save to Android storage:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        externalFilesList.forEach { file ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.surface,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        fileToExport = file
+                                        showExportFileDialog = false
+                                        exportFileLauncher.launch(file.name)
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.InsertDriveFile,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(file.name, fontWeight = FontWeight.Medium, fontSize = 13.sp)
+                                        val sizeKb = (file.length() / 1024L).coerceAtLeast(1L)
+                                        Text("${sizeKb} KB", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.ArrowForward,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showExportFileDialog = false }) {
+                    Text("Close")
                 }
             }
         )

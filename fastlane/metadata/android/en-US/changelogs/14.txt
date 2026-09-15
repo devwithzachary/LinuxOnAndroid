@@ -1,7 +1,7 @@
 • Docker Support: 1-click preset with udocker, Docker CLI & Compose.
-• Web Terminal: 1-tap ttyd web terminal for instant local Wi-Fi sharing.
+• Web Terminal: 1-tap ttyd terminal for instant local Wi-Fi sharing.
 • VS Code Server: 1-click preset to run Visual Studio Code in browser.
 • Fedora 44: Official rootfs with DNF package manager and presets.
 • Quick Services: 1-tap VS Code & Web Terminal launchers in Overview.
-• Terminal Theming: Added Cursive, Casual & Serif fonts with balanced spacing.
-• System Hardening: Fixed PRoot socket sizing and TigerVNC scripts.
+• Shared Storage: Per-container folder mounted at /external with SAF bridge.
+• Terminal Theming: Added Cursive, Casual & Serif typography options.

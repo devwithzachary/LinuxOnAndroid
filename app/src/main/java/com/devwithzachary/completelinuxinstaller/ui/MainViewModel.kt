@@ -22,9 +22,19 @@ import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.LinuxDistribution
 import com.devwithzachary.completelinuxinstaller.model.SoftwareCategory
 import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.ContentResolver
+import android.content.Intent
+import android.net.Uri
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
+import android.widget.Toast
+import androidx.core.content.FileProvider
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -1225,6 +1235,106 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleBindSdCard() {
         val current = _dashboardState.value.bindSdCard
         _dashboardState.value = _dashboardState.value.copy(bindSdCard = !current)
+    }
+
+    fun getExternalFiles(containerId: String): List<File> {
+        val container = containerManager.getContainer(containerId) ?: return emptyList()
+        val dir = container.getExternalDirectory(getApplication())
+        return dir.listFiles()?.filter { it.isFile }?.sortedBy { it.name.lowercase() } ?: emptyList()
+    }
+
+    fun importFilesToContainer(
+        contentResolver: ContentResolver,
+        uris: List<Uri>,
+        containerId: String,
+        onComplete: ((Int) -> Unit)? = null
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val container = containerManager.getContainer(containerId)
+            if (container == null) {
+                withContext(Dispatchers.Main) { onComplete?.invoke(0) }
+                return@launch
+            }
+            val targetDir = container.getExternalDirectory(getApplication())
+            var count = 0
+            for (uri in uris) {
+                try {
+                    var fileName: String? = null
+                    contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val idx = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                            if (idx >= 0) fileName = cursor.getString(idx)
+                        }
+                    }
+                    val safeName = (fileName ?: "imported_file_${System.currentTimeMillis()}").replace("/", "_")
+                    val dest = File(targetDir, safeName)
+                    contentResolver.openInputStream(uri)?.use { input ->
+                        dest.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    count++
+                } catch (e: Exception) {
+                    Log.e("MainViewModel", "Error importing file $uri", e)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(count)
+            }
+        }
+    }
+
+    fun exportFileFromContainer(
+        contentResolver: ContentResolver,
+        sourceFile: File,
+        targetUri: Uri,
+        onComplete: ((Boolean) -> Unit)? = null
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            var success = false
+            try {
+                sourceFile.inputStream().use { input ->
+                    contentResolver.openOutputStream(targetUri)?.use { output ->
+                        input.copyTo(output)
+                        success = true
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error exporting file ${sourceFile.name}", e)
+            }
+            withContext(Dispatchers.Main) {
+                onComplete?.invoke(success)
+            }
+        }
+    }
+
+    fun openExternalDirectoryInFileManager(context: Context, containerId: String) {
+        val container = containerManager.getContainer(containerId) ?: return
+        val dir = container.getExternalDirectory(context)
+        val displayPath = container.getExternalDisplayPath(context)
+
+        try {
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", dir)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, DocumentsContract.Document.MIME_TYPE_DIR)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", dir)
+                val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "*/*")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(fallbackIntent)
+            } catch (_: Exception) {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                val clip = ClipData.newPlainText("Folder Path", displayPath)
+                clipboard?.setPrimaryClip(clip)
+                Toast.makeText(context, "Copied folder path to clipboard:\n$displayPath", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
 

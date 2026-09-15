@@ -98,7 +98,8 @@ class TerminalSession(
         pRootEngine: PRootEngine,
         rootfsDir: File = pRootEngine.rootfsDir,
         defaultShell: String? = null,
-        candidateShells: List<String>? = null
+        candidateShells: List<String>? = null,
+        externalDirectory: File? = null
     ) {
         if (_isRunning.value) return
 
@@ -109,9 +110,16 @@ class TerminalSession(
         sessionJob = sessionScope.launch {
             try {
                 _isRunning.value = true
+                val containerExtDir = externalDirectory ?: try {
+                    val cm = ContainerManager(pRootEngine.context)
+                    val container = cm.getContainer(containerId) ?: cm.containers.value.find { it.rootDirPath == rootfsDir.absolutePath }
+                    container?.getExternalDirectory(pRootEngine.context)
+                } catch (_: Exception) { null }
+
                 val customConfig = PRootConfig(
                     rootfsDir = rootfsDir,
-                    tmpDir = pRootEngine.tmpDir
+                    tmpDir = pRootEngine.tmpDir,
+                    externalDirectory = containerExtDir
                 )
 
                 fun isValidShell(relPath: String): Boolean {

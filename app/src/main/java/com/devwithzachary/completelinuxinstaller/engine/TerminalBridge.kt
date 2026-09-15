@@ -92,7 +92,8 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         rootfsDir: File? = pRootEngine?.rootfsDir,
         defaultShell: String? = null,
         autoStart: Boolean = true,
-        candidateShells: List<String>? = null
+        candidateShells: List<String>? = null,
+        externalDirectory: File? = null
     ): TerminalSession {
         val tabNum = _sessions.value.size + 1
         val sessionTitle = title ?: "Tab $tabNum: ${containerName.take(10)}"
@@ -111,7 +112,7 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         _activeSessionId.value = sessionId
 
         if (autoStart && pRootEngine != null && rootfsDir != null) {
-            session.startSession(pRootEngine, rootfsDir, defaultShell, candidateShells)
+            session.startSession(pRootEngine, rootfsDir, defaultShell, candidateShells, externalDirectory)
         }
 
         return session
@@ -153,14 +154,15 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         containerName: String = "Ubuntu",
         rootfsDir: File? = pRootEngine?.rootfsDir,
         defaultShell: String? = null,
-        candidateShells: List<String>? = null
+        candidateShells: List<String>? = null,
+        externalDirectory: File? = null
     ) {
         val engine = pRootEngine ?: return
         val dir = rootfsDir ?: engine.rootfsDir
         val active = getActiveSession()
         if (active != null) {
             if (!active.isRunning.value) {
-                active.startSession(engine, dir, defaultShell, candidateShells)
+                active.startSession(engine, dir, defaultShell, candidateShells, externalDirectory)
             }
         } else {
             createSession(
@@ -170,7 +172,8 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
                 rootfsDir = dir,
                 defaultShell = defaultShell,
                 autoStart = true,
-                candidateShells = candidateShells
+                candidateShells = candidateShells,
+                externalDirectory = externalDirectory
             )
         }
     }
