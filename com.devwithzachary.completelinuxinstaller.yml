@@ -31,7 +31,7 @@ Builds:
 
   - versionName: 1.7.0
     versionCode: 14
-    commit: 081eed03e91df5217a1ac106fcc37d191b599275
+    commit: d7d8bfe8f5c7a19a9fdfe5d49c5488e54a968d11
     subdir: app
     sudo:
       - apt-get update
