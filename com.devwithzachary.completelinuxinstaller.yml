@@ -28,6 +28,7 @@ Builds:
       - app/src/main/jniLibs
     build: ../scripts/build_native_libs.sh $$NDK$$
     ndk: 28.2.13676358
+
   - versionName: 1.7.0
     versionCode: 14
     commit: 081eed03e91df5217a1ac106fcc37d191b599275
