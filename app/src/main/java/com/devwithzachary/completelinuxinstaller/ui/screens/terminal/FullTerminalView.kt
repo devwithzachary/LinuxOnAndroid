@@ -2,6 +2,8 @@ package com.devwithzachary.completelinuxinstaller.ui.screens.terminal
 
 import android.content.Intent
 import android.graphics.Paint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -73,8 +75,12 @@ fun FullTerminalView(
     val clipboardManager = LocalClipboardManager.current
     val hapticFeedback = LocalHapticFeedback.current
 
-    var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) } // (row, col)
-    var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // (row, col)
+    var selectionStart by remember { mutableStateOf<Pair<Int, Int>?>(null) } // (bufferRow, col)
+    var selectionEnd by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // (bufferRow, col)
+    var isDraggingStartHandle by remember { mutableStateOf(false) }
+    var isDraggingEndHandle by remember { mutableStateOf(false) }
+    var activeDragPixelY by remember { mutableFloatStateOf(-1f) }
+    var activeDragPixelX by remember { mutableFloatStateOf(-1f) }
     var accumulatedScrollY by remember { mutableFloatStateOf(0f) }
     var showContextMenu by remember { mutableStateOf(false) }
     var contextMenuOffset by remember { mutableStateOf(Offset.Zero) }
@@ -147,18 +153,61 @@ fun FullTerminalView(
         val selEnd = selectionEnd
         val hasSelection = selStart != null && selEnd != null
 
-        // Normalized linear selection bounds: (fromR, fromC) <= (toR, toC)
-        val (fromR, fromC, toR, toC) = remember(selStart, selEnd, cols) {
+        // Normalized linear selection bounds in buffer coordinates: (fromBufferR, fromC) <= (toBufferR, toC)
+        val isStartFirst = remember(selStart, selEnd, cols) {
             if (selStart != null && selEnd != null) {
-                val startLinear = selStart.first * cols + selStart.second
-                val endLinear = selEnd.first * cols + selEnd.second
-                if (startLinear <= endLinear) {
+                (selStart.first.toLong() * cols + selStart.second) <= (selEnd.first.toLong() * cols + selEnd.second)
+            } else {
+                true
+            }
+        }
+
+        val (fromBufferR, fromC, toBufferR, toC) = remember(selStart, selEnd, cols, isStartFirst) {
+            if (selStart != null && selEnd != null) {
+                if (isStartFirst) {
                     listOf(selStart.first, selStart.second, selEnd.first, selEnd.second)
                 } else {
                     listOf(selEnd.first, selEnd.second, selStart.first, selStart.second)
                 }
             } else {
                 listOf(0, 0, 0, 0)
+            }
+        }
+
+        // Auto-scroll ticker when dragging a selection handle near the top or bottom edge of the terminal
+        val isDraggingAnyHandle = isDraggingStartHandle || isDraggingEndHandle
+        LaunchedEffect(isDraggingAnyHandle) {
+            if (!isDraggingAnyHandle) return@LaunchedEffect
+            while (isActive) {
+                val y = activeDragPixelY
+                val x = activeDragPixelX
+                if (y >= 0f) {
+                    val topThreshold = charHeight * 1.5f
+                    val bottomThreshold = heightPx - charHeight * 1.5f
+
+                    if (y < topThreshold && terminalBridge.emulator.scrollback.isNotEmpty()) {
+                        terminalBridge.scrollUp(1)
+                        val screenR = (y / charHeight).toInt().coerceIn(0, rows - 1)
+                        val newC = (x / charWidth).toInt().coerceIn(0, cols - 1)
+                        val newBufferR = terminalBridge.emulator.screenToBufferRow(screenR)
+                        if (isDraggingStartHandle) {
+                            if (isStartFirst) selectionStart = Pair(newBufferR, newC) else selectionEnd = Pair(newBufferR, newC)
+                        } else if (isDraggingEndHandle) {
+                            if (isStartFirst) selectionEnd = Pair(newBufferR, newC) else selectionStart = Pair(newBufferR, newC)
+                        }
+                    } else if (y > bottomThreshold && terminalBridge.emulator.scrollOffset > 0) {
+                        terminalBridge.scrollDown(1)
+                        val screenR = (y / charHeight).toInt().coerceIn(0, rows - 1)
+                        val newC = (x / charWidth).toInt().coerceIn(0, cols - 1)
+                        val newBufferR = terminalBridge.emulator.screenToBufferRow(screenR)
+                        if (isDraggingStartHandle) {
+                            if (isStartFirst) selectionStart = Pair(newBufferR, newC) else selectionEnd = Pair(newBufferR, newC)
+                        } else if (isDraggingEndHandle) {
+                            if (isStartFirst) selectionEnd = Pair(newBufferR, newC) else selectionStart = Pair(newBufferR, newC)
+                        }
+                    }
+                }
+                delay(100L)
             }
         }
 
@@ -224,9 +273,10 @@ fun FullTerminalView(
                             hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
                             val c = (offset.x / charWidth).toInt().coerceIn(0, cols - 1)
                             val r = (offset.y / charHeight).toInt().coerceIn(0, rows - 1)
-                            val wordRange = terminalBridge.getWordAt(r, c)
-                            selectionStart = Pair(r, wordRange.first)
-                            selectionEnd = Pair(r, wordRange.second)
+                            val bufferR = terminalBridge.emulator.screenToBufferRow(r)
+                            val wordRange = terminalBridge.getWordAtBuffer(bufferR, c)
+                            selectionStart = Pair(bufferR, wordRange.first)
+                            selectionEnd = Pair(bufferR, wordRange.second)
                         }
                     )
                 }
@@ -320,7 +370,7 @@ fun FullTerminalView(
 
                             isCtrlOrMeta && event.isShiftPressed && event.key == Key.C -> {
                                 val text = if (hasSelection) {
-                                    terminalBridge.getSelectedText(fromR, fromC, toR, toC)
+                                    terminalBridge.getSelectedText(fromBufferR, fromC, toBufferR, toC)
                                 } else {
                                     terminalBridge.getScreenText()
                                 }
@@ -444,12 +494,14 @@ fun FullTerminalView(
                         val cell: TerminalChar = rowChars[c]
                         val cellX = c * charWidth
 
-                        // Linear multi-line selection check
+                        val bRow = emulator.screenToBufferRow(r)
+
+                        // Linear multi-line selection check across absolute buffer rows
                         val isSelected = hasSelection && when {
-                            r < fromR || r > toR -> false
-                            fromR == toR -> c in fromC..toC
-                            r == fromR -> c >= fromC
-                            r == toR -> c <= toC
+                            bRow < fromBufferR || bRow > toBufferR -> false
+                            fromBufferR == toBufferR -> c in fromC..toC
+                            bRow == fromBufferR -> c >= fromC
+                            bRow == toBufferR -> c <= toC
                             else -> true
                         }
 
@@ -520,47 +572,92 @@ fun FullTerminalView(
                 var dragStartAnchor by remember { mutableStateOf(Offset.Zero) }
                 var dragEndAnchor by remember { mutableStateOf(Offset.Zero) }
 
+                val startScreenR = terminalBridge.emulator.bufferToScreenRow(fromBufferR)
+                val endScreenR = terminalBridge.emulator.bufferToScreenRow(toBufferR)
+
                 // Start Selection Handle (top-left of selection)
-                val startHandlePos = Offset(fromC * charWidth, (fromR + 1) * charHeight)
-                TerminalSelectionHandle(
-                    position = startHandlePos,
-                    isStart = true,
-                    onDragStart = {
-                        dragStartAnchor = Offset(fromC * charWidth + charWidth * 0.5f, fromR * charHeight + charHeight * 0.5f)
-                    },
-                    onDrag = { dragDelta ->
-                        val curPixelX = dragStartAnchor.x + dragDelta.x
-                        val curPixelY = dragStartAnchor.y + dragDelta.y
-                        val newR = (curPixelY / charHeight).toInt().coerceIn(0, rows - 1)
-                        val newC = (curPixelX / charWidth).toInt().coerceIn(0, cols - 1)
-                        if (selectionStart?.first != newR || selectionStart?.second != newC) {
-                            try { hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
-                            selectionStart = Pair(newR, newC)
+                if (startScreenR in 0 until rows) {
+                    val startHandlePos = Offset(fromC * charWidth, (startScreenR + 1) * charHeight)
+                    TerminalSelectionHandle(
+                        position = startHandlePos,
+                        isStart = true,
+                        onDragStart = {
+                            dragStartAnchor = Offset(fromC * charWidth + charWidth * 0.5f, startScreenR * charHeight + charHeight * 0.5f)
+                            activeDragPixelX = dragStartAnchor.x
+                            activeDragPixelY = dragStartAnchor.y
+                            isDraggingStartHandle = true
+                        },
+                        onDrag = { dragDelta ->
+                            val curPixelX = dragStartAnchor.x + dragDelta.x
+                            val curPixelY = dragStartAnchor.y + dragDelta.y
+                            activeDragPixelX = curPixelX
+                            activeDragPixelY = curPixelY
+                            if (curPixelY < charHeight * 1.5f && terminalBridge.emulator.scrollback.isNotEmpty()) {
+                                terminalBridge.scrollUp(1)
+                            } else if (curPixelY > heightPx - charHeight * 1.5f && terminalBridge.emulator.scrollOffset > 0) {
+                                terminalBridge.scrollDown(1)
+                            }
+                            val screenR = (curPixelY / charHeight).toInt().coerceIn(0, rows - 1)
+                            val newC = (curPixelX / charWidth).toInt().coerceIn(0, cols - 1)
+                            val newBufferR = terminalBridge.emulator.screenToBufferRow(screenR)
+                            val currentTarget = if (isStartFirst) selectionStart else selectionEnd
+                            if (currentTarget == null || currentTarget.first != newBufferR || currentTarget.second != newC) {
+                                try { hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                                if (isStartFirst) {
+                                    selectionStart = Pair(newBufferR, newC)
+                                } else {
+                                    selectionEnd = Pair(newBufferR, newC)
+                                }
+                            }
+                        },
+                        onDragEnd = {
+                            isDraggingStartHandle = false
+                            activeDragPixelY = -1f
                         }
-                    },
-                    onDragEnd = {}
-                )
+                    )
+                }
 
                 // End Selection Handle (bottom-right of selection)
-                val endHandlePos = Offset((toC + 1) * charWidth, (toR + 1) * charHeight)
-                TerminalSelectionHandle(
-                    position = endHandlePos,
-                    isStart = false,
-                    onDragStart = {
-                        dragEndAnchor = Offset(toC * charWidth + charWidth * 0.5f, toR * charHeight + charHeight * 0.5f)
-                    },
-                    onDrag = { dragDelta ->
-                        val curPixelX = dragEndAnchor.x + dragDelta.x
-                        val curPixelY = dragEndAnchor.y + dragDelta.y
-                        val newR = (curPixelY / charHeight).toInt().coerceIn(0, rows - 1)
-                        val newC = (curPixelX / charWidth).toInt().coerceIn(0, cols - 1)
-                        if (selectionEnd?.first != newR || selectionEnd?.second != newC) {
-                            try { hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
-                            selectionEnd = Pair(newR, newC)
+                if (endScreenR in 0 until rows) {
+                    val endHandlePos = Offset((toC + 1) * charWidth, (endScreenR + 1) * charHeight)
+                    TerminalSelectionHandle(
+                        position = endHandlePos,
+                        isStart = false,
+                        onDragStart = {
+                            dragEndAnchor = Offset(toC * charWidth + charWidth * 0.5f, endScreenR * charHeight + charHeight * 0.5f)
+                            activeDragPixelX = dragEndAnchor.x
+                            activeDragPixelY = dragEndAnchor.y
+                            isDraggingEndHandle = true
+                        },
+                        onDrag = { dragDelta ->
+                            val curPixelX = dragEndAnchor.x + dragDelta.x
+                            val curPixelY = dragEndAnchor.y + dragDelta.y
+                            activeDragPixelX = curPixelX
+                            activeDragPixelY = curPixelY
+                            if (curPixelY < charHeight * 1.5f && terminalBridge.emulator.scrollback.isNotEmpty()) {
+                                terminalBridge.scrollUp(1)
+                            } else if (curPixelY > heightPx - charHeight * 1.5f && terminalBridge.emulator.scrollOffset > 0) {
+                                terminalBridge.scrollDown(1)
+                            }
+                            val screenR = (curPixelY / charHeight).toInt().coerceIn(0, rows - 1)
+                            val newC = (curPixelX / charWidth).toInt().coerceIn(0, cols - 1)
+                            val newBufferR = terminalBridge.emulator.screenToBufferRow(screenR)
+                            val currentTarget = if (isStartFirst) selectionEnd else selectionStart
+                            if (currentTarget == null || currentTarget.first != newBufferR || currentTarget.second != newC) {
+                                try { hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                                if (isStartFirst) {
+                                    selectionEnd = Pair(newBufferR, newC)
+                                } else {
+                                    selectionStart = Pair(newBufferR, newC)
+                                }
+                            }
+                        },
+                        onDragEnd = {
+                            isDraggingEndHandle = false
+                            activeDragPixelY = -1f
                         }
-                    },
-                    onDragEnd = {}
-                )
+                    )
+                }
             }
 
             // Floating Selection Toolbar
@@ -614,11 +711,12 @@ fun FullTerminalView(
                             Text("Copy", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
-                        // Select All Screen Text
+                        // Select All Terminal Buffer Text
                         TextButton(
                             onClick = {
+                                val total = terminalBridge.emulator.totalBufferRows
                                 selectionStart = Pair(0, 0)
-                                selectionEnd = Pair(rows - 1, cols - 1)
+                                selectionEnd = Pair((total - 1).coerceAtLeast(0), cols - 1)
                             },
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                             shape = RoundedCornerShape(16.dp)
@@ -733,7 +831,7 @@ fun FullTerminalView(
                         onClick = {
                             showContextMenu = false
                             if (hasTextSelected) {
-                                val text = terminalBridge.getSelectedText(fromR, fromC, toR, toC)
+                                val text = terminalBridge.getSelectedText(fromBufferR, fromC, toBufferR, toC)
                                 if (text.isNotEmpty()) {
                                     clipboardManager.setText(AnnotatedString(text))
                                 }
@@ -769,8 +867,9 @@ fun FullTerminalView(
                         leadingIcon = { Icon(Icons.Default.SelectAll, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showContextMenu = false
+                            val total = terminalBridge.emulator.totalBufferRows
                             selectionStart = Pair(0, 0)
-                            selectionEnd = Pair(rows - 1, cols - 1)
+                            selectionEnd = Pair((total - 1).coerceAtLeast(0), cols - 1)
                         }
                     )
                     // Clear Screen / Buffer

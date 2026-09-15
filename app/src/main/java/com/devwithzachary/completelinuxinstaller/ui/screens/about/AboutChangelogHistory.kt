@@ -38,7 +38,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "System Hardening: Fixed PRoot socket memory sizing and GID emulation in native extensions.",
             "Native Runtime Stability: Eliminated compiler warnings across all 32-bit and 64-bit architectures (arm64-v8a, armeabi-v7a, x86_64) for clean builds.",
             "Terminal Typography Options: Added Cursive, Casual, Serif, and Sans Serif fonts with optimized character spacing and automatic glyph scaling.",
-            "Dedicated Storage & Import/Export (/external): Automatic per-container external storage mounted at /external with full POSIX permissions, clickable file manager launcher, and SAF import/export bridge."
+            "Dedicated Storage & Import/Export (/external): Automatic per-container external storage mounted at /external with full POSIX permissions, clickable file manager launcher, and SAF import/export bridge.",
+            "Terminal Text Selection: Fixed multi-screen selection to stay anchored to buffer text while scrolling, with edge-drag auto-scrolling handles and buffer-wide Select All."
         )
     ),
     ReleaseChangelog(

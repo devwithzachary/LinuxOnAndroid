@@ -46,6 +46,12 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Optimized Character Spacing & Glyph Scaling**: Balanced character cell advance widths and added automatic horizontal glyph scaling for proportional fonts to eliminate wide gaps between letters while preserving strict monospace grid alignment for developer fonts.
 - **Dynamic In-Terminal Rendering & Preview**: All fonts automatically render across active terminal sessions and update the interactive live theme preview box in Settings.
 
+### 🔤 Terminal Text Selection & Multi-Screen Scrolling
+- **Buffer-Anchored Selection**: Fixed text selection so coordinates are tracked in absolute buffer space across scrollback history and active screen lines, ensuring selected text remains firmly anchored to content when swiping, dragging, or scrolling the terminal.
+- **Edge-Drag Auto-Scrolling Handles**: Dragging either selection handle near or past the top or bottom edges of the screen automatically scrolls the terminal and dynamically expands the selection across multi-screen output.
+- **Multi-Screen Text Copying**: Updated `getSelectedText` to extract lines across any number of scrollback and visible screen rows, eliminating previous screen-clamping limits.
+- **Buffer-Wide Select All**: "Select All" in the selection toolbar and context menu now highlights the entire terminal scrollback and active buffer.
+
 ### ⚙️ System Architecture & Codebase Hardening
 - **Native Runtime Stability & Bug Fixes**: Corrected socketcall memory allocation and pointer sizing in `port_switch`, fixed an unconditional GID overwrite in `fake_id0`, resolved IPv6 UDP condition handling, and initialized tracee seccomp result registers.
 - **Zero-Warning Toolchain Compliance**: Eliminated all native C compiler warnings across `arm64-v8a`, `armeabi-v7a`, and `x86_64` ABIs and cleaned up Kotlin/Compose deprecation and dead code warnings.

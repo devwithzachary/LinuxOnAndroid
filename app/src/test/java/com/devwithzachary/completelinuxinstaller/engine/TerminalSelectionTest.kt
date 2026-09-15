@@ -90,4 +90,76 @@ class TerminalSelectionTest {
         val visibleText = emulator.getSelectedText(startRow = 0, startCol = 0, endRow = 0, endCol = 5)
         assertEquals("Line 1", visibleText)
     }
+
+    @Test
+    fun testGetSelectedText_multiScreenScrollbackAndGrid() {
+        val emulator = TerminalEmulator(cols = 20, rows = 3)
+        val text = "Line 1\r\nLine 2\r\nLine 3\r\nLine 4\r\nLine 5"
+        emulator.appendBytes(text.toByteArray(), text.length)
+
+        // Total buffer rows = 2 in scrollback + 3 in grid = 5 rows total
+        assertEquals(5, emulator.totalBufferRows)
+
+        // Select from Line 1 (buffer row 0) to Line 5 (buffer row 4)
+        val fullBufferText = emulator.getSelectedText(startRow = 0, startCol = 0, endRow = 4, endCol = 5)
+        val expected = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
+        assertEquals(expected, fullBufferText)
+    }
+
+    @Test
+    fun testScreenToBufferAndBufferToScreenRow() {
+        val emulator = TerminalEmulator(cols = 20, rows = 4)
+        // Push 10 lines: 6 will be in scrollback, 4 in grid
+        val lines = (1..10).joinToString("\r\n") { "Item $it" }
+        emulator.appendBytes(lines.toByteArray(), lines.length)
+
+        assertEquals(6, emulator.scrollback.size)
+        assertEquals(10, emulator.totalBufferRows)
+
+        // At scrollOffset = 0 (bottom of terminal):
+        // Screen row 0 corresponds to grid[0], which is buffer row 6
+        assertEquals(6, emulator.screenToBufferRow(0))
+        assertEquals(9, emulator.screenToBufferRow(3))
+        assertEquals(0, emulator.bufferToScreenRow(6))
+        assertEquals(3, emulator.bufferToScreenRow(9))
+
+        // When scrolled up by 3 lines:
+        emulator.scrollUp(3)
+        assertEquals(3, emulator.scrollOffset)
+        // Screen row 0 corresponds to buffer row 6 - 3 = 3 (in scrollback)
+        assertEquals(3, emulator.screenToBufferRow(0))
+        assertEquals(6, emulator.screenToBufferRow(3))
+        assertEquals(0, emulator.bufferToScreenRow(3))
+        assertEquals(3, emulator.bufferToScreenRow(6))
+    }
+
+    @Test
+    fun testGetWordAtBuffer_inScrollback() {
+        val emulator = TerminalEmulator(cols = 30, rows = 3)
+        val text = "first_word second_word\r\nline2\r\nline3\r\nline4"
+        emulator.appendBytes(text.toByteArray(), text.length)
+
+        // Buffer row 0 is in scrollback ("first_word second_word")
+        val word1 = emulator.getWordAtBuffer(bufferRow = 0, col = 3)
+        assertEquals(0, word1.first)
+        assertEquals(9, word1.second) // "first_word" length 10
+
+        val word2 = emulator.getWordAtBuffer(bufferRow = 0, col = 13)
+        assertEquals(11, word2.first)
+        assertEquals(21, word2.second) // "second_word"
+    }
+
+    @Test
+    fun testBufferBoundaryClamping() {
+        val emulator = TerminalEmulator(cols = 20, rows = 5)
+        emulator.appendBytes("Boundary Test".toByteArray(), 13)
+
+        // Out of bounds rows and cols on a single row should be safely clamped without throwing
+        val singleRowText = emulator.getSelectedText(startRow = -10, startCol = -5, endRow = 0, endCol = 999)
+        assertEquals("Boundary Test", singleRowText)
+
+        // Clamping across the entire buffer should also work cleanly
+        val fullBufferText = emulator.getSelectedText(startRow = -10, startCol = -5, endRow = 999, endCol = 999)
+        assertEquals("Boundary Test\n\n\n\n", fullBufferText)
+    }
 }

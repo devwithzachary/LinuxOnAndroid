@@ -285,4 +285,7 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
 
     fun getWordAt(row: Int, col: Int): Pair<Int, Int> =
         emulator.getWordAt(row, col)
+
+    fun getWordAtBuffer(bufferRow: Int, col: Int): Pair<Int, Int> =
+        emulator.getWordAtBuffer(bufferRow, col)
 }
