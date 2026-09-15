@@ -1,6 +1,6 @@
 • Docker Support: 1-click udocker, Docker CLI & Compose across distros.
-• Web Terminal & VS Code: 1-click presets to access shell & IDE via browser.
+• Web Terminal & VS Code: 1-click presets for shell & IDE via browser.
 • Fedora 44: Official rootfs with DNF package manager & software stacks.
-• Shared Storage: Per-container folder mounted at /external with SAF bridge.
-• Terminal Selection: Multi-screen selection & auto-scrolling handles.
-• Terminal Theming: Added Cursive, Casual & Serif typography options.
+• Shared Storage: Per-container folder at /external with SAF bridge.
+• Terminal Upgrades: Multi-screen selection, scrolling handles & new fonts.
+• VNC & Network Fixes: Added vncserver -list, LAN hostname -i, netstat & ss.

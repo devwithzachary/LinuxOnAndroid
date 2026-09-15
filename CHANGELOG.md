@@ -4,6 +4,13 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 
 ## [1.7.0] - 2026-09-14
 
+### 🌐 PRoot Network Diagnostics & VNC Session Management
+- **Transparent Network Shims (netstat, ss, ip)**: Injected intelligent shims into `/usr/local/bin` that bypass Android 10+ SELinux restrictions (proc_net read denials and netlink permission errors). Standard diagnostic commands like `netstat -ltnp | grep 5901` and `ss -tl` now accurately report listening server sockets and associated process names.
+- **TigerVNC Session Management (vncserver -list & -kill)**: Overhauled the TigerVNC wrapper script across all distributions to fully support `vncserver -list` (displaying active X displays, RFB ports, and PIDs), graceful termination with lock/socket cleanup via `vncserver -kill :<display>`, and `-help` documentation.
+- **Local & Wi-Fi Connection Hints**: Starting TigerVNC now displays actionable local (`127.0.0.1:<port>`) and local Wi-Fi connection addresses (`<wifi_ip>:<port>`), along with session management commands.
+- **Accurate Local IP Resolution (hostname -i)**: Automatically maps the host device's primary Wi-Fi/LAN IPv4 address to the container hostname in `/etc/hosts` and `/usr/local/bin/hostname`, ensuring `hostname -i` and `hostname -I` resolve to the network IP rather than solely returning `127.0.0.1`.
+- **Network Interface Synchronization**: Generates `/etc/network/proot_interfaces.conf` from Android host network interfaces to provide seamless fallback for `ip addr` when netlink socket queries fail.
+
 ### 🐳 1-Click Docker & Container Tools
 - **Rootless Container Execution (udocker)**: Added a 1-click preset in the Software Hub to install and configure Docker tools with udocker, allowing users to pull and run containers from Docker Hub directly in Android user-space without root privileges or kernel cgroup requirements.
 - **Official Docker CLI & Docker Compose**: Installs standard docker and docker-compose tools, with smart CLI delegation to udocker for seamless local execution while retaining full support for remote daemons via DOCKER_HOST.

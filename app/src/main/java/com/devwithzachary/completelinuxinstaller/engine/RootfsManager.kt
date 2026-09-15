@@ -1103,6 +1103,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         }
 
         FastfetchConfig.ensureFastfetchConfig(targetDir)
+        NetworkShims.ensureNetworkShims(targetDir)
     }
 
     fun initializeDistroFallback(

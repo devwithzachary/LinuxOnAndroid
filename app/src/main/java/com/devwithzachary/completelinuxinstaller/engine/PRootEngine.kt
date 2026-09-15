@@ -199,6 +199,7 @@ class PRootEngine(val context: Context) {
             } catch (_: Exception) {}
         }
         FastfetchConfig.ensureFastfetchConfig(targetRootfs)
+        NetworkShims.ensureNetworkShims(targetRootfs, context)
         val loginDefs = File(etcDir, "login.defs")
         if (loginDefs.exists()) {
             try {

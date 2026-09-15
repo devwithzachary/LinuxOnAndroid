@@ -183,6 +183,16 @@ class ContainerManager(private val context: Context) {
             setDefaultContainer(firstId)
         }
 
+        // Ensure network shims are up-to-date across all registered containers
+        for (container in validContainers) {
+            val rootfs = File(container.rootDirPath)
+            if (rootfs.exists()) {
+                try {
+                    NetworkShims.ensureNetworkShims(rootfs, context)
+                } catch (_: Exception) {}
+            }
+        }
+
         // Clean up any orphaned container directories on disk (from aborted/crashed installs or previous uninstalls)
         try {
             val registeredContainerDirPaths = _containers.value.mapNotNull {

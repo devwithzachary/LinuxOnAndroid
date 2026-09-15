@@ -39,7 +39,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Native Runtime Stability: Eliminated compiler warnings across all 32-bit and 64-bit architectures (arm64-v8a, armeabi-v7a, x86_64) for clean builds.",
             "Terminal Typography Options: Added Cursive, Casual, Serif, and Sans Serif fonts with optimized character spacing and automatic glyph scaling.",
             "Dedicated Storage & Import/Export (/external): Automatic per-container external storage mounted at /external with full POSIX permissions, clickable file manager launcher, and SAF import/export bridge.",
-            "Terminal Text Selection: Fixed multi-screen selection to stay anchored to buffer text while scrolling, with edge-drag auto-scrolling handles and buffer-wide Select All."
+            "Terminal Text Selection: Fixed multi-screen selection to stay anchored to buffer text while scrolling, with edge-drag auto-scrolling handles and buffer-wide Select All.",
+            "VNC & Network Diagnostics: Resolved Android 10+ SELinux blocks with transparent netstat, ss, and ip shims, added full vncserver -list session tracking, and enabled LAN IP resolution for hostname -i."
         )
     ),
     ReleaseChangelog(
