@@ -1,4 +1,5 @@
 • Fixed Terminal Tabs: Resolved issue preventing switching between concurrent terminal tabs.
-• Touch Gesture Fixes: Context menu detection now preserves tap responsiveness across all screens.
+• Clear Command Fix: Running clear in shell now completely erases scrollback history.
+• Terminal Reset: Added support for ESC c terminal reset command and buffer clearing.
+• Touch Gesture Fixes: Context menu detection now preserves tap responsiveness across screens.
 • Terminal Canvas Sync: Switched tabs immediately update viewport size and redraw content.
-• Buffer Isolation: Clear text selections and input buffers when toggling sessions.

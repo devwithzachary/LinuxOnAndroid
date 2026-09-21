@@ -221,6 +221,10 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         getActiveSession()?.scrollToBottom()
     }
 
+    fun clearTerminal() {
+        getActiveSession()?.clearTerminal()
+    }
+
     fun pasteText(text: String) {
         getActiveSession()?.pasteText(text)
     }

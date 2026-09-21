@@ -6,6 +6,9 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 
 ### 🐛 Bug Fixes & Reliability
 - **Terminal Multi-Tab Switching**: Resolved an issue where tapping tabs in the terminal tab strip failed to switch sessions, leaving the view stuck on the most recently opened tab.
+- **Terminal `clear` Command & Scrollback Wiping (Issue #48)**: Added full support for the XTerm `CSI 3 J` (Erase Saved Lines) control sequence, ensuring that running `clear` in Linux shells fully erases the scrollback history rather than pushing previous output out of view.
+- **Terminal Reset Sequence (ESC c / RIS)**: Added support for the standard `ESC c` reset sequence to wipe active buffers, reset scrollback history, restore cursor position, and clear terminal margins.
+- **Context Menu "Clear Buffer" Enhancement**: Updated the terminal context menu's "Clear Buffer" action to immediately clear both visible screen and scrollback buffers while signaling the shell to refresh the prompt.
 - **Touch Gesture Conflict Resolution**: Refactored context menu modifier handling to eliminate pointer-down event consumption that previously intercepted and cancelled regular tap events on clickable elements.
 - **Terminal Session Size & Refresh Synchronization**: Switched and newly created terminal tabs now immediately synchronize viewport dimensions and trigger an instant canvas redraw.
 - **Session Input & Selection Isolation**: Automatically clears text selection highlights and uncommitted keyboard buffers when switching between concurrent terminal tabs.

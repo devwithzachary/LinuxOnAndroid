@@ -888,6 +888,7 @@ fun FullTerminalView(
                         leadingIcon = { Icon(Icons.Default.ClearAll, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showContextMenu = false
+                            terminalBridge.clearTerminal()
                             terminalBridge.sendInput("\u000c")
                             focusRequester.requestFocus()
                         }

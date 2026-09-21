@@ -28,6 +28,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         initialExpanded = true,
         highlights = listOf(
             "Terminal Multi-Tab Switching: Fixed an issue where tapping tabs in the terminal tab strip failed to switch sessions, leaving the view stuck on the most recently opened tab.",
+            "Terminal clear Command & Scrollback Fix: Full support for XTerm CSI 3 J sequence so running clear completely wipes previous output from scrollback history.",
+            "Terminal Reset Sequence (ESC c): Added support for standard ESC c terminal reset command to reset screen, scrollback, and cursor attributes.",
             "Touch Gesture Conflict Resolution: Refactored context menu pointer input handling so long-press detection no longer consumes or swallows regular tap events on clickable UI components.",
             "Terminal Size & Canvas Synchronization: Switched and newly opened terminal tabs immediately synchronize screen dimensions and trigger an instant canvas redraw.",
             "Session State Isolation: Automatically clears text selection highlights and uncommitted keyboard buffers when switching between concurrent terminal tabs."
@@ -35,7 +37,7 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ),
     ReleaseChangelog(
         version = "v1.7.0",
-        date = "September 2026",
+        date = "September 15, 2026",
         initialExpanded = false,
         highlights = listOf(
             "1-Click Docker & Container Tools: Pull and run containers without root via udocker, with official Docker CLI and Docker Compose support across all distributions.",
