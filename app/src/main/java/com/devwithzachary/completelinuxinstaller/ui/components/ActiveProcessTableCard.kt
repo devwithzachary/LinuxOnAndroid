@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.engine.ContainerProcessInfo
@@ -94,7 +95,14 @@ fun ActiveProcessTableCard(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Filter processes (e.g. sshd, vnc, nginx)...", fontSize = 13.sp) },
+                placeholder = {
+                    Text(
+                        text = "Filter processes (e.g. sshd, vnc, nginx)...",
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Search,
@@ -112,6 +120,8 @@ fun ActiveProcessTableCard(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                maxLines = 1,
+                minLines = 1,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surface,

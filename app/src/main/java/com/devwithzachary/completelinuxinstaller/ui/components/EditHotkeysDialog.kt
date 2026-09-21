@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -103,11 +104,15 @@ fun EditHotkeysDialog(
                             Text(
                                 text = stringResource(R.string.hotkey_add_placeholder),
                                 fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 color = Color.Gray
                             )
                         },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
+                        maxLines = 1,
+                        minLines = 1,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = {
                             val trimmed = newKeyInput.trim()

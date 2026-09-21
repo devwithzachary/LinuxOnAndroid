@@ -31,6 +31,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Container Lifecycle & Purge Protection: Hardened container lifecycle management with an automatic 30-minute grace period to prevent newly created or active installations from being inadvertently removed during background status refreshes.",
             "Multi-Distro Release Testing Framework: Added automated test suite (test_distro_installations.sh and unit tests) to verify download availability, archive integrity, and PRoot runtime execution across all 7 supported distributions.",
             "Terminal Multi-Tab Switching: Fixed an issue where tapping tabs in the terminal tab strip failed to switch sessions, leaving the view stuck on the most recently opened tab.",
+            "Terminal Top Bar Layout & Stop Protection: Constrained terminal top bar controls to eliminate overflow on mobile screens and added a confirmation safety dialog before stopping active sessions.",
+            "Single-Line Text Fields: Constrained the process filter input and custom hotkey input to single-line text fields with ellipsized placeholders to prevent layout overflow.",
             "Terminal clear Command & Scrollback Fix: Full support for XTerm CSI 3 J sequence so running clear completely wipes previous output from scrollback history.",
             "Terminal Reset Sequence (ESC c): Added support for standard ESC c terminal reset command to reset screen, scrollback, and cursor attributes.",
             "Touch Gesture Conflict Resolution: Refactored context menu pointer input handling so long-press detection no longer consumes or swallows regular tap events on clickable UI components.",
