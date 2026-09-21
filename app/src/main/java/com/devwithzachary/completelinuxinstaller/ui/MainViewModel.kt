@@ -849,6 +849,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun hasRootPassword(containerId: String? = null): Boolean {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        return rootfsManager.hasRootPassword(targetDir)
+    }
+
+    suspend fun verifyRootPassword(currentPassword: String, containerId: String? = null): Boolean {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        return rootfsManager.verifyRootPassword(currentPassword, targetDir)
+    }
+
     fun changeRootPassword(newPassword: String, containerId: String? = null) {
         val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
         val targetDir = container?.rootDir ?: pRootEngine.rootfsDir

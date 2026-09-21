@@ -64,9 +64,9 @@ import com.devwithzachary.completelinuxinstaller.R
 @Composable
 fun WelcomeScreen(
     onGetStarted: () -> Unit,
+    modifier: Modifier = Modifier,
     hasExistingContainers: Boolean = false,
-    onBack: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    onBack: (() -> Unit)? = null
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),

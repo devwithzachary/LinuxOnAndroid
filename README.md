@@ -1,15 +1,23 @@
 # Complete Linux Installer (Linux on Android)
 
-[![Google Play Store](https://img.shields.io/badge/Google%20Play-Download-brightgreen.svg?logo=googleplay)](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)
-[![Google Play Open Testing](https://img.shields.io/badge/Google%20Play-Open%20Beta-blue.svg?logo=googleplay)](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)
-[![Discord Community](https://img.shields.io/badge/Discord-Join%20Community-5865F2.svg?logo=discord&logoColor=white)](https://discord.gg/vJbBagx8JA)
-[![Android MinSDK](https://img.shields.io/badge/Min%20SDK-23%20%28Android%206.0%2B%29-brightgreen.svg)](https://developer.android.com/about/versions/marshmallow)
-[![Kotlin](https://img.shields.io/badge/Language-Kotlin-blue.svg)](https://kotlinlang.org/)
-[![UI Framework](https://img.shields.io/badge/UI-Jetpack%20Compose%20Material3-purple.svg)](https://developer.android.com/jetpack/compose)
-[![Architecture](https://img.shields.io/badge/Architecture-ARM64%20%7C%20x86__64%20%7C%20ARMv7-orange.svg)](#multi-architecture-support)
-[![License](https://img.shields.io/badge/License-GPL--2.0--or--later-blue.svg)](LICENSE)
+<div align="center">
+  <img src="fastlane/metadata/android/en-US/images/icon.png" width="96" height="96" alt="Complete Linux Installer Icon" />
+  <h3>Complete Linux Installer</h3>
+  <p><strong>Run full-featured, rootless Linux distributions natively on Android.</strong></p>
 
-**Complete Linux Installer** is an open-source Android application designed to download, provision, and run full-featured Linux distributions (including Ubuntu 26.04 LTS, Debian 12, Alpine Linux, Arch Linux ARM, Kali Linux, and Void Linux) natively on Android devices **without requiring root permissions**.
+  <p>
+    <a href="https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller"><img src="https://img.shields.io/badge/Google%20Play-Download-brightgreen.svg?logo=googleplay" alt="Google Play Store" /></a>
+    <a href="https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller"><img src="https://img.shields.io/badge/Google%20Play-Open%20Beta-blue.svg?logo=googleplay" alt="Google Play Open Testing" /></a>
+    <a href="https://discord.gg/vJbBagx8JA"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2.svg?logo=discord&logoColor=white" alt="Discord Community" /></a>
+    <a href="https://developer.android.com/about/versions/marshmallow"><img src="https://img.shields.io/badge/Min%20SDK-23%20%28Android%206.0%2B%29-brightgreen.svg" alt="Android MinSDK" /></a>
+    <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Language-Kotlin-blue.svg" alt="Kotlin" /></a>
+    <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20Material3-purple.svg" alt="UI Framework" /></a>
+    <a href="#multi-architecture-support"><img src="https://img.shields.io/badge/Architecture-ARM64%20%7C%20x86__64%20%7C%20ARMv7-orange.svg" alt="Architecture" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--2.0--or--later-blue.svg" alt="License" /></a>
+  </p>
+</div>
+
+**Complete Linux Installer** is an open-source Android application designed to download, provision, and run full-featured Linux distributions (including Ubuntu 26.04 LTS, Debian 12, Fedora 44, Alpine Linux, Arch Linux ARM, Kali Linux, and Void Linux) natively on Android devices **without requiring root permissions**.
 
 > [!TIP]
 > 📲 **Now Live on the Google Play Store!**  
@@ -22,23 +30,67 @@ Powered by a native **PRoot** user-space engine, a multi-session **POSIX PTY ter
 
 ---
 
+## 📱 Screenshots
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="33%">
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/1_dashboard.png" width="100%" alt="Dashboard" /><br />
+        <b>Containers Dashboard</b>
+      </td>
+      <td align="center" width="33%">
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_terminal.png" width="100%" alt="Terminal" /><br />
+        <b>Multi-Tab Terminal & Hotkeys</b>
+      </td>
+      <td align="center" width="33%">
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_container_overview.png" width="100%" alt="Container Overview" /><br />
+        <b>Container Overview & Service Controls</b>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" width="33%">
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_software_hub.png" width="100%" alt="Software Hub" /><br />
+        <b>1-Click Software Hub</b>
+      </td>
+      <td align="center" width="33%">
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_distro_wizard.png" width="100%" alt="Distro Setup Wizard" /><br />
+        <b>Distro Setup Wizard</b>
+      </td>
+      <td align="center" width="33%">
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_welcome_onboarding.png" width="100%" alt="Welcome & Onboarding" /><br />
+        <b>Architecture & Onboarding</b>
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
+
 ## 🚀 Key Features
 
 * **🔒 100% Rootless & Completely Isolated**: Runs entirely in Android user-space using PRoot ptrace system call interception. Zero root access, unlocked bootloaders, or Android system partition modifications required. Safe and sandboxed without touching your personal files or host OS.
-* **🐧 Multi-Distribution Linux Catalog**: Install and switch between 6 distinct Linux distributions tailored for different performance profiles and use cases:
+* **🐧 Multi-Distribution Linux Catalog**: Install and switch between 7 distinct Linux distributions tailored for different performance profiles and use cases:
   * **Ubuntu 26.04 LTS**: Official base LTS environment with APT package management.
   * **Debian 12**: Ultra-stable lightweight alternative with vast software repositories.
+  * **Fedora 44**: Modern Red Hat-family distribution powered by the `dnf` package manager.
   * **Alpine Linux 3.21**: Minimalist musl/busybox environment (~10MB rootfs) with instant boot times and tiny memory footprint.
   * **Arch Linux ARM**: Bleeding-edge rolling release environment powered by the `pacman` package manager.
   * **Kali Linux CLI Tools**: Specialized security auditing and penetration testing tools environment.
   * **Void Linux**: Independent general-purpose distribution with the blazing-fast `xbps` package manager.
 * **📑 Concurrent Multi-Tab Terminal**: Run, switch, and manage multiple independent interactive terminal sessions simultaneously with isolated PTY subprocesses, custom tab titles, session indicators, and container-specific terminal sessions.
-* **🎛️ Installed Containers Dashboard**: Manage multiple Linux distributions installed side-by-side on disk. Includes per-container storage tracking, live RAM and storage gauge dials, isolated process monitoring (`ps aux`), open TCP port listeners with 1-tap browser launcher, and 1-touch service quick-launchers (VNC, NGINX, SSH).
+* **⌨️ Termux-Style Grid Hotkeys & Session Safety**: Aligned equal-width 7-column extra keys grid modeled after Termux for consistent muscle memory, custom hotkey editor, and a safety confirmation prompt before stopping active terminal sessions.
+* **🎛️ Installed Containers Dashboard**: Manage multiple Linux distributions installed side-by-side on disk. Includes per-container storage tracking, live RAM and storage gauge dials, isolated process monitoring (`ps aux`), open TCP port listeners with 1-tap browser launcher, and 1-touch service quick-launchers (VNC, Web Terminal, NGINX, SSH).
 * **🖥️ Full Graphical Desktop Access (GUI)**: One-click installation of a complete **XFCE4 Desktop Environment** with TigerVNC support for full windowed desktop access directly on your phone, tablet, or external display.
-* **🛠️ 1-Click Software Hub & Multi-Package Managers**: Tailored software presets and native package manager integration (`apt`, `apk`, `pacman`, `xbps`):
+* **🌐 Web Terminal & Remote VS Code**:
+  * **Browser Web Terminal (ttyd)**: Access full interactive shells from any local browser over Wi-Fi without SSH clients.
+  * **VS Code Server (code-server)**: Run full Visual Studio Code in your browser with extensions and syntax highlighting.
+* **🐳 1-Click Docker & Container Tools**: Pull and run containers from Docker Hub in user space without root or cgroup requirements via `udocker`, with official Docker CLI and Docker Compose wrappers.
+* **🛠️ 1-Click Software Hub & Multi-Package Managers**: Tailored software presets and native package manager integration (`apt`, `dnf`, `apk`, `pacman`, `xbps`):
   * **Desktop Environments**: XFCE4 Desktop, XFCE Terminal, TigerVNC Server.
+  * **Containers & Tools**: Docker CLI, Docker Compose, and udocker engine.
   * **Web & Database**: NGINX HTTP web server + SQLite3.
-  * **Remote Access**: OpenSSH Server daemon for remote terminal logins from PC or laptop over LAN.
+  * **Remote & Cloud IDE**: OpenSSH Server daemon, Web Terminal (`ttyd`), and Visual Studio Code Server (`code-server`).
   * **Development Stacks**: Python 3 (pip, venv, GCC), Node.js (npm, Yarn, Neovim), and Android Developer Tools (OpenJDK 17, ADB, Gradle).
 * **👋 First-Launch Onboarding & Welcome Guide**: Integrated introduction screen detailing container architecture, sandboxing safety, and multi-container capabilities before entering the setup wizard.
 * **🗑️ Safe Container Deletion Feedback**: Dedicated full-screen deletion view with animated feedback, real-time step progress, and back-gesture protection during storage purging.
@@ -78,8 +130,8 @@ Powered by a native **PRoot** user-space engine, a multi-session **POSIX PTY ter
                                     |
                                     v
 +-------------------------------------------------------------------------------+
-|                Guest Linux Rootfs (Ubuntu / Debian / Alpine / Arch / etc)     |
-|   apt / apk / pacman / xbps, shells (/bin/bash, /bin/sh), XFCE4, TigerVNC     |
+|             Guest Linux Rootfs (Ubuntu / Debian / Fedora / Alpine / etc)      |
+|   apt / dnf / apk / pacman / xbps, shells (/bin/bash, /bin/sh), XFCE, VNC     |
 |   Isolated per-container rootfs folders, process trees, and ports             |
 +-------------------------------------------------------------------------------+
 ```
@@ -87,14 +139,14 @@ Powered by a native **PRoot** user-space engine, a multi-session **POSIX PTY ter
 ### 1. PRoot Engine (`libproot.so`) & SELinux Hard-Link Emulation
 PRoot uses the `ptrace` system call mechanism to bind system calls made by guest Linux binaries. It translates paths and file operations on-the-fly, creating the illusion that guest binaries are running with root privileges (`-0`) inside a standard Linux filesystem layout (`/`), even though everything resides inside the app's internal private storage directory (`context.filesDir`).
 
-* **Link2Symlink (`PROOT_LINK2SYMLINK`) Support**: Android SELinux policies restrict native hard-link creation on internal storage for untrusted app UIDs. The app manages a dedicated `l2s` store bound into PRoot via `-b`, translating hard-link requests (`link`/`linkat`) into transparent relative symlinks for package managers like `dpkg`, `apt`, `pacman`, and `xbps`.
+* **Link2Symlink (`PROOT_LINK2SYMLINK`) Support**: Android SELinux policies restrict native hard-link creation on internal storage for untrusted app UIDs. The app manages a dedicated `l2s` store bound into PRoot via `-b`, translating hard-link requests (`link`/`linkat`) into transparent relative symlinks for package managers like `dpkg`, `apt`, `dnf`, `pacman`, and `xbps`.
 
 ### 2. Multi-Session Native PTY Bridge (`pty.cpp` & `TerminalSession.kt`)
 Interactive terminal applications (like `vim`, `htop`, `tmux`, `bash`) require a Unix pseudo-terminal (PTY) to handle window dimensions, signals (`SIGINT`, `SIGTSTP`), and line buffering. The native C++ layer (`pty.cpp`) allocates a POSIX PTY per tab via `posix_openpt()`, configures window size (`TIOCSWINSZ`), and spawns PRoot child processes via `fork()` and `execve()`. Each tab runs an independent, isolated session that buffers output in the background.
 
 ### 3. Multi-Container Rootfs Provisioning & Management (`ContainerManager.kt`)
 * Provisions and manages multiple independent container directories side-by-side.
-* Extracts minimal distribution archives (Ubuntu, Debian, Alpine, Arch, Kali, Void) using native streaming extractors with hard-link translation.
+* Extracts minimal distribution archives (Ubuntu, Debian, Fedora, Alpine, Arch, Kali, Void) using native streaming extractors with hard-link translation.
 * Automatically configures guest networking, public DNS resolvers (`/etc/resolv.conf`), hostname binding (`user@ContainerName`), and cross-distribution user provisioning (`/etc/passwd`, `/etc/group`, `/etc/shadow`).
 * Accurately tracks per-container disk consumption across hard links (`du -sk`) and scopes process monitoring and active port detection strictly to each container.
 
@@ -108,6 +160,7 @@ Complete Linux Installer provisions environments using official root filesystem 
 | :--- | :--- | :--- | :--- |
 | **Ubuntu Base** | **Canonical Ltd.** | Official minimal base rootfs tarballs for Ubuntu Linux. | [Ubuntu Base Releases](https://cdimage.ubuntu.com/ubuntu-base/) |
 | **Debian** | **Debian Project / debuerreotype** | Reproducible, official Debian container rootfs pipeline maintained by the Debian cloud team. | [debuerreotype Releases](https://github.com/debuerreotype/docker-debian-artifacts) / [Debian](https://www.debian.org/) |
+| **Fedora Linux** | **Fedora Project** | Official minimal container base rootfs images powered by the DNF package manager. | [Fedora Container Base](https://fedoraproject.org/) |
 | **Alpine Linux** | **Alpine Linux Development Team** | Official ultra-lightweight Alpine Linux minirootfs tarballs. | [Alpine Linux Releases](https://alpinelinux.org/downloads/) |
 | **Arch Linux ARM** | **Arch Linux ARM Project** | Official rolling base rootfs images for ARM architectures. | [Arch Linux ARM](https://archlinuxarm.org/) |
 | **Kali Linux** | **Offensive Security / Kali Linux Team** | Official NetHunter minimal rootfs images with Kali Linux repositories. | [Kali Linux](https://www.kali.org/) / [Kali NetHunter Images](https://kali.download/nethunter-images/) |
@@ -130,8 +183,8 @@ Complete Linux Installer provisions environments using official root filesystem 
 
 ### Prerequisites
 * **Android Studio**: Ladybug (2024.2.1) or newer recommended.
-* **JDK**: Java 17.
-* **Android NDK**: Version 25 or higher (configured for C++ CMake compilation of `pty.cpp`).
+* **JDK**: Java 21 (matching the Gradle JVM toolchain).
+* **Android NDK**: Version 28.2.13676358 (configured for C++ CMake compilation of `pty.cpp`).
 
 ### Build Steps
 
@@ -146,17 +199,29 @@ Complete Linux Installer provisions environments using official root filesystem 
    ```bash
    ./scripts/build_native_libs.sh
    ```
-   *Note: This script is also executed automatically by F-Droid's build pipeline to compile all native components strictly from source.*
+   *Note: This script compiles all native components strictly from source across all supported architectures.*
 
-3. **Build Debug APK**:
+3. **Run Unit Tests**:
+   ```bash
+   ./gradlew testDebugUnitTest
+   ```
+
+4. **Build Debug APK**:
    ```bash
    ./gradlew assembleDebug
    ```
 
-4. **Install on connected device via ADB**:
+5. **Install on connected device via ADB**:
    ```bash
    adb install app/build/outputs/apk/debug/app-debug.apk
    ```
+
+### 🧪 Multi-Distro Validation Suite
+
+To verify that download mirrors, archive hashes, and PRoot runtime execution remain fully functional across all 7 supported distributions, run the automated installation test script:
+```bash
+./scripts/test_distro_installations.sh
+```
 
 ---
 
@@ -165,7 +230,7 @@ Complete Linux Installer provisions environments using official root filesystem 
 ### 1. First-Launch Welcome & Distro Setup Wizard
 1. On first launch, the **Welcome Screen** introduces the container architecture, rootless virtualization, and multi-container capabilities.
 2. Tap **Get Started** to enter the **Setup Wizard**.
-3. Choose your distribution from the catalog (Ubuntu 26.04 LTS, Debian 12, Alpine Linux 3.21, Arch Linux ARM, Kali Linux CLI, or Void Linux) and select your target architecture.
+3. Choose your distribution from the catalog (Ubuntu 26.04 LTS, Debian 12, Fedora 44, Alpine Linux 3.21, Arch Linux ARM, Kali Linux CLI, or Void Linux) and select your target architecture.
 4. Tap **Download & Install RootFS** to automatically stream, verify, unpack, and provision your initial container.
 
 ### 2. Concurrent Multi-Tab Terminal Workflows
@@ -173,12 +238,17 @@ Complete Linux Installer provisions environments using official root filesystem 
 * Tap the `+` button in the top tab strip to launch additional concurrent terminal sessions.
 * Long-press any tab chip to give it a custom name (e.g. "Server", "Python", "Compiler").
 * Use the pinned extra-keys toolbar for fast access to `Ctrl`, `Alt`, `Esc`, `Tab`, `Paste`, and directional navigation arrows.
+* Tap the sliders icon to customize your hotkey layout or add custom key shortcuts.
 
-### 3. Running Graphical Desktops (XFCE4) & Services
+### 3. Running Desktops, Web Services & Cloud IDEs
 1. Tap into any container from the Dashboard and navigate to the **Software** tab.
-2. Select **XFCE4 Desktop + VNC Server**, **NGINX Web Server**, or **OpenSSH Server** and tap **Install**.
+2. Select any desired service and tap **Install**:
+   * **XFCE4 Desktop + VNC Server**: Connect using any Android VNC viewer at `127.0.0.1:5901`.
+   * **Web Terminal (ttyd)**: Open in any local browser at `http://<device_ip>:8080` (or `7681`).
+   * **VS Code Server (code-server)**: Access full VS Code in your browser at `http://<device_ip>:8443`.
+   * **Docker Tools (udocker)**: Run containers with standard `docker` and `docker-compose` commands.
+   * **NGINX Web Server** / **OpenSSH Server**: Host local websites and connect securely over LAN.
 3. Once installed, launch the service with a single tap directly from the **Overview** tab service card.
-4. Connect using any Android VNC viewer (such as bVNC or VNC Viewer) at address `127.0.0.1:5901`.
 
 ### 4. Multi-Container Management & Backups
 * **Install More Containers**: Add additional distinct Linux distributions anytime from the Dashboard.

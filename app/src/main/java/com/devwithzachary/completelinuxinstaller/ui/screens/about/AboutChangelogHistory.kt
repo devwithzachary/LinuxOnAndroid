@@ -23,9 +23,34 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
-        version = "v1.7.0",
+        version = "v1.7.1",
         date = "September 2026",
         initialExpanded = true,
+        highlights = listOf(
+            "Alpine Linux Installation & Symlink Resolution: Fixed an issue where installing Alpine Linux failed during first-launch setup with '/bin/sh not found'. Added guest-aware symbolic link resolution for absolute symlinks such as BusyBox /bin/sh and /bin/ash.",
+            "Container Lifecycle & Purge Protection: Hardened container lifecycle management with an automatic 30-minute grace period to prevent newly created or active installations from being inadvertently removed during background status refreshes.",
+            "Multi-Distro Release Testing Framework: Added automated test suite (test_distro_installations.sh and unit tests) to verify download availability, archive integrity, and PRoot runtime execution across all 7 supported distributions.",
+            "Terminal Multi-Tab Switching: Fixed an issue where tapping tabs in the terminal tab strip failed to switch sessions, leaving the view stuck on the most recently opened tab.",
+            "Terminal Top Bar Layout & Stop Protection: Constrained terminal top bar controls to eliminate overflow on mobile screens and added a confirmation safety dialog before stopping active sessions.",
+            "Single-Line Text Fields: Constrained the process filter input and custom hotkey input to single-line text fields with ellipsized placeholders to prevent layout overflow.",
+            "Terminal clear Command & Scrollback Fix: Full support for XTerm CSI 3 J sequence so running clear completely wipes previous output from scrollback history.",
+            "Terminal Reset Sequence (ESC c): Added support for standard ESC c terminal reset command to reset screen, scrollback, and cursor attributes.",
+            "Touch Gesture Conflict Resolution: Refactored context menu pointer input handling so long-press detection no longer consumes or swallows regular tap events on clickable UI components.",
+            "Terminal Size & Canvas Synchronization: Switched and newly opened terminal tabs immediately synchronize screen dimensions and trigger an instant canvas redraw.",
+            "Password Privacy & Learning Suppression: Marked credential inputs in setup wizard and container settings with password flags to suppress IME predictions and dictionary learning.",
+            "Terminal Autocorrect Suppression: Configured terminal input to disable autocorrect and word capitalization without triggering password manager autofill prompts.",
+            "Root Password Verification: Secured container root password resets by requiring authentication with the existing root password before applying changes.",
+            "Termux-Style Extra Keys Grid: Aligned extra keys row into an equal-width 7-column grid layout modeled after Termux for consistent muscle memory.",
+            "Codebase Refactoring: Modularized ContainerDetailScreen into dedicated tab components and extracted all 7 distribution definitions into separate catalog files.",
+            "Archive Extraction Engine: Decoupled low-level archive decompression and TAR processing into a standalone RootfsArchiveExtractor component.",
+            "Theme & Settings Fixes: Fixed Dracula palette alpha transparency and resolved color picker state recomposition glitches in settings.",
+            "Lint & API Quality: Resolved 20 Android NewApi lint warnings across container symlinks, filesystem operations, and process lifecycles."
+        )
+    ),
+    ReleaseChangelog(
+        version = "v1.7.0",
+        date = "September 15, 2026",
+        initialExpanded = false,
         highlights = listOf(
             "1-Click Docker & Container Tools: Pull and run containers without root via udocker, with official Docker CLI and Docker Compose support across all distributions.",
             "Browser Web Terminal (ttyd): Share and access your full Linux shell from any web browser over local Wi-Fi with zero passwords or SSH clients required.",

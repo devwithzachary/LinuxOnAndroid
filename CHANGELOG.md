@@ -2,6 +2,36 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.7.1] - 2026-09-21
+
+### 🐛 Bug Fixes & Reliability
+- **Alpine Linux Installation & Symlink Resolution**: Resolved an issue where installing Alpine Linux failed during first-launch setup with a `'/bin/sh' not found` error. Added guest-aware symbolic link resolution for absolute symlinks (such as BusyBox `/bin/sh` and `/bin/ash`), ensuring guest shells are accurately detected on Android host filesystems.
+- **Container Cleanup Protection & Grace Period**: Hardened container lifecycle management with an automatic 30-minute grace period, preventing newly created or active installations from being inadvertently removed during background status refreshes.
+- **Multi-Distro Release Testing Framework**: Built a comprehensive automated test framework (`scripts/test_distro_installations.sh` and `DistroInstallationFrameworkTest.kt`) to verify download availability, archive integrity, and PRoot execution across all supported distributions prior to releases.
+- **Terminal Multi-Tab Switching**: Resolved an issue where tapping tabs in the terminal tab strip failed to switch sessions, leaving the view stuck on the most recently opened tab.
+- **Terminal Top Bar Layout & Session Stop Protection**: Constrained title text and action button sizing in the terminal top bar to prevent overflow on mobile displays. Resolved an issue where the Stop button was pushed off-screen, causing the keyboard icon to sit on the far right while intercepting stop actions. Added a confirmation safety dialog before terminating active terminal sessions to prevent accidental stops.
+- **Process Filter & Hotkey Input Single-Line Constraint**: Constrained the filter processes input in the Active Processes card and the custom hotkey input in the hotkeys dialog to strictly single-line text fields with ellipsized placeholders, preventing awkward multi-line text box expansion on phone displays.
+- **Terminal `clear` Command & Scrollback Wiping (Issue #48)**: Added full support for the XTerm `CSI 3 J` (Erase Saved Lines) control sequence, ensuring that running `clear` in Linux shells fully erases the scrollback history rather than pushing previous output out of view.
+- **Terminal Reset Sequence (ESC c / RIS)**: Added support for the standard `ESC c` reset sequence to wipe active buffers, reset scrollback history, restore cursor position, and clear terminal margins.
+- **Context Menu "Clear Buffer" Enhancement**: Updated the terminal context menu's "Clear Buffer" action to immediately clear both visible screen and scrollback buffers while signaling the shell to refresh the prompt.
+- **Touch Gesture Conflict Resolution**: Refactored context menu modifier handling to eliminate pointer-down event consumption that previously intercepted and cancelled regular tap events on clickable elements.
+- **Terminal Session Size & Refresh Synchronization**: Switched and newly created terminal tabs now immediately synchronize viewport dimensions and trigger an instant canvas redraw.
+- **Session Input & Selection Isolation**: Automatically clears text selection highlights and uncommitted keyboard buffers when switching between concurrent terminal tabs.
+
+### 🛡️ Security & Terminal Improvements (Issue #45)
+- **Password Input Prediction & Learning Suppression**: Configured password fields across setup wizard and container management dialogs with dedicated password input flags and secure visual transformations. Third-party keyboards (e.g. Gboard, SwiftKey) are explicitly prevented from displaying credentials in word prediction strips or saving them to personal learning dictionaries.
+- **Terminal Autocorrect Suppression**: Configured the full terminal input to use URI keyboard flags with autocorrect and auto-capitalization disabled, reliably preventing keyboards from autocorrecting shell commands without triggering password manager autofill prompts.
+- **Root Password Reset Authorization**: Secured the root password modification workflow in container settings by requiring verification of the current root password prior to applying new credentials. Implemented high-performance standard Unix crypt verification with PRoot authentication fallbacks.
+- **Termux-Style Extra Keys Grid**: Redesigned the terminal extra keys row from an asymmetrical horizontally drifting ribbon into an aligned equal-width 7-column grid layout modeled after Termux. Pinned essential navigation and modifier keys (ESC, TAB, CTRL, ALT, PASTE, Up, Down) to permanent column positions, with secondary and custom keys paginated smoothly to lock in muscle memory.
+
+### 🧹 Codebase Refactoring & Lint Quality
+- **Container Detail Screen Modularization**: Decomposed the monolithic 1,840-line `ContainerDetailScreen.kt` into modular tab components (`ContainerDetailOverviewTab.kt`, `ContainerDetailSoftwareTab.kt`, `ContainerDetailSettingsTab.kt`), significantly improving code maintainability and testability.
+- **Distro Catalog Modularization**: Decomposed the 1,050-line `DistroCatalog.kt` into dedicated distribution definition files (`UbuntuDistro.kt`, `DebianDistro.kt`, `AlpineDistro.kt`, `ArchDistro.kt`, `KaliDistro.kt`, `VoidDistro.kt`, and `FedoraDistro.kt`) under `model/distros/`.
+- **Rootfs Archive Extractor Extraction**: Extracted low-level archive streaming, TAR header processing, and directory unwrapping from `RootfsManager.kt` into a standalone `RootfsArchiveExtractor.kt` engine.
+- **Dracula ANSI Color Palette Fix**: Fixed Dracula theme bright magenta ANSI color code missing full opacity alpha channel (`0xFFD6ACFF`).
+- **Settings State Recomposition Fix**: Resolved custom ANSI color palette mutation bugs where in-place array updates prevented Jetpack Compose color pickers from triggering recomposition.
+- **Android NewApi Lint Resolution**: Resolved 20 Android API level lint errors across filesystem symlink operations, container management, and process handling, achieving 0 lint warnings and errors.
+
 ## [1.7.0] - 2026-09-15
 
 ### 🌐 PRoot Network Diagnostics & VNC Session Management

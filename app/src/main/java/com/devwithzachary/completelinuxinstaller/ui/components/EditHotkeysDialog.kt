@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -31,7 +32,7 @@ fun EditHotkeysDialog(
     onResetDefaults: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var hotkeysList by remember { mutableStateOf(currentHotkeys.toMutableList()) }
+    var hotkeysList by remember { mutableStateOf<List<String>>(currentHotkeys) }
     var newKeyInput by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -103,16 +104,20 @@ fun EditHotkeysDialog(
                             Text(
                                 text = stringResource(R.string.hotkey_add_placeholder),
                                 fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                                 color = Color.Gray
                             )
                         },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
+                        maxLines = 1,
+                        minLines = 1,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = {
                             val trimmed = newKeyInput.trim()
                             if (trimmed.isNotEmpty() && !hotkeysList.contains(trimmed)) {
-                                hotkeysList = (hotkeysList + trimmed).toMutableList()
+                                hotkeysList = hotkeysList + trimmed
                                 newKeyInput = ""
                             }
                         }),
@@ -128,7 +133,7 @@ fun EditHotkeysDialog(
                         onClick = {
                             val trimmed = newKeyInput.trim()
                             if (trimmed.isNotEmpty() && !hotkeysList.contains(trimmed)) {
-                                hotkeysList = (hotkeysList + trimmed).toMutableList()
+                                hotkeysList = hotkeysList + trimmed
                                 newKeyInput = ""
                             }
                         },
@@ -265,7 +270,7 @@ fun EditHotkeysDialog(
                     OutlinedButton(
                         onClick = {
                             onResetDefaults()
-                            hotkeysList = HotkeyManager.DEFAULT_HOTKEYS.toMutableList()
+                            hotkeysList = HotkeyManager.DEFAULT_HOTKEYS
                         },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF8B949E))
                     ) {

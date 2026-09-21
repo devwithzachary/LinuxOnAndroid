@@ -327,6 +327,10 @@ class TerminalEmulator(
                         lineFeed()
                         state = State.NORMAL
                     }
+                    'c' -> { // RIS - Reset to Initial State
+                        reset()
+                        state = State.NORMAL
+                    }
                     else -> state = State.NORMAL
                 }
             }
@@ -428,16 +432,24 @@ class TerminalEmulator(
                 cursorX = 0
             }
             'J' -> { // Erase in display
-                val mode = getArg(0, 0)
-                when (mode) {
-                    0 -> { // Clear cursor to end
-                        clearRange(cursorY, cursorX, rows - 1, cols - 1)
-                    }
-                    1 -> { // Clear start to cursor
-                        clearRange(0, 0, cursorY, cursorX)
-                    }
-                    2, 3 -> { // Clear whole screen
-                        clearRange(0, 0, rows - 1, cols - 1)
+                val modes = if (args.isEmpty()) listOf(0) else args
+                for (mode in modes) {
+                    when (mode) {
+                        0 -> { // Clear cursor to end
+                            clearRange(cursorY, cursorX, rows - 1, cols - 1)
+                        }
+                        1 -> { // Clear start to cursor
+                            clearRange(0, 0, cursorY, cursorX)
+                        }
+                        2 -> { // Clear whole screen
+                            clearRange(0, 0, rows - 1, cols - 1)
+                            scrollOffset = 0
+                        }
+                        3 -> { // Erase saved lines (xterm scrollback clear)
+                            clearRange(0, 0, rows - 1, cols - 1)
+                            scrollback.clear()
+                            scrollOffset = 0
+                        }
                     }
                 }
             }
@@ -536,6 +548,32 @@ class TerminalEmulator(
                 grid[r][c] = TerminalChar()
             }
         }
+    }
+
+    fun clearTerminal() {
+        clearRange(0, 0, rows - 1, cols - 1)
+        scrollback.clear()
+        scrollOffset = 0
+        cursorX = 0
+        cursorY = 0
+    }
+
+    fun reset() {
+        primaryGrid = Array(rows) { Array(cols) { TerminalChar() } }
+        altGrid = Array(rows) { Array(cols) { TerminalChar() } }
+        grid = primaryGrid
+        inAltBuffer = false
+        scrollback.clear()
+        scrollOffset = 0
+        cursorX = 0
+        cursorY = 0
+        savedCursorX = 0
+        savedCursorY = 0
+        scrollTop = 0
+        scrollBottom = rows - 1
+        resetSgr()
+        cursorVisible = true
+        appCursorKeys = false
     }
 
     private fun handleSgr(args: List<Int>) {

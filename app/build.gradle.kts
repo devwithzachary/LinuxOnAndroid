@@ -14,8 +14,8 @@ android {
         applicationId = "com.devwithzachary.completelinuxinstaller"
         minSdk = 23
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.7.0"
+        versionCode = 15
+        versionName = "1.7.1"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
@@ -118,6 +118,9 @@ dependencies {
 
   // XZ Archive Decompression
   implementation("org.tukaani:xz:1.10")
+
+  // Unix Crypt for shadow password verification
+  implementation("commons-codec:commons-codec:1.17.1")
 
   // Navigation
   implementation(libs.androidx.navigation3.ui)

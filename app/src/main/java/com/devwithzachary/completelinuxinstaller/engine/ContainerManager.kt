@@ -24,20 +24,84 @@ class ContainerManager(private val context: Context) {
         private const val KEY_DEFAULT_CONTAINER_ID = "default_container_id"
         const val DEFAULT_CONTAINER_ID = "ubuntu_default"
 
+        @android.annotation.SuppressLint("NewApi")
+        fun readSymlinkTarget(file: File): String? {
+            try {
+                return android.system.Os.readlink(file.absolutePath)
+            } catch (_: Throwable) {}
+            try {
+                val path = file.toPath()
+                if (java.nio.file.Files.isSymbolicLink(path)) {
+                    return java.nio.file.Files.readSymbolicLink(path).toString()
+                }
+            } catch (_: Throwable) {}
+            return null
+        }
+
+        fun fileOrGuestSymlinkExists(dir: File, relPath: String): Boolean {
+            val file = File(dir, relPath.removePrefix("/"))
+            if (file.exists()) return true
+            return try {
+                val linkTarget = readSymlinkTarget(file) ?: return false
+
+                val targetFile = if (linkTarget.startsWith("/")) {
+                    File(dir, linkTarget.removePrefix("/"))
+                } else {
+                    File(file.parentFile ?: dir, linkTarget)
+                }
+                targetFile.exists() || (readSymlinkTarget(targetFile) != null)
+            } catch (_: Exception) {
+                false
+            }
+        }
+
+        fun hasValidGuestShell(dir: File): Boolean {
+            val candidateShells = listOf(
+                "bin/bash",
+                "usr/bin/bash",
+                "bin/sh",
+                "usr/bin/sh",
+                "bin/ash",
+                "usr/bin/ash",
+                "bin/dash",
+                "usr/bin/dash",
+                "bin/zsh",
+                "usr/bin/zsh",
+                "bin/busybox",
+                "usr/bin/busybox"
+            )
+            return candidateShells.any { fileOrGuestSymlinkExists(dir, it) }
+        }
+
+        fun hasDistroMarker(dir: File): Boolean {
+            val candidateMarkers = listOf(
+                "etc/os-release",
+                "usr/lib/os-release",
+                "etc/alpine-release",
+                "etc/arch-release",
+                "etc/fedora-release",
+                "etc/debian_version",
+                "etc/issue",
+                "sbin/apk",
+                "lib/apk",
+                "etc/apk",
+                "usr/bin/pacman",
+                "var/lib/pacman",
+                "usr/bin/dnf",
+                "etc/dnf",
+                "usr/bin/apt",
+                "var/lib/dpkg",
+                "usr/bin/xbps-install",
+                "var/db/xbps",
+                "usr/bin",
+                "usr/lib"
+            )
+            return candidateMarkers.any { fileOrGuestSymlinkExists(dir, it) }
+        }
+
         fun isRealRootfs(dir: File): Boolean {
             if (!dir.exists() || !dir.isDirectory) return false
-            val binSh = File(dir, "bin/sh")
-            val binBash = File(dir, "bin/bash")
-            val binAsh = File(dir, "bin/ash")
-            val usrBinSh = File(dir, "usr/bin/sh")
-            val usrBinBash = File(dir, "usr/bin/bash")
-            val osRelease = File(dir, "etc/os-release")
-            val sbinApk = File(dir, "sbin/apk")
-            val usrBinPacman = File(dir, "usr/bin/pacman")
-            val usrBinDnf = File(dir, "usr/bin/dnf")
-            val hasShell = binSh.exists() || binBash.exists() || binAsh.exists() || usrBinSh.exists() || usrBinBash.exists()
-            val hasDistroMarker = osRelease.exists() || sbinApk.exists() || usrBinPacman.exists() || usrBinDnf.exists() || File(dir, "usr/bin").exists()
-            return hasShell && hasDistroMarker
+            return hasValidGuestShell(dir) && hasDistroMarker(dir)
         }
 
         fun formatContainerHostname(containerName: String): String {
@@ -129,8 +193,10 @@ class ContainerManager(private val context: Context) {
         // Clean up any phantom uninstalled containers (e.g. empty directories without shells)
         // and populate real storage sizes if previously 0
         var needsSave = false
+        val now = System.currentTimeMillis()
         val validContainers = loaded.filter { container ->
-            isRealRootfs(container.rootDir)
+            val isRecent = (now - container.installedAt) < 30 * 60 * 1000L
+            isRealRootfs(container.rootDir) || isRecent
         }.map { container ->
             // Migration for older containers without externalFolderName:
             val containerWithExternal = if (container.externalFolderName.isBlank()) {
@@ -199,10 +265,15 @@ class ContainerManager(private val context: Context) {
                 val root = File(it.rootDirPath)
                 if (root.parentFile?.parentFile == containersBaseDir) root.parentFile?.absolutePath else root.absolutePath
             }.toSet()
+            val allLoadedDirPaths = loaded.mapNotNull {
+                val root = File(it.rootDirPath)
+                if (root.parentFile?.parentFile == containersBaseDir) root.parentFile?.absolutePath else root.absolutePath
+            }.toSet()
 
             val onDiskDirs = containersBaseDir.listFiles() ?: emptyArray()
             for (dir in onDiskDirs) {
-                if (dir.isDirectory && !registeredContainerDirPaths.contains(dir.absolutePath)) {
+                val isRecentDir = (now - dir.lastModified()) < 30 * 60 * 1000L
+                if (dir.isDirectory && !allLoadedDirPaths.contains(dir.absolutePath) && !registeredContainerDirPaths.contains(dir.absolutePath) && !isRecentDir) {
                     Log.d(TAG, "Purging orphaned container directory on disk: ${dir.name}")
                     try {
                         val chmodBin = if (File("/system/bin/chmod").exists()) "/system/bin/chmod" else "chmod"

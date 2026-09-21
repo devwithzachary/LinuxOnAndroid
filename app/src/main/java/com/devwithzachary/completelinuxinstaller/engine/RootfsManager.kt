@@ -4,13 +4,10 @@ import android.content.Context
 import android.util.Log
 import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.model.LinuxDistribution
-import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.zip.GZIPInputStream
-import org.tukaani.xz.XZInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -30,6 +27,20 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     companion object {
         private const val TAG = "RootfsManager"
+
+        fun hasRootPassword(targetDir: File): Boolean {
+            val shadowFile = File(targetDir, "etc/shadow")
+            if (!shadowFile.exists()) return false
+            return try {
+                val rootLine = shadowFile.useLines { lines -> lines.firstOrNull { it.startsWith("root:") } } ?: return false
+                val parts = rootLine.split(":")
+                if (parts.size < 2) return false
+                val hash = parts[1]
+                hash.isNotEmpty() && hash != "*" && hash != "!" && !hash.startsWith("!") && hash != "x"
+            } catch (_: Exception) {
+                false
+            }
+        }
     }
 
     private val prefs = context.getSharedPreferences("rootfs_manager_prefs", Context.MODE_PRIVATE)
@@ -221,38 +232,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         targetDir: File,
         onProgress: (suspend (String, Int) -> Unit)? = null
     ) {
-        val fileName = archiveFile.name.lowercase()
-        val isXz = fileName.endsWith(".xz")
-        extractArchiveInJava(archiveFile, targetDir, isXz = isXz, onProgress = onProgress)
-        unwrapNestedRootfsIfNeeded(targetDir)
-    }
-
-    private fun unwrapNestedRootfsIfNeeded(targetDir: File) {
-        if (!targetDir.exists()) return
-        val hasDirectRootfs = File(targetDir, "bin").exists() || File(targetDir, "usr").exists() || File(targetDir, "etc").exists()
-        if (!hasDirectRootfs) {
-            val children = targetDir.listFiles() ?: emptyArray()
-            val singleDir = children.firstOrNull { it.isDirectory && (File(it, "bin").exists() || File(it, "usr").exists() || File(it, "etc").exists()) }
-            if (singleDir != null) {
-                Log.d(TAG, "Detected nested rootfs directory ${singleDir.name}, unwrapping into ${targetDir.absolutePath}...")
-                val nestedItems = singleDir.listFiles() ?: emptyArray()
-                for (item in nestedItems) {
-                    val dest = File(targetDir, item.name)
-                    if (dest.exists()) {
-                        try { android.system.Os.remove(dest.absolutePath) } catch (_: Exception) { dest.delete() }
-                    }
-                    if (!item.renameTo(dest)) {
-                        try {
-                            item.copyRecursively(dest, overwrite = true)
-                            item.deleteRecursively()
-                        } catch (e: Exception) {
-                            Log.w(TAG, "Failed copying nested item ${item.name}", e)
-                        }
-                    }
-                }
-                singleDir.deleteRecursively()
-            }
-        }
+        RootfsArchiveExtractor.extractArchive(archiveFile, targetDir, onProgress)
     }
 
     private suspend fun extractTarGz(
@@ -260,277 +240,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         targetDir: File,
         onProgress: (suspend (String, Int) -> Unit)? = null
     ) {
-        extractArchive(tarGzFile, targetDir, onProgress)
-    }
-
-    private suspend fun extractArchiveInJava(
-        archiveFile: File,
-        targetDir: File,
-        isXz: Boolean,
-        onProgress: (suspend (String, Int) -> Unit)? = null
-    ) = withContext(Dispatchers.IO) {
-        if (!targetDir.exists()) {
-            targetDir.mkdirs()
-        }
-
-        val rawIn = BufferedInputStream(archiveFile.inputStream(), 65536)
-        val tarIn: java.io.InputStream = if (isXz) {
-            XZInputStream(rawIn)
-        } else {
-            GZIPInputStream(rawIn, 65536)
-        }
-
-        val buffer = ByteArray(512)
-        var longName: String? = null
-        var longLink: String? = null
-        var extractedFiles = 0
-        var lastUpdate = System.currentTimeMillis()
-
-        tarIn.use { stream ->
-            while (true) {
-                var bytesRead = 0
-                while (bytesRead < 512) {
-                    val r = stream.read(buffer, bytesRead, 512 - bytesRead)
-                    if (r == -1) break
-                    bytesRead += r
-                }
-                if (bytesRead < 512) break
-
-                var isEmpty = true
-                for (i in 0 until 512) {
-                    if (buffer[i] != 0.toByte()) {
-                        isEmpty = false
-                        break
-                    }
-                }
-                if (isEmpty) break
-
-                val rawName = String(buffer, 0, 100, Charsets.US_ASCII).trimEnd('\u0000', ' ')
-                val mode = parseOctal(buffer, 100, 8)
-                val size = parseOctal(buffer, 124, 12)
-                val typeFlag = buffer[156].toInt().toChar()
-                val rawLink = String(buffer, 157, 100, Charsets.US_ASCII).trimEnd('\u0000', ' ')
-                val prefix = String(buffer, 345, 155, Charsets.US_ASCII).trimEnd('\u0000', ' ')
-
-                // Handle GNU Long Name
-                if (typeFlag == 'L') {
-                    val nameBytes = ByteArray(size.toInt())
-                    readFully(stream, nameBytes)
-                    longName = String(nameBytes, Charsets.UTF_8).trimEnd('\u0000', ' ', '\n', '\r')
-                    val remainder = (512 - (size % 512)) % 512
-                    if (remainder > 0) skipBytes(stream, remainder)
-                    continue
-                }
-
-                // Handle GNU Long Link
-                if (typeFlag == 'K') {
-                    val linkBytes = ByteArray(size.toInt())
-                    readFully(stream, linkBytes)
-                    longLink = String(linkBytes, Charsets.UTF_8).trimEnd('\u0000', ' ', '\n', '\r')
-                    val remainder = (512 - (size % 512)) % 512
-                    if (remainder > 0) skipBytes(stream, remainder)
-                    continue
-                }
-
-                // Handle PAX Extended Headers
-                if (typeFlag == 'x' || typeFlag == 'g') {
-                    val paxBytes = ByteArray(size.toInt())
-                    readFully(stream, paxBytes)
-                    val paxString = String(paxBytes, Charsets.UTF_8)
-                    for (paxLine in paxString.lines()) {
-                        val spaceIdx = paxLine.indexOf(' ')
-                        if (spaceIdx != -1) {
-                            val eqIdx = paxLine.indexOf('=', spaceIdx)
-                            if (eqIdx != -1) {
-                                val key = paxLine.substring(spaceIdx + 1, eqIdx)
-                                val value = paxLine.substring(eqIdx + 1)
-                                if (key == "path") longName = value
-                                else if (key == "linkpath") longLink = value
-                            }
-                        }
-                    }
-                    val remainder = (512 - (size % 512)) % 512
-                    if (remainder > 0) skipBytes(stream, remainder)
-                    continue
-                }
-
-                var entryName = longName ?: if (prefix.isNotEmpty()) "$prefix/$rawName" else rawName
-                val finalLink = longLink ?: rawLink
-                longName = null
-                longLink = null
-
-                if (entryName.isEmpty() || entryName == "." || entryName == "./") {
-                    val remainder = (512 - (size % 512)) % 512
-                    skipBytes(stream, size + remainder)
-                    continue
-                }
-
-                if (entryName.startsWith("./")) {
-                    entryName = entryName.substring(2)
-                } else if (entryName.startsWith("/")) {
-                    entryName = entryName.substring(1)
-                }
-
-                val destFile = File(targetDir, entryName)
-
-                try {
-                    when (typeFlag) {
-                        '5' -> {
-                            destFile.mkdirs()
-                            val remainder = (512 - (size % 512)) % 512
-                            if (remainder > 0) skipBytes(stream, remainder)
-                        }
-
-                        '0', '\u0000' -> {
-                            destFile.parentFile?.mkdirs()
-                            try {
-                                android.system.Os.remove(destFile.absolutePath)
-                            } catch (_: Exception) {
-                                destFile.delete()
-                            }
-                            FileOutputStream(destFile).use { out ->
-                                copyBytes(stream, out, size)
-                            }
-                            val isExec = (mode and 0x49L) != 0L || entryName.contains("bin/") || entryName.endsWith(".sh")
-                            if (isExec) {
-                                destFile.setExecutable(true, false)
-                            }
-                            val remainder = (512 - (size % 512)) % 512
-                            if (remainder > 0) skipBytes(stream, remainder)
-                        }
-
-                        '1' -> {
-                            // Hard Link
-                            destFile.parentFile?.mkdirs()
-                            val sourceFile = File(targetDir, finalLink.removePrefix("/"))
-                            if (sourceFile.exists()) {
-                                try {
-                                    android.system.Os.remove(destFile.absolutePath)
-                                } catch (_: Exception) {
-                                    destFile.delete()
-                                }
-                                var linked = false
-                                try {
-                                    android.system.Os.link(sourceFile.absolutePath, destFile.absolutePath)
-                                    linked = true
-                                } catch (_: Exception) {
-                                    // Hard links fail on Android due to SELinux restrictions.
-                                    // Create a relative symlink first to avoid duplicating large multicall binaries (e.g. uutils/rust-coreutils)
-                                    try {
-                                        val parent = destFile.parentFile ?: targetDir
-                                        val relPath = sourceFile.relativeTo(parent).path
-                                        android.system.Os.symlink(relPath, destFile.absolutePath)
-                                        linked = true
-                                    } catch (_: Exception) {
-                                        try {
-                                            sourceFile.copyTo(destFile, overwrite = true)
-                                        } catch (_: Exception) {}
-                                    }
-                                }
-                                val isExec = (mode and 0x49L) != 0L || entryName.contains("bin/") || entryName.endsWith(".sh") || sourceFile.canExecute()
-                                if (isExec) {
-                                    destFile.setExecutable(true, false)
-                                }
-                                destFile.setReadable(true, false)
-                            }
-                            val remainder = (512 - (size % 512)) % 512
-                            if (remainder > 0) skipBytes(stream, remainder)
-                        }
-
-                        '2' -> {
-                            // Symbolic Link
-                            destFile.parentFile?.mkdirs()
-                            if (finalLink.isNotEmpty()) {
-                                val isTopLevel = (destFile.parentFile?.absolutePath == targetDir.absolutePath)
-                                val isAbsoluteRootfsPath =
-                                    finalLink.startsWith("usr/") || finalLink.startsWith("etc/") || finalLink.startsWith("var/") || finalLink.startsWith("opt/")
-                                val linkTarget = if (!isTopLevel && isAbsoluteRootfsPath) {
-                                    "/$finalLink"
-                                } else {
-                                    finalLink
-                                }
-                                try {
-                                    try {
-                                        android.system.Os.remove(destFile.absolutePath)
-                                    } catch (_: Exception) {
-                                        destFile.delete()
-                                    }
-                                    android.system.Os.symlink(linkTarget, destFile.absolutePath)
-                                } catch (e: Exception) {
-                                    Log.w(TAG, "Symlink creation failed for ${destFile.name} -> $linkTarget: ${e.message}")
-                                }
-                            }
-                            val remainder = (512 - (size % 512)) % 512
-                            if (remainder > 0) skipBytes(stream, remainder)
-                        }
-
-                        else -> {
-                            val remainder = (512 - (size % 512)) % 512
-                            skipBytes(stream, size + remainder)
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Error extracting entry $entryName: ${e.message}")
-                    val remainder = (512 - (size % 512)) % 512
-                    skipBytes(stream, size + remainder)
-                }
-
-                extractedFiles++
-                val now = System.currentTimeMillis()
-                if (onProgress != null && (now - lastUpdate > 250 || extractedFiles % 500 == 0)) {
-                    lastUpdate = now
-                    val fName = entryName.substringAfterLast('/')
-                    val percent = 50 + ((extractedFiles * 35) / 50000).coerceIn(0, 35)
-                    onProgress("Extracting: $fName ($extractedFiles files)", percent)
-                }
-            }
-        }
-        Log.d(TAG, "Java archive extraction completed: $extractedFiles total files extracted to ${targetDir.absolutePath}")
-    }
-
-    private fun parseOctal(buffer: ByteArray, offset: Int, length: Int): Long {
-        var result = 0L
-        val end = offset + length
-        for (i in offset until end) {
-            val b = buffer[i].toInt() and 0xFF
-            if (b == 0 || b == ' '.code) continue
-            if (b in '0'.code..'7'.code) {
-                result = (result shl 3) + (b - '0'.code)
-            }
-        }
-        return result
-    }
-
-    private fun readFully(input: java.io.InputStream, buffer: ByteArray) {
-        var read = 0
-        while (read < buffer.size) {
-            val r = input.read(buffer, read, buffer.size - read)
-            if (r == -1) break
-            read += r
-        }
-    }
-
-    private fun copyBytes(input: java.io.InputStream, output: FileOutputStream, count: Long) {
-        var remaining = count
-        val buf = ByteArray(65536)
-        while (remaining > 0) {
-            val toRead = minOf(buf.size.toLong(), remaining).toInt()
-            val r = input.read(buf, 0, toRead)
-            if (r == -1) break
-            output.write(buf, 0, r)
-            remaining -= r
-        }
-    }
-
-    private fun skipBytes(input: java.io.InputStream, count: Long) {
-        var remaining = count
-        val buf = ByteArray(65536)
-        while (remaining > 0) {
-            val toRead = minOf(buf.size.toLong(), remaining).toInt()
-            val r = input.read(buf, 0, toRead)
-            if (r == -1) break
-            remaining -= r
-        }
+        RootfsArchiveExtractor.extractTarGz(tarGzFile, targetDir, onProgress)
     }
 
     private fun initializeFallbackRootfs() {
@@ -1211,14 +921,15 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
             val config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir)
             val shellBin = when {
-                File(targetDir, "bin/bash").exists() -> "/bin/bash"
-                File(targetDir, "usr/bin/bash").exists() -> "/usr/bin/bash"
-                File(targetDir, "bin/dash").exists() -> "/bin/dash"
-                File(targetDir, "usr/bin/dash").exists() -> "/usr/bin/dash"
-                File(targetDir, "bin/ash").exists() -> "/bin/ash"
-                File(targetDir, "usr/bin/ash").exists() -> "/usr/bin/ash"
-                File(targetDir, "bin/sh").exists() -> "/bin/sh"
-                File(targetDir, "usr/bin/sh").exists() -> "/usr/bin/sh"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/bash") -> "/bin/bash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "usr/bin/bash") -> "/usr/bin/bash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/dash") -> "/bin/dash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "usr/bin/dash") -> "/usr/bin/dash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/ash") -> "/bin/ash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "usr/bin/ash") -> "/usr/bin/ash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/sh") -> "/bin/sh"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "usr/bin/sh") -> "/usr/bin/sh"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/busybox") -> "/bin/sh"
                 else -> "/bin/sh"
             }
             val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf(shellBin, "-c", setupScript))
@@ -1251,12 +962,81 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 proc.waitFor()
             }
             try {
-                if (proc.isAlive) {
-                    proc.destroyForcibly()
-                }
+                proc.destroy()
             } catch (_: Exception) {}
         } catch (e: Exception) {
             Log.e(TAG, "First launch setup error for ${distroDef.name}", e)
+        }
+    }
+    fun hasRootPassword(targetDir: File = rootfsDir): Boolean = RootfsManager.hasRootPassword(targetDir)
+
+    suspend fun verifyRootPassword(password: String, targetDir: File = rootfsDir): Boolean = withContext(Dispatchers.IO) {
+        val shadowFile = File(targetDir, "etc/shadow")
+        if (!shadowFile.exists()) return@withContext true
+        val rootLine = try {
+            shadowFile.useLines { lines -> lines.firstOrNull { it.startsWith("root:") } }
+        } catch (_: Exception) {
+            null
+        } ?: return@withContext true
+
+        val parts = rootLine.split(":")
+        if (parts.size < 2) return@withContext true
+        val storedHash = parts[1]
+        if (storedHash.isEmpty() || storedHash == "*" || storedHash == "!" || storedHash.startsWith("!") || storedHash == "x") {
+            return@withContext true
+        }
+
+        // 1. Fast path: verify with pure Kotlin UnixCrypt
+        if (UnixCrypt.canVerifyInKotlin(storedHash)) {
+            return@withContext UnixCrypt.verify(password, storedHash)
+        }
+
+        // 2. Guest PRoot verification fallback (for yescrypt or distribution-specific crypt)
+        try {
+            val script = """
+                export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+                read -r CANDIDATE
+                ROOT_HASH=$(grep '^root:' /etc/shadow 2>/dev/null | cut -d: -f2)
+                if [ -z "${'$'}ROOT_HASH" ] || [ "${'$'}ROOT_HASH" = "*" ] || [ "${'$'}ROOT_HASH" = "!" ] || [ "${'$'}ROOT_HASH" = "x" ]; then
+                    exit 0
+                fi
+                if command -v python3 >/dev/null 2>&1; then
+                    python3 -c "import crypt, sys; sys.exit(0 if crypt.crypt(sys.argv[1], sys.argv[2]) == sys.argv[2] else 1)" "${'$'}CANDIDATE" "${'$'}ROOT_HASH"
+                    exit ${'$'}?
+                fi
+                if command -v perl >/dev/null 2>&1; then
+                    perl -e 'exit(crypt(${'$'}ARGV[0], ${'$'}ARGV[1]) eq ${'$'}ARGV[1] ? 0 : 1)' "${'$'}CANDIDATE" "${'$'}ROOT_HASH"
+                    exit ${'$'}?
+                fi
+                if command -v busybox >/dev/null 2>&1; then
+                    OUT=${'$'}(busybox cryptpw -S "${'$'}ROOT_HASH" "${'$'}CANDIDATE" 2>/dev/null)
+                    if [ -n "${'$'}OUT" ] && [ "${'$'}OUT" = "${'$'}ROOT_HASH" ]; then exit 0; fi
+                    OUT=${'$'}(busybox mkpasswd -S "${'$'}ROOT_HASH" "${'$'}CANDIDATE" 2>/dev/null)
+                    if [ -n "${'$'}OUT" ] && [ "${'$'}OUT" = "${'$'}ROOT_HASH" ]; then exit 0; fi
+                fi
+                if command -v mkpasswd >/dev/null 2>&1; then
+                    OUT=${'$'}(mkpasswd -S "${'$'}ROOT_HASH" "${'$'}CANDIDATE" 2>/dev/null)
+                    if [ -n "${'$'}OUT" ] && [ "${'$'}OUT" = "${'$'}ROOT_HASH" ]; then exit 0; fi
+                fi
+                exit 1
+            """.trimIndent()
+
+            val config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir)
+            val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf("/bin/sh", "-c", script))
+            val pb = ProcessBuilder(cmd).apply {
+                directory(targetDir)
+                environment().putAll(pRootEngine.getEnvironmentVariables())
+            }
+            val proc = pb.start()
+            proc.outputStream.bufferedWriter().use { writer ->
+                writer.write(password)
+                writer.newLine()
+                writer.flush()
+            }
+            proc.waitFor() == 0
+        } catch (e: Exception) {
+            Log.e(TAG, "Error verifying root password", e)
+            false
         }
     }
 

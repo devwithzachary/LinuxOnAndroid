@@ -1,0 +1,7 @@
+• Alpine Linux: Fixed first-launch setup with guest symlink resolution.
+• Terminal Tabs: Fixed switching between concurrent terminal tabs.
+• Terminal UI: Fixed top bar overflow, added stop prompt, and fixed clear scrollback.
+• Text Fields: Constrained process filter and hotkeys to single line.
+• Security: Suppressed IME password suggestions & disabled autocorrect.
+• Termux Hotkeys: Aligned extra keys into 7-column grid layout.
+• Reliability: Added container grace period preventing drops.

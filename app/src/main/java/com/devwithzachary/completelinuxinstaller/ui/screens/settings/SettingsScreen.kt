@@ -201,7 +201,7 @@ fun SettingsScreen(
     var customBg by remember(terminalTheme) { mutableStateOf(terminalTheme.defaultBg) }
     var customCursor by remember(terminalTheme) { mutableStateOf(terminalTheme.cursorColor) }
     var customSelection by remember(terminalTheme) { mutableStateOf(terminalTheme.selectionColor) }
-    var customAnsiColors by remember(terminalTheme) { mutableStateOf(terminalTheme.ansiColors.toMutableList()) }
+    var customAnsiColors by remember(terminalTheme) { mutableStateOf(terminalTheme.ansiColors) }
 
     // 1. Updates & Release Channel Card
     val updatesCard = @Composable {
@@ -703,7 +703,7 @@ fun SettingsScreen(
                                     if (target != null && target.startsWith("ansi_")) {
                                         val idx = target.removePrefix("ansi_").toIntOrNull() ?: 0
                                         if (idx in customAnsiColors.indices) {
-                                            customAnsiColors[idx] = parsed
+                                            customAnsiColors = customAnsiColors.toMutableList().also { it[idx] = parsed }
                                         }
                                     }
                                 }

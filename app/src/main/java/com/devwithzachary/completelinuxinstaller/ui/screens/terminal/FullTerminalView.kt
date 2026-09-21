@@ -47,6 +47,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
@@ -61,6 +62,7 @@ fun FullTerminalView(
     focusRequester: FocusRequester,
     onTapTerminal: () -> Unit,
     modifier: Modifier = Modifier,
+    activeSessionId: String? = null,
     isCtrlActive: Boolean = false,
     isAltActive: Boolean = false,
     onConsumeModifiers: () -> Unit = {},
@@ -145,7 +147,14 @@ fun FullTerminalView(
         val cols = max(20, (widthPx / charWidth).toInt())
         val rows = max(5, (heightPx / charHeight).toInt())
 
-        LaunchedEffect(cols, rows) {
+        LaunchedEffect(activeSessionId) {
+            selectionStart = null
+            selectionEnd = null
+            textFieldValue = TextFieldValue("", TextRange.Zero)
+            lastText = ""
+        }
+
+        LaunchedEffect(activeSessionId, cols, rows) {
             terminalBridge.updateTerminalSize(cols, rows)
         }
 
@@ -470,6 +479,8 @@ fun FullTerminalView(
 
             // Terminal Screen & Text Selection Canvas
             Canvas(modifier = Modifier.fillMaxSize()) {
+                @Suppress("UNUSED_VARIABLE")
+                val sessionKey = activeSessionId
                 @Suppress("UNUSED_VARIABLE")
                 val renderTick = refreshTrigger
 
@@ -813,10 +824,12 @@ fun FullTerminalView(
             // Mouse Right-Click Context Menu
             Box(
                 modifier = Modifier
-                    .offset(
-                        x = with(density) { contextMenuOffset.x.toDp() },
-                        y = with(density) { contextMenuOffset.y.toDp() }
-                    )
+                    .offset {
+                        IntOffset(
+                            contextMenuOffset.x.toInt(),
+                            contextMenuOffset.y.toInt()
+                        )
+                    }
                     .size(1.dp)
             ) {
                 DropdownMenu(
@@ -878,6 +891,7 @@ fun FullTerminalView(
                         leadingIcon = { Icon(Icons.Default.ClearAll, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showContextMenu = false
+                            terminalBridge.clearTerminal()
                             terminalBridge.sendInput("\u000c")
                             focusRequester.requestFocus()
                         }

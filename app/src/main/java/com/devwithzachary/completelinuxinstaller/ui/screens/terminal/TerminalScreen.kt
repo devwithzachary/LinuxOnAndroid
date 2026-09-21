@@ -42,10 +42,12 @@ import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
 import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
 import com.devwithzachary.completelinuxinstaller.ui.components.EditHotkeysDialog
 import com.devwithzachary.completelinuxinstaller.ui.components.ExtraKeysRow
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardHide
 import com.devwithzachary.completelinuxinstaller.ui.util.handHover
 import com.devwithzachary.completelinuxinstaller.ui.util.isHardwareKeyboardConnected
 import com.devwithzachary.completelinuxinstaller.ui.util.onContextMenu
+import com.devwithzachary.completelinuxinstaller.ui.util.onSecondaryClick
 import com.devwithzachary.completelinuxinstaller.util.HotkeyManager
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -117,6 +119,7 @@ fun TerminalScreen(
     var customHotkeys by remember { mutableStateOf(HotkeyManager.getHotkeys(context)) }
     var showEditHotkeysDialog by remember { mutableStateOf(false) }
     var showNewTabDialog by remember { mutableStateOf(false) }
+    var showStopConfirmDialog by remember { mutableStateOf(false) }
     var sessionToRename by remember { mutableStateOf<Pair<String, String>?>(null) }
     val isHardwareKeyboard = isHardwareKeyboardConnected()
     var showExtraKeysOverride by remember { mutableStateOf<Boolean?>(null) }
@@ -153,6 +156,7 @@ fun TerminalScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
+                        modifier = Modifier.weight(1f, fill = false),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -177,94 +181,106 @@ fun TerminalScreen(
                         )
                     }
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Toggle Extra Keys Ribbon
-                        IconButton(
-                            onClick = { showExtraKeysOverride = !showExtraKeys },
-                            modifier = Modifier.handHover()
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = if (showExtraKeys) Icons.Default.KeyboardHide else Icons.Default.Keyboard,
-                                contentDescription = if (showExtraKeys) "Hide On-screen Keys" else "Show On-screen Keys",
-                                tint = if (showExtraKeys) Color(0xFF81D4FA) else Color.Gray,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                val clipText = clipboardManager.getText()?.text
-                                if (!clipText.isNullOrEmpty()) {
-                                    terminalBridge.pasteText(clipText)
-                                }
-                            },
-                            modifier = Modifier.handHover()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentPaste,
-                                contentDescription = "Paste Clipboard",
-                                tint = Color(0xFF81D4FA),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = { showEditHotkeysDialog = true },
-                            modifier = Modifier.handHover()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Tune,
-                                contentDescription = "Edit Hotkeys",
-                                tint = Color(0xFFFFB74D),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                focusRequester.requestFocus()
-                                keyboardController?.show()
-                            },
-                            modifier = Modifier.handHover()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Keyboard,
-                                contentDescription = "Show Keyboard",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        if (isRunning) {
+                            // Toggle Extra Keys Ribbon
                             IconButton(
-                                onClick = {
-                                    isCtrlActive = false
-                                    isAltActive = false
-                                    onStopSession()
-                                },
-                                modifier = Modifier.handHover()
+                                onClick = { showExtraKeysOverride = !showExtraKeys },
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .handHover()
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Stop,
-                                    contentDescription = "Stop Terminal",
-                                    tint = Color(0xFFE57373),
-                                    modifier = Modifier.size(20.dp)
+                                    imageVector = if (showExtraKeys) Icons.Default.KeyboardHide else Icons.Default.KeyboardArrowUp,
+                                    contentDescription = if (showExtraKeys) "Hide On-screen Keys" else "Show On-screen Keys",
+                                    tint = if (showExtraKeys) Color(0xFF81D4FA) else Color.Gray,
+                                    modifier = Modifier.size(19.dp)
                                 )
                             }
-                        } else {
+
                             IconButton(
-                                onClick = onStartSession,
-                                modifier = Modifier.handHover()
+                                onClick = {
+                                    val clipText = clipboardManager.getText()?.text
+                                    if (!clipText.isNullOrEmpty()) {
+                                        terminalBridge.pasteText(clipText)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .handHover()
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = "Start Terminal",
-                                    tint = Color(0xFF81C784),
-                                    modifier = Modifier.size(20.dp)
+                                    imageVector = Icons.Default.ContentPaste,
+                                    contentDescription = "Paste Clipboard",
+                                    tint = Color(0xFF81D4FA),
+                                    modifier = Modifier.size(19.dp)
                                 )
+                            }
+
+                            IconButton(
+                                onClick = { showEditHotkeysDialog = true },
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .handHover()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Tune,
+                                    contentDescription = "Edit Hotkeys",
+                                    tint = Color(0xFFFFB74D),
+                                    modifier = Modifier.size(19.dp)
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    focusRequester.requestFocus()
+                                    keyboardController?.show()
+                                },
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .handHover()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Keyboard,
+                                    contentDescription = "Show Keyboard",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(19.dp)
+                                )
+                            }
+
+                            if (isRunning) {
+                                IconButton(
+                                    onClick = {
+                                        showStopConfirmDialog = true
+                                    },
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .handHover()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Stop,
+                                        contentDescription = "Stop Terminal",
+                                        tint = Color(0xFFE57373),
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                }
+                            } else {
+                                IconButton(
+                                    onClick = onStartSession,
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .handHover()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = "Start Terminal",
+                                        tint = Color(0xFF81C784),
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -309,7 +325,7 @@ fun TerminalScreen(
                                                     tabContextMenuSessionId = session.id
                                                 }
                                             )
-                                            .onContextMenu {
+                                            .onSecondaryClick {
                                                 tabContextMenuSessionId = session.id
                                             }
                                     ) {
@@ -425,6 +441,7 @@ fun TerminalScreen(
         // Full Interactive Direct-Typing Terminal Window
         FullTerminalView(
             terminalBridge = terminalBridge,
+            activeSessionId = activeSessionId,
             refreshTrigger = refreshTrigger,
             focusRequester = focusRequester,
             onTapTerminal = {
@@ -569,6 +586,46 @@ fun TerminalScreen(
             },
             dismissButton = {
                 TextButton(onClick = { sessionToRename = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showStopConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showStopConfirmDialog = false },
+            title = {
+                Text(
+                    text = "Stop Terminal Session?",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
+            text = {
+                Text(
+                    text = "Are you sure you want to stop the active terminal session? Any running commands or processes will be terminated.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showStopConfirmDialog = false
+                        isCtrlActive = false
+                        isAltActive = false
+                        onStopSession()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Text("Stop Session")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStopConfirmDialog = false }) {
                     Text("Cancel")
                 }
             }

@@ -1,6 +1,7 @@
 package com.devwithzachary.completelinuxinstaller.model
 
 import android.content.Context
+import com.devwithzachary.completelinuxinstaller.engine.ContainerManager
 import java.io.File
 
 data class ContainerInstance(
@@ -32,19 +33,8 @@ data class ContainerInstance(
     }
 
     val isInstalled: Boolean
-        get() {
-            if (!rootDir.exists() || !rootDir.isDirectory) return false
-            val binSh = File(rootDir, "bin/sh")
-            val binBash = File(rootDir, "bin/bash")
-            val binAsh = File(rootDir, "bin/ash")
-            val usrBinSh = File(rootDir, "usr/bin/sh")
-            val usrBinBash = File(rootDir, "usr/bin/bash")
-            val osRelease = File(rootDir, "etc/os-release")
-            val sbinApk = File(rootDir, "sbin/apk")
-            val usrBinPacman = File(rootDir, "usr/bin/pacman")
-            val usrBinDnf = File(rootDir, "usr/bin/dnf")
-            val hasShell = binSh.exists() || binBash.exists() || binAsh.exists() || usrBinSh.exists() || usrBinBash.exists()
-            val hasDistroMarker = osRelease.exists() || sbinApk.exists() || usrBinPacman.exists() || usrBinDnf.exists() || File(rootDir, "usr/bin").exists()
-            return hasShell && hasDistroMarker
-        }
+        get() = ContainerManager.isRealRootfs(rootDir)
+
+    val hasRootPassword: Boolean
+        get() = com.devwithzachary.completelinuxinstaller.engine.RootfsManager.hasRootPassword(rootDir)
 }
