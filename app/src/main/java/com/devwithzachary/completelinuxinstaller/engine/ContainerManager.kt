@@ -24,22 +24,32 @@ class ContainerManager(private val context: Context) {
         private const val KEY_DEFAULT_CONTAINER_ID = "default_container_id"
         const val DEFAULT_CONTAINER_ID = "ubuntu_default"
 
+        @android.annotation.SuppressLint("NewApi")
+        fun readSymlinkTarget(file: File): String? {
+            try {
+                return android.system.Os.readlink(file.absolutePath)
+            } catch (_: Throwable) {}
+            try {
+                val path = file.toPath()
+                if (java.nio.file.Files.isSymbolicLink(path)) {
+                    return java.nio.file.Files.readSymbolicLink(path).toString()
+                }
+            } catch (_: Throwable) {}
+            return null
+        }
+
         fun fileOrGuestSymlinkExists(dir: File, relPath: String): Boolean {
             val file = File(dir, relPath.removePrefix("/"))
             if (file.exists()) return true
             return try {
-                val path = file.toPath()
-                if (java.nio.file.Files.isSymbolicLink(path)) {
-                    val linkTarget = java.nio.file.Files.readSymbolicLink(path).toString()
-                    val targetFile = if (linkTarget.startsWith("/")) {
-                        File(dir, linkTarget.removePrefix("/"))
-                    } else {
-                        File(file.parentFile ?: dir, linkTarget)
-                    }
-                    targetFile.exists() || java.nio.file.Files.isSymbolicLink(targetFile.toPath())
+                val linkTarget = readSymlinkTarget(file) ?: return false
+
+                val targetFile = if (linkTarget.startsWith("/")) {
+                    File(dir, linkTarget.removePrefix("/"))
                 } else {
-                    false
+                    File(file.parentFile ?: dir, linkTarget)
                 }
+                targetFile.exists() || (readSymlinkTarget(targetFile) != null)
             } catch (_: Exception) {
                 false
             }

@@ -158,7 +158,7 @@ class PRootEngine(val context: Context) {
                 val canonical = if (usrBinBash.exists()) usrBinBash.canonicalPath else ""
                 if (!usrBinBash.exists() || canonical.endsWith("/sh") || canonical.endsWith("/busybox")) {
                     usrBinBash.delete()
-                    java.nio.file.Files.createSymbolicLink(usrBinBash.toPath(), java.nio.file.Paths.get("/bin/bash"))
+                    android.system.Os.symlink("/bin/bash", usrBinBash.absolutePath)
                 }
             } catch (_: Exception) {}
         }
@@ -271,9 +271,9 @@ class PRootEngine(val context: Context) {
 
         if (File(targetRootfs, "usr/sbin/service").exists() && !File(targetRootfs, "usr/bin/service").exists()) {
             try {
-                java.nio.file.Files.createSymbolicLink(
-                    File(targetRootfs, "usr/bin/service").toPath(),
-                    java.nio.file.Paths.get("/usr/sbin/service")
+                android.system.Os.symlink(
+                    "/usr/sbin/service",
+                    File(targetRootfs, "usr/bin/service").absolutePath
                 )
             } catch (_: Exception) {
                 try {

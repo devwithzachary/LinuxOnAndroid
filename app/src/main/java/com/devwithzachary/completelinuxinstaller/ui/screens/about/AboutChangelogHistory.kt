@@ -35,7 +35,11 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Terminal Reset Sequence (ESC c): Added support for standard ESC c terminal reset command to reset screen, scrollback, and cursor attributes.",
             "Touch Gesture Conflict Resolution: Refactored context menu pointer input handling so long-press detection no longer consumes or swallows regular tap events on clickable UI components.",
             "Terminal Size & Canvas Synchronization: Switched and newly opened terminal tabs immediately synchronize screen dimensions and trigger an instant canvas redraw.",
-            "Session State Isolation: Automatically clears text selection highlights and uncommitted keyboard buffers when switching between concurrent terminal tabs."
+            "Session State Isolation: Automatically clears text selection highlights and uncommitted keyboard buffers when switching between concurrent terminal tabs.",
+            "Codebase Refactoring: Modularized ContainerDetailScreen into dedicated tab components and extracted all 7 distribution definitions into separate catalog files.",
+            "Archive Extraction Engine: Decoupled low-level archive decompression and TAR processing into a standalone RootfsArchiveExtractor component.",
+            "Theme & Settings Fixes: Fixed Dracula palette alpha transparency and resolved color picker state recomposition glitches in settings.",
+            "Lint & API Quality: Resolved 20 Android NewApi lint warnings across container symlinks, filesystem operations, and process lifecycles."
         )
     ),
     ReleaseChangelog(

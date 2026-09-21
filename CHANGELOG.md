@@ -16,6 +16,14 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Terminal Session Size & Refresh Synchronization**: Switched and newly created terminal tabs now immediately synchronize viewport dimensions and trigger an instant canvas redraw.
 - **Session Input & Selection Isolation**: Automatically clears text selection highlights and uncommitted keyboard buffers when switching between concurrent terminal tabs.
 
+### 🧹 Codebase Refactoring & Lint Quality
+- **Container Detail Screen Modularization**: Decomposed the monolithic 1,840-line `ContainerDetailScreen.kt` into modular tab components (`ContainerDetailOverviewTab.kt`, `ContainerDetailSoftwareTab.kt`, `ContainerDetailSettingsTab.kt`), significantly improving code maintainability and testability.
+- **Distro Catalog Modularization**: Decomposed the 1,050-line `DistroCatalog.kt` into dedicated distribution definition files (`UbuntuDistro.kt`, `DebianDistro.kt`, `AlpineDistro.kt`, `ArchDistro.kt`, `KaliDistro.kt`, `VoidDistro.kt`, and `FedoraDistro.kt`) under `model/distros/`.
+- **Rootfs Archive Extractor Extraction**: Extracted low-level archive streaming, TAR header processing, and directory unwrapping from `RootfsManager.kt` into a standalone `RootfsArchiveExtractor.kt` engine.
+- **Dracula ANSI Color Palette Fix**: Fixed Dracula theme bright magenta ANSI color code missing full opacity alpha channel (`0xFFD6ACFF`).
+- **Settings State Recomposition Fix**: Resolved custom ANSI color palette mutation bugs where in-place array updates prevented Jetpack Compose color pickers from triggering recomposition.
+- **Android NewApi Lint Resolution**: Resolved 20 Android API level lint errors across filesystem symlink operations, container management, and process handling, achieving 0 lint warnings and errors.
+
 ## [1.7.0] - 2026-09-15
 
 ### 🌐 PRoot Network Diagnostics & VNC Session Management

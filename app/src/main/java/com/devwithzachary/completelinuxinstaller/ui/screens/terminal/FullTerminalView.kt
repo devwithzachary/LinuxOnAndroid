@@ -47,6 +47,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
@@ -57,11 +58,11 @@ import kotlin.math.min
 @Composable
 fun FullTerminalView(
     terminalBridge: TerminalBridge,
-    activeSessionId: String? = null,
     refreshTrigger: Long,
     focusRequester: FocusRequester,
     onTapTerminal: () -> Unit,
     modifier: Modifier = Modifier,
+    activeSessionId: String? = null,
     isCtrlActive: Boolean = false,
     isAltActive: Boolean = false,
     onConsumeModifiers: () -> Unit = {},
@@ -823,10 +824,12 @@ fun FullTerminalView(
             // Mouse Right-Click Context Menu
             Box(
                 modifier = Modifier
-                    .offset(
-                        x = with(density) { contextMenuOffset.x.toDp() },
-                        y = with(density) { contextMenuOffset.y.toDp() }
-                    )
+                    .offset {
+                        IntOffset(
+                            contextMenuOffset.x.toInt(),
+                            contextMenuOffset.y.toInt()
+                        )
+                    }
                     .size(1.dp)
             ) {
                 DropdownMenu(

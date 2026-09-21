@@ -1,8 +1,6 @@
-• Alpine Linux Fix: Resolved first-launch setup error with guest-aware symlink resolution.
-• Container Purge Protection: Added grace period preventing active installations from being dropped.
-• Distro Test Framework: Added automated download and PRoot validation suite for releases.
-• Fixed Terminal Tabs: Resolved issue preventing switching between concurrent terminal tabs.
-• Clear Command Fix: Running clear in shell now completely erases scrollback history.
-• Terminal Reset: Added support for ESC c terminal reset command and buffer clearing.
-• Touch Gesture Fixes: Context menu detection now preserves tap responsiveness across screens.
-• Terminal Canvas Sync: Switched tabs immediately update viewport size and redraw content.
+• Alpine Linux: Fixed first-launch setup with guest-aware symlink resolution.
+• Terminal Tabs: Fixed switching between concurrent terminal tabs.
+• Clear Command: Shell clear command now fully wipes scrollback history.
+• Lifecycle Protection: Added grace period preventing accidental container drops.
+• Testing Framework: Automated multi-distro installation validation suite.
+• Code Quality: Refactored modular screen & distro catalogs, fixed UI palette bugs.

@@ -31,7 +31,7 @@ fun EditHotkeysDialog(
     onResetDefaults: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    var hotkeysList by remember { mutableStateOf(currentHotkeys.toMutableList()) }
+    var hotkeysList by remember { mutableStateOf<List<String>>(currentHotkeys) }
     var newKeyInput by remember { mutableStateOf("") }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -112,7 +112,7 @@ fun EditHotkeysDialog(
                         keyboardActions = KeyboardActions(onDone = {
                             val trimmed = newKeyInput.trim()
                             if (trimmed.isNotEmpty() && !hotkeysList.contains(trimmed)) {
-                                hotkeysList = (hotkeysList + trimmed).toMutableList()
+                                hotkeysList = hotkeysList + trimmed
                                 newKeyInput = ""
                             }
                         }),
@@ -128,7 +128,7 @@ fun EditHotkeysDialog(
                         onClick = {
                             val trimmed = newKeyInput.trim()
                             if (trimmed.isNotEmpty() && !hotkeysList.contains(trimmed)) {
-                                hotkeysList = (hotkeysList + trimmed).toMutableList()
+                                hotkeysList = hotkeysList + trimmed
                                 newKeyInput = ""
                             }
                         },
@@ -265,7 +265,7 @@ fun EditHotkeysDialog(
                     OutlinedButton(
                         onClick = {
                             onResetDefaults()
-                            hotkeysList = HotkeyManager.DEFAULT_HOTKEYS.toMutableList()
+                            hotkeysList = HotkeyManager.DEFAULT_HOTKEYS
                         },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF8B949E))
                     ) {

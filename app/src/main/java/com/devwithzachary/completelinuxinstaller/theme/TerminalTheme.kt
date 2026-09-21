@@ -24,7 +24,7 @@ data class TerminalTheme(
                 Color(0xFF21222C), Color(0xFFFF5555), Color(0xFF50FA7B), Color(0xFFF1FA8C),
                 Color(0xFFBD93F9), Color(0xFFFF79C6), Color(0xFF8BE9FD), Color(0xFFF8F8F2),
                 Color(0xFF6272A4), Color(0xFFFF6E6E), Color(0xFF69FF94), Color(0xFFFFFFA5),
-                Color(0xD6ACFF), Color(0xFFFF92D0), Color(0xFFA4FFFF), Color(0xFFFFFFFF)
+                Color(0xFFD6ACFF), Color(0xFFFF92D0), Color(0xFFA4FFFF), Color(0xFFFFFFFF)
             )
         )
 

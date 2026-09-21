@@ -21,12 +21,12 @@ import androidx.compose.ui.unit.sp
 fun ExtraKeysRow(
     keys: List<String>,
     onKeyClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
     onPaste: () -> Unit = {},
     isCtrlActive: Boolean = false,
     onToggleCtrl: () -> Unit = {},
     isAltActive: Boolean = false,
-    onToggleAlt: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onToggleAlt: () -> Unit = {}
 ) {
     Surface(
         color = Color(0xFF242424),

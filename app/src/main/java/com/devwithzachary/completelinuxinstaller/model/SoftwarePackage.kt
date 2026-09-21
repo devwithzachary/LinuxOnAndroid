@@ -1,7 +1,7 @@
 package com.devwithzachary.completelinuxinstaller.model
 
+import com.devwithzachary.completelinuxinstaller.engine.ContainerManager
 import java.io.File
-import java.nio.file.Files
 
 enum class SoftwareCategory(val displayName: String) {
     DEVELOPMENT("Developer Tools"),
@@ -51,28 +51,21 @@ data class SoftwarePackage(
             // point to paths that do not exist on the Android host filesystem.
             // Check if the entry exists as a symbolic link and follow container-relative links.
             try {
-                val path = file.toPath()
-                if (Files.isSymbolicLink(path)) {
-                    var currentPath = path
-                    var hops = 0
-                    while (hops < 10) {
-                        val target = Files.readSymbolicLink(currentPath)
-                        val targetFile = if (target.isAbsolute) {
-                            File(rootfsDir, target.toString().removePrefix("/"))
-                        } else {
-                            File(currentPath.toFile().parentFile, target.toString())
-                        }
-                        if (targetFile.exists()) return true
-                        val nextPath = targetFile.toPath()
-                        if (Files.isSymbolicLink(nextPath)) {
-                            currentPath = nextPath
-                            hops++
-                        } else {
-                            break
-                        }
+                var currentFile = file
+                var hops = 0
+                while (hops < 10) {
+                    val target = ContainerManager.readSymlinkTarget(currentFile) ?: break
+
+                    val targetFile = if (target.startsWith("/")) {
+                        File(rootfsDir, target.removePrefix("/"))
+                    } else {
+                        File(currentFile.parentFile ?: rootfsDir, target)
                     }
-                    return true
+                    if (targetFile.exists()) return true
+                    currentFile = targetFile
+                    hops++
                 }
+                if (hops > 0) return true
             } catch (_: Exception) {}
 
             // Handle well-known binary aliases across distributions
