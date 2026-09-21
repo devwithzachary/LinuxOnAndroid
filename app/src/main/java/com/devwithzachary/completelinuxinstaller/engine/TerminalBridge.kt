@@ -78,6 +78,9 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         session?.refreshTrigger ?: flowOf(0L)
     }.stateIn(scope, SharingStarted.Eagerly, 0L)
 
+    private var lastCols: Int = 80
+    private var lastRows: Int = 24
+
     fun getActiveSession(): TerminalSession? {
         val id = _activeSessionId.value
         val list = _sessions.value
@@ -106,6 +109,7 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
             containerName = containerName,
             loginUser = loginUser
         )
+        session.updateTerminalSize(lastCols, lastRows)
 
         val updated = _sessions.value + session
         _sessions.value = updated
@@ -122,6 +126,8 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         val session = _sessions.value.find { it.id == sessionId }
         if (session != null) {
             _activeSessionId.value = sessionId
+            session.updateTerminalSize(lastCols, lastRows)
+            session.triggerRefresh()
         }
     }
 
@@ -134,7 +140,10 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
         _sessions.value = remaining
 
         if (_activeSessionId.value == sessionId) {
-            _activeSessionId.value = remaining.lastOrNull()?.id
+            val nextActive = remaining.lastOrNull()
+            _activeSessionId.value = nextActive?.id
+            nextActive?.updateTerminalSize(lastCols, lastRows)
+            nextActive?.triggerRefresh()
         }
     }
 
@@ -183,6 +192,10 @@ class TerminalBridge(private val pRootEngine: PRootEngine? = null) {
     }
 
     fun updateTerminalSize(cols: Int, rows: Int) {
+        if (cols > 0 && rows > 0) {
+            lastCols = cols
+            lastRows = rows
+        }
         getActiveSession()?.updateTerminalSize(cols, rows)
     }
 

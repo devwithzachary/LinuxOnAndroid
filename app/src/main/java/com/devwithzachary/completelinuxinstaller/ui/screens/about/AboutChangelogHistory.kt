@@ -23,9 +23,20 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
-        version = "v1.7.0",
+        version = "v1.7.1",
         date = "September 2026",
         initialExpanded = true,
+        highlights = listOf(
+            "Terminal Multi-Tab Switching: Fixed an issue where tapping tabs in the terminal tab strip failed to switch sessions, leaving the view stuck on the most recently opened tab.",
+            "Touch Gesture Conflict Resolution: Refactored context menu pointer input handling so long-press detection no longer consumes or swallows regular tap events on clickable UI components.",
+            "Terminal Size & Canvas Synchronization: Switched and newly opened terminal tabs immediately synchronize screen dimensions and trigger an instant canvas redraw.",
+            "Session State Isolation: Automatically clears text selection highlights and uncommitted keyboard buffers when switching between concurrent terminal tabs."
+        )
+    ),
+    ReleaseChangelog(
+        version = "v1.7.0",
+        date = "September 2026",
+        initialExpanded = false,
         highlights = listOf(
             "1-Click Docker & Container Tools: Pull and run containers without root via udocker, with official Docker CLI and Docker Compose support across all distributions.",
             "Browser Web Terminal (ttyd): Share and access your full Linux shell from any web browser over local Wi-Fi with zero passwords or SSH clients required.",

@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.KeyboardHide
 import com.devwithzachary.completelinuxinstaller.ui.util.handHover
 import com.devwithzachary.completelinuxinstaller.ui.util.isHardwareKeyboardConnected
 import com.devwithzachary.completelinuxinstaller.ui.util.onContextMenu
+import com.devwithzachary.completelinuxinstaller.ui.util.onSecondaryClick
 import com.devwithzachary.completelinuxinstaller.util.HotkeyManager
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
@@ -309,7 +310,7 @@ fun TerminalScreen(
                                                     tabContextMenuSessionId = session.id
                                                 }
                                             )
-                                            .onContextMenu {
+                                            .onSecondaryClick {
                                                 tabContextMenuSessionId = session.id
                                             }
                                     ) {
@@ -425,6 +426,7 @@ fun TerminalScreen(
         // Full Interactive Direct-Typing Terminal Window
         FullTerminalView(
             terminalBridge = terminalBridge,
+            activeSessionId = activeSessionId,
             refreshTrigger = refreshTrigger,
             focusRequester = focusRequester,
             onTapTerminal = {

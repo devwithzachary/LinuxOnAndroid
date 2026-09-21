@@ -249,6 +249,10 @@ class TerminalSession(
         _refreshTrigger.value = System.currentTimeMillis()
     }
 
+    fun triggerRefresh() {
+        _refreshTrigger.value = System.currentTimeMillis()
+    }
+
     fun updateTerminalSize(cols: Int, rows: Int) {
         if (cols > 0 && rows > 0 && (emulator.cols != cols || emulator.rows != rows)) {
             emulator.resize(cols, rows)

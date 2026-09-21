@@ -57,6 +57,7 @@ import kotlin.math.min
 @Composable
 fun FullTerminalView(
     terminalBridge: TerminalBridge,
+    activeSessionId: String? = null,
     refreshTrigger: Long,
     focusRequester: FocusRequester,
     onTapTerminal: () -> Unit,
@@ -145,7 +146,14 @@ fun FullTerminalView(
         val cols = max(20, (widthPx / charWidth).toInt())
         val rows = max(5, (heightPx / charHeight).toInt())
 
-        LaunchedEffect(cols, rows) {
+        LaunchedEffect(activeSessionId) {
+            selectionStart = null
+            selectionEnd = null
+            textFieldValue = TextFieldValue("", TextRange.Zero)
+            lastText = ""
+        }
+
+        LaunchedEffect(activeSessionId, cols, rows) {
             terminalBridge.updateTerminalSize(cols, rows)
         }
 
@@ -470,6 +478,8 @@ fun FullTerminalView(
 
             // Terminal Screen & Text Selection Canvas
             Canvas(modifier = Modifier.fillMaxSize()) {
+                @Suppress("UNUSED_VARIABLE")
+                val sessionKey = activeSessionId
                 @Suppress("UNUSED_VARIABLE")
                 val renderTick = refreshTrigger
 

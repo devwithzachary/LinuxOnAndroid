@@ -2,6 +2,14 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.7.1] - 2026-09-21
+
+### 🐛 Bug Fixes & Reliability
+- **Terminal Multi-Tab Switching**: Resolved an issue where tapping tabs in the terminal tab strip failed to switch sessions, leaving the view stuck on the most recently opened tab.
+- **Touch Gesture Conflict Resolution**: Refactored context menu modifier handling to eliminate pointer-down event consumption that previously intercepted and cancelled regular tap events on clickable elements.
+- **Terminal Session Size & Refresh Synchronization**: Switched and newly created terminal tabs now immediately synchronize viewport dimensions and trigger an instant canvas redraw.
+- **Session Input & Selection Isolation**: Automatically clears text selection highlights and uncommitted keyboard buffers when switching between concurrent terminal tabs.
+
 ## [1.7.0] - 2026-09-15
 
 ### 🌐 PRoot Network Diagnostics & VNC Session Management
