@@ -1,3 +1,6 @@
+• Alpine Linux Fix: Resolved first-launch setup error with guest-aware symlink resolution.
+• Container Purge Protection: Added grace period preventing active installations from being dropped.
+• Distro Test Framework: Added automated download and PRoot validation suite for releases.
 • Fixed Terminal Tabs: Resolved issue preventing switching between concurrent terminal tabs.
 • Clear Command Fix: Running clear in shell now completely erases scrollback history.
 • Terminal Reset: Added support for ESC c terminal reset command and buffer clearing.

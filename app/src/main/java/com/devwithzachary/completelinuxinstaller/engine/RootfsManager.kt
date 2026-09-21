@@ -1211,14 +1211,15 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
             val config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir)
             val shellBin = when {
-                File(targetDir, "bin/bash").exists() -> "/bin/bash"
-                File(targetDir, "usr/bin/bash").exists() -> "/usr/bin/bash"
-                File(targetDir, "bin/dash").exists() -> "/bin/dash"
-                File(targetDir, "usr/bin/dash").exists() -> "/usr/bin/dash"
-                File(targetDir, "bin/ash").exists() -> "/bin/ash"
-                File(targetDir, "usr/bin/ash").exists() -> "/usr/bin/ash"
-                File(targetDir, "bin/sh").exists() -> "/bin/sh"
-                File(targetDir, "usr/bin/sh").exists() -> "/usr/bin/sh"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/bash") -> "/bin/bash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "usr/bin/bash") -> "/usr/bin/bash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/dash") -> "/bin/dash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "usr/bin/dash") -> "/usr/bin/dash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/ash") -> "/bin/ash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "usr/bin/ash") -> "/usr/bin/ash"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/sh") -> "/bin/sh"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "usr/bin/sh") -> "/usr/bin/sh"
+                ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/busybox") -> "/bin/sh"
                 else -> "/bin/sh"
             }
             val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf(shellBin, "-c", setupScript))

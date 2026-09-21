@@ -165,10 +165,10 @@ class PRootEngine(val context: Context) {
 
         fun isValidShell(relPath: String): Boolean {
             val file = File(targetRootfs, relPath.removePrefix("/"))
-            if (!file.exists()) return false
+            if (!ContainerManager.fileOrGuestSymlinkExists(targetRootfs, relPath)) return false
             if (relPath.contains("bash")) {
                 try {
-                    val canonical = file.canonicalPath
+                    val canonical = if (file.exists()) file.canonicalPath else ""
                     if (canonical.endsWith("/busybox") || canonical.endsWith("/sh")) {
                         return false
                     }

@@ -5,6 +5,9 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ## [1.7.1] - 2026-09-21
 
 ### 🐛 Bug Fixes & Reliability
+- **Alpine Linux Installation & Symlink Resolution**: Resolved an issue where installing Alpine Linux failed during first-launch setup with a `'/bin/sh' not found` error. Added guest-aware symbolic link resolution for absolute symlinks (such as BusyBox `/bin/sh` and `/bin/ash`), ensuring guest shells are accurately detected on Android host filesystems.
+- **Container Cleanup Protection & Grace Period**: Hardened container lifecycle management with an automatic 30-minute grace period, preventing newly created or active installations from being inadvertently removed during background status refreshes.
+- **Multi-Distro Release Testing Framework**: Built a comprehensive automated test framework (`scripts/test_distro_installations.sh` and `DistroInstallationFrameworkTest.kt`) to verify download availability, archive integrity, and PRoot execution across all supported distributions prior to releases.
 - **Terminal Multi-Tab Switching**: Resolved an issue where tapping tabs in the terminal tab strip failed to switch sessions, leaving the view stuck on the most recently opened tab.
 - **Terminal `clear` Command & Scrollback Wiping (Issue #48)**: Added full support for the XTerm `CSI 3 J` (Erase Saved Lines) control sequence, ensuring that running `clear` in Linux shells fully erases the scrollback history rather than pushing previous output out of view.
 - **Terminal Reset Sequence (ESC c / RIS)**: Added support for the standard `ESC c` reset sequence to wipe active buffers, reset scrollback history, restore cursor position, and clear terminal margins.

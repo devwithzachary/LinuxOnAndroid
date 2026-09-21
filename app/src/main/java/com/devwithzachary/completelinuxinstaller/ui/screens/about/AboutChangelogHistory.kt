@@ -27,6 +27,9 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "September 2026",
         initialExpanded = true,
         highlights = listOf(
+            "Alpine Linux Installation & Symlink Resolution: Fixed an issue where installing Alpine Linux failed during first-launch setup with '/bin/sh not found'. Added guest-aware symbolic link resolution for absolute symlinks such as BusyBox /bin/sh and /bin/ash.",
+            "Container Lifecycle & Purge Protection: Hardened container lifecycle management with an automatic 30-minute grace period to prevent newly created or active installations from being inadvertently removed during background status refreshes.",
+            "Multi-Distro Release Testing Framework: Added automated test suite (test_distro_installations.sh and unit tests) to verify download availability, archive integrity, and PRoot runtime execution across all 7 supported distributions.",
             "Terminal Multi-Tab Switching: Fixed an issue where tapping tabs in the terminal tab strip failed to switch sessions, leaving the view stuck on the most recently opened tab.",
             "Terminal clear Command & Scrollback Fix: Full support for XTerm CSI 3 J sequence so running clear completely wipes previous output from scrollback history.",
             "Terminal Reset Sequence (ESC c): Added support for standard ESC c terminal reset command to reset screen, scrollback, and cursor attributes.",
