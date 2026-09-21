@@ -34,4 +34,7 @@ data class ContainerInstance(
 
     val isInstalled: Boolean
         get() = ContainerManager.isRealRootfs(rootDir)
+
+    val hasRootPassword: Boolean
+        get() = com.devwithzachary.completelinuxinstaller.engine.RootfsManager.hasRootPassword(rootDir)
 }

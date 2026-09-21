@@ -403,6 +403,9 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 onChangeRootPassword = { pwd, containerId ->
                                     viewModel.changeRootPassword(pwd, containerId)
                                 },
+                                onVerifyRootPassword = { pwd, containerId ->
+                                    viewModel.verifyRootPassword(pwd, containerId)
+                                },
                                 onCreateUser = { u, p, sudo, containerId ->
                                     viewModel.createUser(u, p, sudo, containerId)
                                 },

@@ -1,6 +1,9 @@
 • Alpine Linux: Fixed first-launch setup with guest-aware symlink resolution.
 • Terminal Tabs: Fixed switching between concurrent terminal tabs.
 • Clear Command: Shell clear command now fully wipes scrollback history.
+• Security & Privacy: Suppressed IME password suggestions, dictionary learning, and terminal autocorrect.
+• Root Authorization: Verified current root password before allowing container root password resets.
+• Termux Hotkeys: Aligned extra keys into an equal-width 7-column grid layout for consistent muscle memory.
 • Lifecycle Protection: Added grace period preventing accidental container drops.
 • Testing Framework: Automated multi-distro installation validation suite.
 • Code Quality: Refactored modular screen & distro catalogs, fixed UI palette bugs.

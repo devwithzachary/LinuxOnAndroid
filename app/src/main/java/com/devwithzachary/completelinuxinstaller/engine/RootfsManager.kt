@@ -27,6 +27,20 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     companion object {
         private const val TAG = "RootfsManager"
+
+        fun hasRootPassword(targetDir: File): Boolean {
+            val shadowFile = File(targetDir, "etc/shadow")
+            if (!shadowFile.exists()) return false
+            return try {
+                val rootLine = shadowFile.useLines { lines -> lines.firstOrNull { it.startsWith("root:") } } ?: return false
+                val parts = rootLine.split(":")
+                if (parts.size < 2) return false
+                val hash = parts[1]
+                hash.isNotEmpty() && hash != "*" && hash != "!" && !hash.startsWith("!") && hash != "x"
+            } catch (_: Exception) {
+                false
+            }
+        }
     }
 
     private val prefs = context.getSharedPreferences("rootfs_manager_prefs", Context.MODE_PRIVATE)
@@ -952,6 +966,77 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             } catch (_: Exception) {}
         } catch (e: Exception) {
             Log.e(TAG, "First launch setup error for ${distroDef.name}", e)
+        }
+    }
+    fun hasRootPassword(targetDir: File = rootfsDir): Boolean = RootfsManager.hasRootPassword(targetDir)
+
+    suspend fun verifyRootPassword(password: String, targetDir: File = rootfsDir): Boolean = withContext(Dispatchers.IO) {
+        val shadowFile = File(targetDir, "etc/shadow")
+        if (!shadowFile.exists()) return@withContext true
+        val rootLine = try {
+            shadowFile.useLines { lines -> lines.firstOrNull { it.startsWith("root:") } }
+        } catch (_: Exception) {
+            null
+        } ?: return@withContext true
+
+        val parts = rootLine.split(":")
+        if (parts.size < 2) return@withContext true
+        val storedHash = parts[1]
+        if (storedHash.isEmpty() || storedHash == "*" || storedHash == "!" || storedHash.startsWith("!") || storedHash == "x") {
+            return@withContext true
+        }
+
+        // 1. Fast path: verify with pure Kotlin UnixCrypt
+        if (UnixCrypt.canVerifyInKotlin(storedHash)) {
+            return@withContext UnixCrypt.verify(password, storedHash)
+        }
+
+        // 2. Guest PRoot verification fallback (for yescrypt or distribution-specific crypt)
+        try {
+            val script = """
+                export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+                read -r CANDIDATE
+                ROOT_HASH=$(grep '^root:' /etc/shadow 2>/dev/null | cut -d: -f2)
+                if [ -z "${'$'}ROOT_HASH" ] || [ "${'$'}ROOT_HASH" = "*" ] || [ "${'$'}ROOT_HASH" = "!" ] || [ "${'$'}ROOT_HASH" = "x" ]; then
+                    exit 0
+                fi
+                if command -v python3 >/dev/null 2>&1; then
+                    python3 -c "import crypt, sys; sys.exit(0 if crypt.crypt(sys.argv[1], sys.argv[2]) == sys.argv[2] else 1)" "${'$'}CANDIDATE" "${'$'}ROOT_HASH"
+                    exit ${'$'}?
+                fi
+                if command -v perl >/dev/null 2>&1; then
+                    perl -e 'exit(crypt(${'$'}ARGV[0], ${'$'}ARGV[1]) eq ${'$'}ARGV[1] ? 0 : 1)' "${'$'}CANDIDATE" "${'$'}ROOT_HASH"
+                    exit ${'$'}?
+                fi
+                if command -v busybox >/dev/null 2>&1; then
+                    OUT=${'$'}(busybox cryptpw -S "${'$'}ROOT_HASH" "${'$'}CANDIDATE" 2>/dev/null)
+                    if [ -n "${'$'}OUT" ] && [ "${'$'}OUT" = "${'$'}ROOT_HASH" ]; then exit 0; fi
+                    OUT=${'$'}(busybox mkpasswd -S "${'$'}ROOT_HASH" "${'$'}CANDIDATE" 2>/dev/null)
+                    if [ -n "${'$'}OUT" ] && [ "${'$'}OUT" = "${'$'}ROOT_HASH" ]; then exit 0; fi
+                fi
+                if command -v mkpasswd >/dev/null 2>&1; then
+                    OUT=${'$'}(mkpasswd -S "${'$'}ROOT_HASH" "${'$'}CANDIDATE" 2>/dev/null)
+                    if [ -n "${'$'}OUT" ] && [ "${'$'}OUT" = "${'$'}ROOT_HASH" ]; then exit 0; fi
+                fi
+                exit 1
+            """.trimIndent()
+
+            val config = PRootConfig(rootfsDir = targetDir, tmpDir = pRootEngine.tmpDir)
+            val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf("/bin/sh", "-c", script))
+            val pb = ProcessBuilder(cmd).apply {
+                directory(targetDir)
+                environment().putAll(pRootEngine.getEnvironmentVariables())
+            }
+            val proc = pb.start()
+            proc.outputStream.bufferedWriter().use { writer ->
+                writer.write(password)
+                writer.newLine()
+                writer.flush()
+            }
+            proc.waitFor() == 0
+        } catch (e: Exception) {
+            Log.e(TAG, "Error verifying root password", e)
+            false
         }
     }
 

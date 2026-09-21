@@ -16,6 +16,12 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Terminal Session Size & Refresh Synchronization**: Switched and newly created terminal tabs now immediately synchronize viewport dimensions and trigger an instant canvas redraw.
 - **Session Input & Selection Isolation**: Automatically clears text selection highlights and uncommitted keyboard buffers when switching between concurrent terminal tabs.
 
+### 🛡️ Security & Terminal Improvements (Issue #45)
+- **Password Input Prediction & Learning Suppression**: Configured password fields across setup wizard and container management dialogs with dedicated password input flags and secure visual transformations. Third-party keyboards (e.g. Gboard, SwiftKey) are explicitly prevented from displaying credentials in word prediction strips or saving them to personal learning dictionaries.
+- **Terminal Autocorrect Suppression**: Configured the full terminal input to use URI keyboard flags with autocorrect and auto-capitalization disabled, reliably preventing keyboards from autocorrecting shell commands without triggering password manager autofill prompts.
+- **Root Password Reset Authorization**: Secured the root password modification workflow in container settings by requiring verification of the current root password prior to applying new credentials. Implemented high-performance standard Unix crypt verification with PRoot authentication fallbacks.
+- **Termux-Style Extra Keys Grid**: Redesigned the terminal extra keys row from an asymmetrical horizontally drifting ribbon into an aligned equal-width 7-column grid layout modeled after Termux. Pinned essential navigation and modifier keys (ESC, TAB, CTRL, ALT, PASTE, Up, Down) to permanent column positions, with secondary and custom keys paginated smoothly to lock in muscle memory.
+
 ### 🧹 Codebase Refactoring & Lint Quality
 - **Container Detail Screen Modularization**: Decomposed the monolithic 1,840-line `ContainerDetailScreen.kt` into modular tab components (`ContainerDetailOverviewTab.kt`, `ContainerDetailSoftwareTab.kt`, `ContainerDetailSettingsTab.kt`), significantly improving code maintainability and testability.
 - **Distro Catalog Modularization**: Decomposed the 1,050-line `DistroCatalog.kt` into dedicated distribution definition files (`UbuntuDistro.kt`, `DebianDistro.kt`, `AlpineDistro.kt`, `ArchDistro.kt`, `KaliDistro.kt`, `VoidDistro.kt`, and `FedoraDistro.kt`) under `model/distros/`.

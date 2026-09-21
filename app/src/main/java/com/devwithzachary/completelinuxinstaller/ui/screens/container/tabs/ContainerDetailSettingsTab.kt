@@ -22,11 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.BuildConfig
@@ -54,6 +57,7 @@ fun SettingsTabContent(
     onDismissBackupStatus: () -> Unit,
     onToggleBindSdCard: () -> Unit,
     onChangeRootPassword: (password: String) -> Unit,
+    onVerifyRootPassword: suspend (password: String) -> Boolean = { true },
     onCreateUser: (username: String, password: String, isSudo: Boolean) -> Unit,
     onDeleteUser: (username: String) -> Unit,
     onSetDefaultUser: (username: String) -> Unit,
@@ -764,41 +768,160 @@ fun SettingsTabContent(
     }
 
     if (showRootPasswordDialog) {
-        var rootPwd by remember { mutableStateOf("") }
-        var showPwd by remember { mutableStateOf(false) }
+        val hasExistingRootPassword = container.hasRootPassword
+        var currentPwd by remember { mutableStateOf("") }
+        var newPwd by remember { mutableStateOf("") }
+        var confirmPwd by remember { mutableStateOf("") }
+        var showCurrentPwd by remember { mutableStateOf(false) }
+        var showNewPwd by remember { mutableStateOf(false) }
+        var showConfirmPwd by remember { mutableStateOf(false) }
+        var isVerifying by remember { mutableStateOf(false) }
+        var errorMessage by remember { mutableStateOf<String?>(null) }
+        val scope = rememberCoroutineScope()
 
         AlertDialog(
-            onDismissRequest = { showRootPasswordDialog = false },
-            title = { Text("Set Root Password") },
+            onDismissRequest = { if (!isVerifying) showRootPasswordDialog = false },
+            title = { Text(if (hasExistingRootPassword) "Change Root Password" else "Set Root Password") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter new root password for ${container.name}:", fontSize = 13.sp)
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = if (hasExistingRootPassword)
+                            "Verify your current root password before setting a new one for ${container.name}:"
+                        else
+                            "Create a root password for ${container.name}:",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    if (hasExistingRootPassword) {
+                        OutlinedTextField(
+                            value = currentPwd,
+                            onValueChange = {
+                                currentPwd = it
+                                errorMessage = null
+                            },
+                            label = { Text("Current Root Password") },
+                            singleLine = true,
+                            enabled = !isVerifying,
+                            visualTransformation = if (showCurrentPwd) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                autoCorrectEnabled = false
+                            ),
+                            trailingIcon = {
+                                IconButton(onClick = { showCurrentPwd = !showCurrentPwd }) {
+                                    Icon(if (showCurrentPwd) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
                     OutlinedTextField(
-                        value = rootPwd,
-                        onValueChange = { rootPwd = it },
+                        value = newPwd,
+                        onValueChange = {
+                            newPwd = it
+                            errorMessage = null
+                        },
+                        label = { Text("New Root Password") },
                         singleLine = true,
-                        visualTransformation = if (showPwd) VisualTransformation.None else PasswordVisualTransformation(),
+                        enabled = !isVerifying,
+                        visualTransformation = if (showNewPwd) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            autoCorrectEnabled = false
+                        ),
                         trailingIcon = {
-                            IconButton(onClick = { showPwd = !showPwd }) {
-                                Icon(if (showPwd) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                            IconButton(onClick = { showNewPwd = !showNewPwd }) {
+                                Icon(if (showNewPwd) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    OutlinedTextField(
+                        value = confirmPwd,
+                        onValueChange = {
+                            confirmPwd = it
+                            errorMessage = null
+                        },
+                        label = { Text("Confirm New Password") },
+                        singleLine = true,
+                        enabled = !isVerifying,
+                        visualTransformation = if (showConfirmPwd) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            autoCorrectEnabled = false
+                        ),
+                        trailingIcon = {
+                            IconButton(onClick = { showConfirmPwd = !showConfirmPwd }) {
+                                Icon(if (showConfirmPwd) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (rootPwd.isNotBlank()) {
-                            onChangeRootPassword(rootPwd)
+                        if (hasExistingRootPassword && currentPwd.isBlank()) {
+                            errorMessage = "Current password cannot be blank"
+                            return@Button
+                        }
+                        if (newPwd.isBlank()) {
+                            errorMessage = "New password cannot be blank"
+                            return@Button
+                        }
+                        if (newPwd != confirmPwd) {
+                            errorMessage = "New passwords do not match"
+                            return@Button
+                        }
+                        scope.launch {
+                            isVerifying = true
+                            if (hasExistingRootPassword) {
+                                val isValid = onVerifyRootPassword(currentPwd)
+                                if (!isValid) {
+                                    errorMessage = "Current root password is incorrect"
+                                    isVerifying = false
+                                    return@launch
+                                }
+                            }
+                            onChangeRootPassword(newPwd)
+                            isVerifying = false
                             showRootPasswordDialog = false
                         }
+                    },
+                    enabled = !isVerifying && (!hasExistingRootPassword || currentPwd.isNotBlank()) && newPwd.isNotBlank() && confirmPwd.isNotBlank()
+                ) {
+                    if (isVerifying) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Verifying...")
+                    } else {
+                        Text("Save")
                     }
-                ) { Text("Save") }
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showRootPasswordDialog = false }) { Text("Cancel") }
+                TextButton(
+                    onClick = { showRootPasswordDialog = false },
+                    enabled = !isVerifying
+                ) {
+                    Text("Cancel")
+                }
             }
         )
     }
@@ -806,6 +929,7 @@ fun SettingsTabContent(
     if (showAddUserDialog) {
         var newUsername by remember { mutableStateOf("") }
         var newUserPwd by remember { mutableStateOf("") }
+        var showNewUserPwd by remember { mutableStateOf(false) }
         var isSudoUser by remember { mutableStateOf(true) }
 
         AlertDialog(
@@ -825,7 +949,16 @@ fun SettingsTabContent(
                         onValueChange = { newUserPwd = it },
                         label = { Text("Password") },
                         singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (showNewUserPwd) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            autoCorrectEnabled = false
+                        ),
+                        trailingIcon = {
+                            IconButton(onClick = { showNewUserPwd = !showNewUserPwd }) {
+                                Icon(if (showNewUserPwd) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth()
                     )
                     Row(

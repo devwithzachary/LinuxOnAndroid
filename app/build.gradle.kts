@@ -119,6 +119,9 @@ dependencies {
   // XZ Archive Decompression
   implementation("org.tukaani:xz:1.10")
 
+  // Unix Crypt for shadow password verification
+  implementation("commons-codec:commons-codec:1.17.1")
+
   // Navigation
   implementation(libs.androidx.navigation3.ui)
   implementation(libs.androidx.navigation3.runtime)
