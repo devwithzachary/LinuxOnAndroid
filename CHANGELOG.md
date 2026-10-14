@@ -2,6 +2,13 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.7.2] - 2026-09-21
+
+### 🧹 Build Hygiene & Packaging Optimization
+- **F-Droid Pipeline & Deprecation Warning Cleanup**: Resolved recurrent `[CXX5106]` build warnings across F-Droid CI pipelines and local container environments. Added automated property sanitization in `settings.gradle.kts` and `scripts/build_native_libs.sh` to strip deprecated `ndk.dir` definitions, aligning fully with Android Gradle Plugin 9.0 declarative NDK version pinning.
+- **APK Packaging & Signature Verification**: Expanded packaging resource exclusions in `app/build.gradle.kts` to omit non-runtime library metadata (`*.version`), license files (`LICENSE*`, `NOTICE*`), and AGP protobuf tracking files (`version-control-info.textproto`, `app-metadata.properties`). This completely eliminates over 150 signature verification warnings during F-Droid `apksigner verify` auditing while strictly preserving runtime coroutine service loader definitions (`META-INF/services/*`).
+- **Linux Release Build Streamlining**: Updated `scripts/build_release_linux.sh` to eliminate manual `ndk.dir` specification during headless containerized release artifact generation.
+
 ## [1.7.1] - 2026-09-21
 
 ### 🐛 Bug Fixes & Reliability

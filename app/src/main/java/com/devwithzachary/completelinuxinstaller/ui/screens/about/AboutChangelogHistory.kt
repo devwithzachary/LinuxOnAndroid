@@ -23,9 +23,19 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
-        version = "v1.7.1",
+        version = "v1.7.2",
         date = "September 2026",
         initialExpanded = true,
+        highlights = listOf(
+            "F-Droid CI Pipeline Hygiene: Cleaned up build deprecation warnings across F-Droid CI and automated builds by sanitizing local.properties to eliminate deprecated ndk.dir warnings (CXX5106) in favor of declarative NDK version pinning.",
+            "APK Packaging & Signature Verification: Excluded unnecessary non-runtime library metadata, version manifests, license notices, and protobuf text files from APK META-INF packaging, eliminating over 150 signature verification warnings while preserving runtime coroutine service loaders.",
+            "Linux Release Build Automation: Streamlined Docker and Linux release build scripts to align with modern Android Gradle Plugin conventions."
+        )
+    ),
+    ReleaseChangelog(
+        version = "v1.7.1",
+        date = "September 21, 2026",
+        initialExpanded = false,
         highlights = listOf(
             "Alpine Linux Installation & Symlink Resolution: Fixed an issue where installing Alpine Linux failed during first-launch setup with '/bin/sh not found'. Added guest-aware symbolic link resolution for absolute symlinks such as BusyBox /bin/sh and /bin/ash.",
             "Container Lifecycle & Purge Protection: Hardened container lifecycle management with an automatic 30-minute grace period to prevent newly created or active installations from being inadvertently removed during background status refreshes.",
