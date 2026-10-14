@@ -2,9 +2,15 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
-## [1.7.2] - 2026-09-21
+## [1.7.2] - 2026-10-14
+
+### 🛡️ Security & Privacy Hardening
+- **Backup Data Protection**: Hardened backup configuration by setting `android:allowBackup="false"` and configuring explicit exclude rules in `data_extraction_rules.xml` and `backup_rules.xml`. This prevents Android Auto Backup and device transfers from copying private container data, SSH keys, or VNC credentials.
+- **Opt-In Release Update Checks**: Switched automatic GitHub release update checks to opt-in (disabled by default on startup), ensuring no unsolicited network requests are made during cold boot and complying with F-Droid inclusion policies.
 
 ### 🧹 Build Hygiene & Packaging Optimization
+- **Native Sources Provenance & License Auditing**: Added formal provenance documentation (`external/PROVENANCE.md` and `external/README.md`) recording upstream repository links, commit hashes, authors, and licenses for vendored `termux/proot`, `termux/libandroid-shmem`, and Samba `talloc` sources. Added missing LGPL-3.0 license file for talloc.
+- **F-Droid Metadata Recipe Cleanup**: Updated `com.devwithzachary.completelinuxinstaller.yml` to retain only the latest build entry and pinned git commits to official release tags.
 - **F-Droid Pipeline & Deprecation Warning Cleanup**: Resolved recurrent `[CXX5106]` build warnings across F-Droid CI pipelines and local container environments. Added automated property sanitization in `settings.gradle.kts` and `scripts/build_native_libs.sh` to strip deprecated `ndk.dir` definitions, aligning fully with Android Gradle Plugin 9.0 declarative NDK version pinning.
 - **APK Packaging & Signature Verification**: Expanded packaging resource exclusions in `app/build.gradle.kts` to omit non-runtime library metadata (`*.version`), license files (`LICENSE*`, `NOTICE*`), and AGP protobuf tracking files (`version-control-info.textproto`, `app-metadata.properties`). This completely eliminates over 150 signature verification warnings during F-Droid `apksigner verify` auditing while strictly preserving runtime coroutine service loader definitions (`META-INF/services/*`).
 - **Linux Release Build Streamlining**: Updated `scripts/build_release_linux.sh` to eliminate manual `ndk.dir` specification during headless containerized release artifact generation.

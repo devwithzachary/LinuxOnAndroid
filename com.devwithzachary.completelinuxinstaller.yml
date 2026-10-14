@@ -15,37 +15,9 @@ Binaries:
   https://github.com/devwithzachary/LinuxOnAndroid/releases/download/%v/LinuxOnAndroid-%v-release.apk
 
 Builds:
-  - versionName: 1.6.0
-    versionCode: 13
-    commit: 28861065908a70de0a88bb54dbca51c3cd4b2360
-    subdir: app
-    sudo:
-      - apt-get update
-      - apt-get install -y make gawk
-    gradle:
-      - yes
-    scandelete:
-      - app/src/main/jniLibs
-    build: ../scripts/build_native_libs.sh $$NDK$$
-    ndk: 28.2.13676358
-
-  - versionName: 1.7.0
-    versionCode: 14
-    commit: d7d8bfe8f5c7a19a9fdfe5d49c5488e54a968d11
-    subdir: app
-    sudo:
-      - apt-get update
-      - apt-get install -y make gawk
-    gradle:
-      - yes
-    scandelete:
-      - app/src/main/jniLibs
-    build: ../scripts/build_native_libs.sh $$NDK$$
-    ndk: 28.2.13676358
-
   - versionName: 1.7.1
     versionCode: 15
-    commit: cc6c7a2e1f3d873051cd1dfd9790567bb0b920bd
+    commit: d371ee80cc1eb743754cebed23e8716c4bc40127
     subdir: app
     sudo:
       - apt-get update

@@ -1,3 +1,4 @@
-• F-Droid CI: Sanitized build properties to eliminate deprecated ndk.dir warnings (CXX5106).
-• APK Packaging: Excluded unnecessary metadata and license files from META-INF, eliminating over 150 signature verification warnings.
-• Build System: Streamlined Linux release build automation for modern Android Gradle Plugin compatibility.
+• Security: Disabled Android Auto Backup to prevent container data and credentials from being backed up.
+• Privacy: Switched GitHub release update checks to opt-in (disabled by default at startup).
+• Licensing: Added provenance documentation and license metadata for vendored native libraries.
+• Build System: Sanitized build properties and optimized packaging for F-Droid CI reproducibility.

@@ -24,9 +24,12 @@ data class ReleaseChangelog(
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
         version = "v1.7.2",
-        date = "September 2026",
+        date = "October 2026",
         initialExpanded = true,
         highlights = listOf(
+            "Security & Backup Protection: Disabled Android Auto Backup and configured complete exclusion rules to prevent container files, SSH keys, and credentials from being backed up.",
+            "Opt-In Update Checks: Switched GitHub release update checks to opt-in (disabled by default on startup), eliminating unwanted network calls.",
+            "Native Sources Provenance & Licensing: Added full provenance documentation and LGPL license metadata for all vendored native components (PRoot, libandroid-shmem, talloc).",
             "F-Droid CI Pipeline Hygiene: Cleaned up build deprecation warnings across F-Droid CI and automated builds by sanitizing local.properties to eliminate deprecated ndk.dir warnings (CXX5106) in favor of declarative NDK version pinning.",
             "APK Packaging & Signature Verification: Excluded unnecessary non-runtime library metadata, version manifests, license notices, and protobuf text files from APK META-INF packaging, eliminating over 150 signature verification warnings while preserving runtime coroutine service loaders.",
             "Linux Release Build Automation: Streamlined Docker and Linux release build scripts to align with modern Android Gradle Plugin conventions."

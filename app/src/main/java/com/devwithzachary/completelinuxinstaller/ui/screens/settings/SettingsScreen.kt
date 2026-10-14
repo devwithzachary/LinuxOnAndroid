@@ -158,7 +158,7 @@ fun SettingsScreen(
     onToggleKeepAlive: () -> Unit = {},
     isKeepScreenOnEnabled: Boolean = true,
     onSetKeepScreenOn: (Boolean) -> Unit = {},
-    isGitHubUpdateCheckEnabled: Boolean = true,
+    isGitHubUpdateCheckEnabled: Boolean = false,
     onSetGitHubUpdateCheckEnabled: (Boolean) -> Unit = {},
     isCheckingForUpdates: Boolean = false,
     updateCheckResult: UpdateCheckResult? = null,
@@ -250,7 +250,7 @@ fun SettingsScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = if (isGitHubUpdateCheckEnabled) "Automatic startup & background release checks active" else "Automatic notifications disabled",
+                            text = if (isGitHubUpdateCheckEnabled) "Automatic startup & background release checks active" else "Automatic release checks disabled (opt-in)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
