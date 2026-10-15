@@ -14,8 +14,8 @@ android {
         applicationId = "com.devwithzachary.completelinuxinstaller"
         minSdk = 23
         targetSdk = 36
-        versionCode = 15
-        versionName = "1.7.1"
+        versionCode = 16
+        versionName = "1.7.2"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
@@ -69,7 +69,29 @@ android {
 
     packaging {
       resources {
-        excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        excludes += setOf(
+          "META-INF/{AL2.0,LGPL2.1}",
+          "/META-INF/{AL2.0,LGPL2.1}",
+          "META-INF/*.version",
+          "META-INF/**/*.version",
+          "/META-INF/*.version",
+          "/META-INF/**/*.version",
+          "META-INF/**/LICENSE*",
+          "META-INF/**/license*",
+          "/META-INF/**/LICENSE*",
+          "/META-INF/**/license*",
+          "META-INF/**/NOTICE*",
+          "META-INF/**/notice*",
+          "/META-INF/**/NOTICE*",
+          "/META-INF/**/notice*",
+          "META-INF/ASL2.0",
+          "/META-INF/ASL2.0",
+          "META-INF/version-control-info.textproto",
+          "/META-INF/version-control-info.textproto",
+          "META-INF/com/android/build/gradle/app-metadata.properties",
+          "/META-INF/com/android/build/gradle/app-metadata.properties",
+          "**/app-metadata.properties"
+        )
       }
       jniLibs {
         useLegacyPackaging = true

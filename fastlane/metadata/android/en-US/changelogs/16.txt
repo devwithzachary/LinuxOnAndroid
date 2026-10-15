@@ -1,0 +1,4 @@
+• Security: Disabled Android Auto Backup to prevent container data and credentials from being backed up.
+• Privacy: Switched GitHub release update checks to opt-in (disabled by default at startup).
+• Licensing: Added provenance documentation and license metadata for vendored native libraries.
+• Build System: Sanitized build properties and optimized packaging for F-Droid CI reproducibility.

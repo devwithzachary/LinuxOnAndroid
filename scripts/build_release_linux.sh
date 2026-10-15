@@ -126,7 +126,6 @@ docker run --rm \
         echo "⚙️  Configuring local.properties for Linux build environment..."
         cp local.properties local.properties.host 2>/dev/null || true
         echo "sdk.dir=/opt/android-sdk" > local.properties
-        echo "ndk.dir=/opt/android-sdk/ndk/28.2.13676358" >> local.properties
 
         echo "📦 Compiling Android release artifacts with Gradle..."
         ./gradlew clean bundleRelease assembleRelease --no-daemon --no-configuration-cache
