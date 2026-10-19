@@ -23,9 +23,26 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
-        version = "v1.7.1",
-        date = "September 2026",
+        version = "v1.7.2",
+        date = "October 2026",
         initialExpanded = true,
+        highlights = listOf(
+            "Network Service Hardening: Web Terminal (ttyd), VS Code Server (code-server), and TigerVNC now bind exclusively to loopback (127.0.0.1) by default, protecting active containers against unauthorized LAN access.",
+            "Opt-In LAN Access & Custom Passwords: Added per-container Remote Access toggles in container settings with mandatory authentication, allowing users to set custom passwords for VS Code Server and TigerVNC.",
+            "Rootfs & Binary Download Integrity: Implemented streaming SHA-256 checksum verification across all rootfs mirror downloads and pinned official checksums for fallback binary installations.",
+            "Arch Linux Mirror Security: Switched Arch Linux ARM rootfs downloads to HTTPS and removed pacman signature bypass in favor of automated pacman keyring initialization.",
+            "Security & Backup Protection: Disabled Android Auto Backup and configured complete exclusion rules to prevent container files, SSH keys, and credentials from being backed up.",
+            "Opt-In Update Checks: Switched GitHub release update checks to opt-in (disabled by default on startup), eliminating unwanted network calls.",
+            "Native Sources Provenance & Licensing: Added full provenance documentation and LGPL license metadata for all vendored native components (PRoot, libandroid-shmem, talloc).",
+            "F-Droid CI Pipeline Hygiene: Cleaned up build deprecation warnings across F-Droid CI and automated builds by sanitizing local.properties to eliminate deprecated ndk.dir warnings (CXX5106) in favor of declarative NDK version pinning.",
+            "APK Packaging & Signature Verification: Excluded unnecessary non-runtime library metadata, version manifests, license notices, and protobuf text files from APK META-INF packaging, eliminating over 150 signature verification warnings while preserving runtime coroutine service loaders.",
+            "Linux Release Build Automation: Streamlined Docker and Linux release build scripts to align with modern Android Gradle Plugin conventions."
+        )
+    ),
+    ReleaseChangelog(
+        version = "v1.7.1",
+        date = "September 21, 2026",
+        initialExpanded = false,
         highlights = listOf(
             "Alpine Linux Installation & Symlink Resolution: Fixed an issue where installing Alpine Linux failed during first-launch setup with '/bin/sh not found'. Added guest-aware symbolic link resolution for absolute symlinks such as BusyBox /bin/sh and /bin/ash.",
             "Container Lifecycle & Purge Protection: Hardened container lifecycle management with an automatic 30-minute grace period to prevent newly created or active installations from being inadvertently removed during background status refreshes.",

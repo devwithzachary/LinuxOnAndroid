@@ -123,7 +123,7 @@ class GitHubReleaseManager(private val context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun isUpdateCheckEnabled(): Boolean {
-        return prefs.getBoolean(KEY_UPDATE_CHECK_ENABLED, true)
+        return prefs.getBoolean(KEY_UPDATE_CHECK_ENABLED, false)
     }
 
     fun setUpdateCheckEnabled(enabled: Boolean) {

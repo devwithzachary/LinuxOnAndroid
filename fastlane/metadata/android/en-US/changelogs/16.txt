@@ -1,0 +1,6 @@
+• Security: Bind Web Terminal, VS Code, and VNC to loopback by default.
+• Remote Access: Added opt-in LAN sharing and custom password controls.
+• Integrity: Added SHA-256 verification for rootfs and binary downloads.
+• Arch Linux: Switched mirrors to HTTPS and enabled pacman keyring.
+• Privacy: Disabled Auto Backup and made update checks opt-in.
+• Packaging: Optimized build reproducibility for F-Droid releases.

@@ -606,6 +606,87 @@ object RootfsMigrationManager {
                 emitLog("XFCE and TigerVNC configuration applied.")
                 return true
             }
+        },
+
+        // v16: Remote Access Security Hardening & VNC Loopback Enforcement
+        object : RootfsMigrationStep {
+            override val targetVersionCode: Int = 16
+            override val name: String = "Remote Access Security Hardening & Keyring Configuration"
+            override val description: String = "Hardens TigerVNC configuration to require password authentication (VncAuth), enforces localhost loopback binding by default, and removes insecure pacman signature bypasses."
+
+            override fun execute(pRootEngine: PRootEngine?, rootfsDir: File, emitLog: (String) -> Unit): Boolean {
+                emitLog("Hardening TigerVNC configuration and network access...")
+
+                fun hardenVncConfigFile(configFile: File) {
+                    if (!configFile.exists()) return
+                    try {
+                        val text = configFile.readText()
+                        var updated = text
+                        // Replace securitytypes with VncAuth only
+                        updated = updated.replace(Regex("(?m)^securitytypes=.*"), "securitytypes=VncAuth")
+                        if (!updated.contains("securitytypes=")) {
+                            updated = "securitytypes=VncAuth\n$updated"
+                        }
+                        // Enforce localhost=yes
+                        updated = updated.replace(Regex("(?m)^localhost=.*"), "localhost=yes")
+                        if (!updated.contains("localhost=")) {
+                            updated = "$updated\nlocalhost=yes"
+                        }
+                        configFile.writeText(updated.trim() + "\n")
+                        emitLog("  -> Hardened ${configFile.relativeTo(rootfsDir).path}")
+                    } catch (e: Exception) {
+                        emitLog("  -> Warning: failed to update ${configFile.name}: ${e.message}")
+                    }
+                }
+
+                // 1. /etc/vnc/config
+                val etcVncConfig = File(rootfsDir, "etc/vnc/config")
+                if (etcVncConfig.exists()) {
+                    hardenVncConfigFile(etcVncConfig)
+                } else if (File(rootfsDir, "etc/vnc").exists()) {
+                    etcVncConfig.writeText("securitytypes=VncAuth\nuseblacklist=0\ngeometry=1280x720\nlocalhost=yes\nalwaysshared=1\n")
+                    emitLog("  -> Created hardened /etc/vnc/config")
+                }
+
+                // 2. /root/.vnc/config
+                hardenVncConfigFile(File(rootfsDir, "root/.vnc/config"))
+
+                // 3. /etc/skel/.vnc/config
+                hardenVncConfigFile(File(rootfsDir, "etc/skel/.vnc/config"))
+
+                // 4. All user home directories
+                val homeDir = File(rootfsDir, "home")
+                if (homeDir.exists()) {
+                    homeDir.listFiles()?.filter { it.isDirectory }?.forEach { userDir ->
+                        hardenVncConfigFile(File(userDir, ".vnc/config"))
+                        hardenVncConfigFile(File(userDir, ".config/tigervnc/config"))
+                    }
+                }
+
+                // 5. Delete insecure tigervnc defaults file if present
+                val tigervncDefaults = File(rootfsDir, "etc/tigervnc/vncserver-config-defaults")
+                if (tigervncDefaults.exists()) {
+                    try { tigervncDefaults.delete() } catch (_: Exception) {}
+                }
+
+                // 6. Arch Linux pacman.conf hardening if present
+                val pacmanConf = File(rootfsDir, "etc/pacman.conf")
+                if (pacmanConf.exists()) {
+                    try {
+                        val pacText = pacmanConf.readText()
+                        if (pacText.contains("SigLevel = Never")) {
+                            val sanitized = pacText.replace(Regex("(?m)^\\s*SigLevel\\s*=\\s*Never.*"), "# Insecure SigLevel override removed")
+                            pacmanConf.writeText(sanitized)
+                            emitLog("  -> Removed insecure SigLevel = Never from /etc/pacman.conf")
+                        }
+                    } catch (e: Exception) {
+                        emitLog("  -> Warning: failed to sanitize pacman.conf: ${e.message}")
+                    }
+                }
+
+                emitLog("Remote access security hardening complete.")
+                return true
+            }
         }
     )
 

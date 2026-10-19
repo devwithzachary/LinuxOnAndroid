@@ -42,6 +42,7 @@ data class DistroDefinition(
     val downloadSizeMb: Int = 33,
     val installedSizeMb: Int = 1500,
     val downloadUrls: Map<SystemArchitecture, String>,
+    val sha256Checksums: Map<SystemArchitecture, String> = emptyMap(),
     val colorHex: Long = 0xFFE95420, // Default accent
     val isRecommended: Boolean = false,
     val firstLaunchScriptBuilder: (rootPassword: String, username: String, userPassword: String, isArm: Boolean) -> String = { _, _, _, _ -> "" },
@@ -57,6 +58,8 @@ data class DistroDefinition(
 
     fun getDownloadUrl(arch: SystemArchitecture): String? = downloadUrls[arch]
 
+    fun getSha256Checksum(arch: SystemArchitecture): String? = sha256Checksums[arch]
+
     fun buildFirstLaunchSetupScript(rootPassword: String, username: String, userPassword: String, isArm: Boolean): String {
         return firstLaunchScriptBuilder(rootPassword, username, userPassword, isArm)
     }
@@ -65,8 +68,30 @@ data class DistroDefinition(
         return softwarePackageCommands[packageId]?.invoke(sshPort)
     }
 
-    fun getSoftwarePackageLaunchCommand(packageId: String, sshPort: Int = 2222): String? {
-        return softwarePackageLaunchCommands[packageId]?.invoke(sshPort)
+    fun getSoftwarePackageLaunchCommand(packageId: String, sshPort: Int = 2222, container: ContainerInstance? = null): String? {
+        val baseCommand = softwarePackageLaunchCommands[packageId]?.invoke(sshPort) ?: return null
+        if (container == null) return baseCommand
+        if (packageId == "xfce_desktop") {
+            var cmd = baseCommand
+            val effectiveVncPass = container.effectiveVncPassword
+            if (effectiveVncPass.isNotBlank()) {
+                cmd = cmd.replace("echo ubuntu | vncpasswd", "echo '$effectiveVncPass' | vncpasswd")
+                    .replace("echo debian | vncpasswd", "echo '$effectiveVncPass' | vncpasswd")
+                    .replace("echo arch | vncpasswd", "echo '$effectiveVncPass' | vncpasswd")
+                    .replace("echo fedora | vncpasswd", "echo '$effectiveVncPass' | vncpasswd")
+                    .replace("echo void | vncpasswd", "echo '$effectiveVncPass' | vncpasswd")
+                    .replace("echo kali | vncpasswd", "echo '$effectiveVncPass' | vncpasswd")
+                    .replace("echo alpine | vncpasswd", "echo '$effectiveVncPass' | vncpasswd")
+                    .replace("echo user | vncpasswd", "echo '$effectiveVncPass' | vncpasswd")
+            }
+            if (container.vncLanAccess) {
+                cmd = cmd.replace("-localhost", "-nolocalhost")
+            } else {
+                cmd = cmd.replace("-nolocalhost", "-localhost")
+            }
+            return cmd
+        }
+        return baseCommand
     }
 
     fun getSoftwarePackageExpectedBinaries(packageId: String): List<String>? {
@@ -133,7 +158,7 @@ object DistroCatalog {
             "printf '#!/bin/sh\\n" +
             "# LinuxOnAndroid TigerVNC server wrapper for PRoot environments\\n" +
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\$PATH\\n" +
-            "ACTION=\"start\"; DISP=\":1\"; GEOM=\"1280x720\"; DEPTH=\"24\"; XSTARTUP=\"/etc/vnc/xstartup\"; SECTYPES=\"None,VncAuth\"\\n" +
+            "ACTION=\"start\"; DISP=\":1\"; GEOM=\"1280x720\"; DEPTH=\"24\"; XSTARTUP=\"/etc/vnc/xstartup\"; SECTYPES=\"VncAuth\"; LOCALHOST=\"yes\"\\n" +
             "while [ \$# -gt 0 ]; do\\n" +
             "  case \"\$1\" in\\n" +
             "    -list) ACTION=\"list\"; shift ;;\\n" +
@@ -142,6 +167,8 @@ object DistroCatalog {
             "    -depth) shift; DEPTH=\"\$1\"; shift ;;\\n" +
             "    -xstartup) shift; XSTARTUP=\"\$1\"; shift ;;\\n" +
             "    -SecurityTypes) shift; SECTYPES=\"\$1\"; shift ;;\\n" +
+            "    -localhost) LOCALHOST=\"yes\"; shift ;;\\n" +
+            "    -nolocalhost) LOCALHOST=\"no\"; shift ;;\\n" +
             "    -help|--help|-h) ACTION=\"help\"; shift ;;\\n" +
             "    :*) DISP=\"\$1\"; shift ;;\\n" +
             "    *) shift ;;\\n" +
@@ -152,7 +179,7 @@ object DistroCatalog {
             "  echo \"TigerVNC server wrapper for LinuxOnAndroid (PRoot)\"\\n" +
             "  echo \"\"\\n" +
             "  echo \"Usage:\"\\n" +
-            "  echo \"  vncserver [:<display>] [-geometry <width>x<height>] [-depth <depth>] [-SecurityTypes <types>]\"\\n" +
+            "  echo \"  vncserver [:<display>] [-geometry <width>x<height>] [-depth <depth>] [-SecurityTypes <types>] [-localhost|-nolocalhost]\"\\n" +
             "  echo \"  vncserver -list\"\\n" +
             "  echo \"  vncserver -kill :<display>\"\\n" +
             "  exit 0\\n" +
@@ -208,14 +235,15 @@ object DistroCatalog {
             "pkill -f \"Xvnc :\$DISP_NUM\" 2>/dev/null || true; rm -f \"/tmp/.X\${DISP_NUM}-lock\" \"/tmp/.X11-unix/X\${DISP_NUM}\" 2>/dev/null || true\\n" +
             "PW=\"\"; if [ -f \"\$HOME/.vnc/passwd\" ]; then PW=\"-rfbauth \$HOME/.vnc/passwd\"; elif [ -f \"\$HOME/.config/tigervnc/passwd\" ]; then PW=\"-rfbauth \$HOME/.config/tigervnc/passwd\"; elif [ -f \"/root/.vnc/passwd\" ]; then PW=\"-rfbauth /root/.vnc/passwd\"; fi\\n" +
             "RFB_PORT=\$((5900 + DISP_NUM))\\n" +
+            "LH_ARG=\"\"; [ \"\$LOCALHOST\" = \"yes\" ] && LH_ARG=\"-localhost\"\\n" +
             "echo \"Starting Xvnc on display :\$DISP_NUM (\$GEOM, depth \$DEPTH)...\"\\n" +
-            "Xvnc \":\$DISP_NUM\" -geometry \"\$GEOM\" -depth \"\$DEPTH\" \$PW -SecurityTypes \"\$SECTYPES\" -UseBlacklist=0 -ac >/dev/null 2>&1 &\\n" +
+            "Xvnc \":\$DISP_NUM\" -geometry \"\$GEOM\" -depth \"\$DEPTH\" \$PW -SecurityTypes \"\$SECTYPES\" -UseBlacklist=0 \$LH_ARG >/dev/null 2>&1 &\\n" +
             "sleep 1\\n" +
             "if [ -x \"\$XSTARTUP\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$XSTARTUP\" >/dev/null 2>&1 & elif [ -x \"\$HOME/.vnc/xstartup\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$HOME/.vnc/xstartup\" >/dev/null 2>&1 & elif command -v startxfce4 >/dev/null 2>&1; then DISPLAY=\":\$DISP_NUM\" startxfce4 >/dev/null 2>&1 & fi\\n" +
             "LAN_IP=\"\"; [ -f /etc/network/proot_interfaces.conf ] && LAN_IP=\$(grep '^PRIMARY_IP=' /etc/network/proot_interfaces.conf 2>/dev/null | cut -d= -f2); [ -z \"\$LAN_IP\" ] && [ -f /etc/hosts ] && LAN_IP=\$(grep -v '^#' /etc/hosts 2>/dev/null | grep -v '^127\\.' | grep -v '^::1' | awk '{print \$1}' | head -n1)\\n" +
             "echo \"VNC Server started on port \$RFB_PORT (:\$DISP_NUM).\"\\n" +
             "echo \"-> Local connection:  127.0.0.1:\$RFB_PORT\"\\n" +
-            "[ -n \"\$LAN_IP\" ] && [ \"\$LAN_IP\" != \"127.0.0.1\" ] && echo \"-> Wi-Fi connection:  \$LAN_IP:\$RFB_PORT\"\\n" +
+            "[ \"\$LOCALHOST\" != \"yes\" ] && [ -n \"\$LAN_IP\" ] && [ \"\$LAN_IP\" != \"127.0.0.1\" ] && echo \"-> Wi-Fi connection:  \$LAN_IP:\$RFB_PORT\"\\n" +
             "echo \"-> List sessions:     vncserver -list\"\\n" +
             "echo \"-> Stop server:       vncserver -kill :\$DISP_NUM\"\\n' > /usr/bin/vncserver && chmod 755 /usr/bin/vncserver && cp /usr/bin/vncserver /usr/local/bin/vncserver 2>/dev/null || true; chmod 755 /usr/local/bin/vncserver 2>/dev/null || true"
 

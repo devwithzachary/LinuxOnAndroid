@@ -8,6 +8,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -110,8 +111,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
     fun downloadAndInstallUbuntu(
         distro: LinuxDistribution,
         rootPassword: String = "root",
-        username: String = "ubuntu",
-        userPassword: String = "ubuntu"
+        username: String = "user",
+        userPassword: String = "user"
     ): Flow<DownloadState> {
         val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(distro.id)
         return downloadAndInstallDistro(
@@ -128,8 +129,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition,
         containerName: String = distroDef.name,
         rootPassword: String = "root",
-        username: String = "ubuntu",
-        userPassword: String = "ubuntu"
+        username: String = "user",
+        userPassword: String = "user"
     ): Flow<DownloadState> = channelFlow {
         val arch = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getForSystemArch(android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64")
         val downloadUrl = distroDef.getDownloadUrl(arch) ?: distroDef.downloadUrls[com.devwithzachary.completelinuxinstaller.model.SystemArchitecture.ARM64]!!
@@ -157,6 +158,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val fileLength = connection.contentLength.toLong()
             val inputStream = connection.inputStream
             val outputStream = FileOutputStream(archiveFile)
+            val digest = MessageDigest.getInstance("SHA-256")
 
             val buffer = ByteArray(65536)
             var totalRead = 0L
@@ -165,6 +167,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             while (inputStream.read(buffer).also { read = it } != -1) {
                 totalRead += read
                 outputStream.write(buffer, 0, read)
+                digest.update(buffer, 0, read)
 
                 val percent = if (fileLength > 0) ((totalRead * 100) / fileLength).toInt() else 0
                 send(DownloadState.Downloading(totalRead, fileLength, percent))
@@ -173,6 +176,21 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             outputStream.flush()
             outputStream.close()
             inputStream.close()
+
+            val calculatedHash = digest.digest().joinToString("") { "%02x".format(it) }
+            Log.d(TAG, "Calculated SHA-256 for downloaded rootfs: $calculatedHash")
+
+            val expectedHash = distroDef.getSha256Checksum(arch)
+            if (!expectedHash.isNullOrBlank()) {
+                if (!calculatedHash.equals(expectedHash, ignoreCase = true)) {
+                    archiveFile.delete()
+                    val mismatchMsg = "Rootfs checksum verification failed! Expected: $expectedHash, got: $calculatedHash"
+                    Log.e(TAG, mismatchMsg)
+                    send(DownloadState.Error(mismatchMsg))
+                    return@channelFlow
+                }
+                Log.i(TAG, "Rootfs SHA-256 checksum verified successfully: $calculatedHash")
+            }
 
             val logList = mutableListOf<String>()
 
@@ -183,6 +201,9 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 logList.add(msg)
             }
 
+            if (!expectedHash.isNullOrBlank()) {
+                emitLog("Verified ${distroDef.name} rootfs integrity (SHA-256 match).")
+            }
             emitLog("Downloading official ${distroDef.name} rootfs tarball...")
             send(DownloadState.Extracting("Extracting ${distroDef.name} rootfs structure...", logList.toList()))
             if (targetDir.exists()) {
@@ -536,8 +557,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     suspend fun performFirstLaunchSetup(
         rootPassword: String = "root",
-        username: String = "ubuntu",
-        userPassword: String = "ubuntu",
+        username: String = "user",
+        userPassword: String = "user",
         onProgress: suspend (String, String?) -> Unit
     ) = withContext(Dispatchers.IO) {
         onProgress(
@@ -545,7 +566,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             "Executing Ubuntu system initialization..."
         )
         try {
-            val cleanUsername = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { "ubuntu" }
+            val cleanUsername = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { "user" }
             val isArm = android.os.Build.SUPPORTED_ABIS.any { it.contains("arm") || it.contains("aarch64") }
             val repoUrl = if (isArm) "http://ports.ubuntu.com/ubuntu-ports" else "http://archive.ubuntu.com/ubuntu"
             val codename = "resolute"

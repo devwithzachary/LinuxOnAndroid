@@ -24,6 +24,11 @@ val FedoraDistro = DistroDefinition(
         SystemArchitecture.X86_64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/x86_64/images/Fedora-WSL-Base-44-1.7.x86_64.wsl",
         SystemArchitecture.ARMV7 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-WSL-Base-44-1.7.aarch64.wsl"
     ),
+    sha256Checksums = mapOf(
+        SystemArchitecture.ARM64 to "1a3220262dc918b07d08410278205fb35e92c28a53455382028eea1a980476ee",
+        SystemArchitecture.X86_64 to "2e5b153ba4b639952bf546be577fc19b832fe8944caa7de342b32f10da7d319a",
+        SystemArchitecture.ARMV7 to "1a3220262dc918b07d08410278205fb35e92c28a53455382028eea1a980476ee"
+    ),
     firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
         "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                 "mkdir -p /etc/sudoers.d /etc/pam.d /etc/selinux /home/$username /run /var/run /var/log 2>/dev/null; " +
@@ -101,7 +106,7 @@ val FedoraDistro = DistroDefinition(
                     "fi\n" +
                     "EOF\n" +
                     "chmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup; " +
-                    "printf 'securitytypes=None,VncAuth\\ngeometry=1280x720\\nlocalhost=no\\nalwaysshared=1\\n' > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config && " +
+                    "printf 'securitytypes=VncAuth\\ngeometry=1280x720\\nlocalhost=yes\\nalwaysshared=1\\n' > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config && " +
                     "for u in /home/*; do if [ -d \"\$u\" ]; then " +
                         "mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && " +
                         "cp /etc/vnc/xstartup \"\$u/.vnc/xstartup\" && " +
@@ -168,7 +173,7 @@ val FedoraDistro = DistroDefinition(
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                     "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
                     "(dnf install -y --setopt=keepcache=0 ttyd curl ca-certificates procps-ng || dnf install -y --setopt=keepcache=0 curl ca-certificates procps-ng) && " +
-                    "if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi; dnf clean all"
+                    "if ! command -v ttyd >/dev/null 2>&1; then ${com.devwithzachary.completelinuxinstaller.model.SoftwarePackage.TTYD_FALLBACK_DOWNLOAD_CMD}; fi; dnf clean all"
         },
         "docker_tools" to { _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
@@ -192,7 +197,7 @@ val FedoraDistro = DistroDefinition(
                     "fi; done; " +
                     "vncserver -kill :1 2>/dev/null || true; " +
                     "rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 2>/dev/null; " +
-                    "vncserver :1 -xstartup /etc/vnc/xstartup -geometry 1280x720 -depth 24 -SecurityTypes None,VncAuth -UseBlacklist=0 --I-KNOW-THIS-IS-INSECURE"
+                    "vncserver :1 -xstartup /etc/vnc/xstartup -geometry 1280x720 -depth 24 -SecurityTypes VncAuth -UseBlacklist=0 -localhost"
         },
         "openssh_server" to { port ->
             val validPort = if (port in 1..65535) port else 2222

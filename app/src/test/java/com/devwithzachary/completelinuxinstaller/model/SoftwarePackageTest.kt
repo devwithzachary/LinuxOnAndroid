@@ -106,9 +106,11 @@ class SoftwarePackageTest {
             assertTrue("installCommand must configure bwrap stub", it.installCommand.contains("/usr/bin/bwrap"))
             assertTrue("launchCommand must exist for xfce_desktop", it.launchCommand != null)
             assertTrue("launchCommand must start display :1", it.launchCommand?.contains("vncserver :1") == true)
-            assertTrue("launchCommand must specify SecurityTypes None,VncAuth", it.launchCommand?.contains("-SecurityTypes None,VncAuth") == true)
+            assertTrue("launchCommand must specify SecurityTypes VncAuth", it.launchCommand?.contains("-SecurityTypes VncAuth") == true)
+            assertTrue("launchCommand must specify -localhost by default", it.launchCommand?.contains("-localhost") == true)
+            assertFalse("launchCommand must not allow None security type", it.launchCommand?.contains("None") == true)
+            assertFalse("launchCommand must not include --I-KNOW-THIS-IS-INSECURE", it.launchCommand?.contains("--I-KNOW-THIS-IS-INSECURE") == true)
             assertTrue("launchCommand must specify -UseBlacklist=0", it.launchCommand?.contains("-UseBlacklist=0") == true)
-            assertTrue("launchCommand must include --I-KNOW-THIS-IS-INSECURE", it.launchCommand?.contains("--I-KNOW-THIS-IS-INSECURE") == true)
         }
     }
 
@@ -125,10 +127,82 @@ class SoftwarePackageTest {
             val cmd = it.launchCommand
             assertNotNull("launchCommand must exist for web_terminal", cmd)
             assertTrue("launchCommand must use writable flag -W", cmd?.contains("-W") == true)
+            assertTrue("launchCommand must bind to loopback 127.0.0.1 by default", cmd?.contains("-i 127.0.0.1") == true)
             assertTrue("launchCommand must support fallback to 7681", cmd?.contains("PORT=7681") == true)
             assertTrue("launchCommand must setup ptmx permissions", cmd?.contains("/dev/ptmx") == true)
             assertNotNull("postInstallNotes must exist for web_terminal", it.postInstallNotes)
         }
+    }
+
+    @Test
+    fun testWebTerminal_lanAccessToggle() {
+        val localContainer = ContainerInstance(id = "c1", name = "Test", distroId = "ubuntu", distroName = "Ubuntu", rootDirPath = "/tmp/c1", webTerminalLanAccess = false)
+        val lanContainer = ContainerInstance(id = "c2", name = "Test", distroId = "ubuntu", distroName = "Ubuntu", rootDirPath = "/tmp/c2", webTerminalLanAccess = true, userPassword = "mysecretpassword", defaultUser = "customuser")
+
+        val localPresets = SoftwarePackage.getPresetsForContainer(localContainer)
+        val lanPresets = SoftwarePackage.getPresetsForContainer(lanContainer)
+
+        val localWeb = localPresets.find { it.id == "web_terminal" }!!
+        val lanWeb = lanPresets.find { it.id == "web_terminal" }!!
+
+        assertTrue("Local web terminal must bind to 127.0.0.1", localWeb.launchCommand!!.contains("-i 127.0.0.1"))
+        assertFalse("Local web terminal must not require password", localWeb.launchCommand!!.contains("-c "))
+
+        assertFalse("LAN web terminal must not bind only to 127.0.0.1", lanWeb.launchCommand!!.contains("-i 127.0.0.1"))
+        assertTrue("LAN web terminal must configure credentials", lanWeb.launchCommand!!.contains("-c customuser:mysecretpassword"))
+    }
+
+    @Test
+    fun testCodeServer_lanAccessToggle() {
+        val localContainer = ContainerInstance(id = "c1", name = "Test", distroId = "ubuntu", distroName = "Ubuntu", rootDirPath = "/tmp/c1", codeServerLanAccess = false)
+        val lanContainer = ContainerInstance(id = "c2", name = "Test", distroId = "ubuntu", distroName = "Ubuntu", rootDirPath = "/tmp/c2", codeServerLanAccess = true, codeServerPassword = "token12345678")
+
+        val localPresets = SoftwarePackage.getPresetsForContainer(localContainer)
+        val lanPresets = SoftwarePackage.getPresetsForContainer(lanContainer)
+
+        val localCode = localPresets.find { it.id == "code_server" }!!
+        val lanCode = lanPresets.find { it.id == "code_server" }!!
+
+        assertTrue("Local code-server must bind to 127.0.0.1", localCode.launchCommand!!.contains("--bind-addr 127.0.0.1:"))
+        assertTrue("Local code-server must use --auth none", localCode.launchCommand!!.contains("--auth none"))
+
+        assertTrue("LAN code-server must bind to 0.0.0.0", lanCode.launchCommand!!.contains("--bind-addr 0.0.0.0:"))
+        assertTrue("LAN code-server must use --auth password", lanCode.launchCommand!!.contains("--auth password"))
+        assertTrue("LAN code-server must export PASSWORD", lanCode.launchCommand!!.contains("export PASSWORD='token12345678'"))
+    }
+
+    @Test
+    fun testVncServer_lanAccessToggle() {
+        val localContainer = ContainerInstance(id = "c1", name = "Test", distroId = "ubuntu", distroName = "Ubuntu", rootDirPath = "/tmp/c1", vncLanAccess = false)
+        val lanContainer = ContainerInstance(id = "c2", name = "Test", distroId = "ubuntu", distroName = "Ubuntu", rootDirPath = "/tmp/c2", vncLanAccess = true)
+
+        val localPresets = SoftwarePackage.getPresetsForContainer(localContainer)
+        val lanPresets = SoftwarePackage.getPresetsForContainer(lanContainer)
+
+        val localVnc = localPresets.find { it.id == "xfce_desktop" }!!
+        val lanVnc = lanPresets.find { it.id == "xfce_desktop" }!!
+
+        assertTrue("Local VNC must use -localhost", localVnc.launchCommand!!.contains("-localhost"))
+        assertFalse("Local VNC must not use -nolocalhost", localVnc.launchCommand!!.contains("-nolocalhost"))
+
+        assertTrue("LAN VNC must use -nolocalhost", lanVnc.launchCommand!!.contains("-nolocalhost"))
+        assertFalse("LAN VNC must not use -localhost ", lanVnc.launchCommand!!.contains("-localhost "))
+    }
+
+    @Test
+    fun testVncServer_customPassword() {
+        val containerWithCustomVnc = ContainerInstance(
+            id = "c1",
+            name = "Test",
+            distroId = "ubuntu",
+            distroName = "Ubuntu",
+            rootDirPath = "/tmp/c1",
+            userPassword = "userPass",
+            vncPassword = "vncSecret"
+        )
+        val presets = SoftwarePackage.getPresetsForContainer(containerWithCustomVnc)
+        val vnc = presets.find { it.id == "xfce_desktop" }!!
+        assertTrue("VNC launch command must use custom vncPassword", vnc.launchCommand!!.contains("vncSecret"))
     }
 
     @Test

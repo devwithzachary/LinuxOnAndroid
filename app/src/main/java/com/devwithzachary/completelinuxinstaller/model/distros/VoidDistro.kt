@@ -23,6 +23,11 @@ val VoidDistro = DistroDefinition(
         SystemArchitecture.X86_64 to "https://repo-default.voidlinux.org/live/current/void-x86_64-ROOTFS-20250202.tar.xz",
         SystemArchitecture.ARMV7 to "https://repo-default.voidlinux.org/live/current/void-armv7l-ROOTFS-20250202.tar.xz"
     ),
+    sha256Checksums = mapOf(
+        SystemArchitecture.ARM64 to "01a30f17ae06d4d5b322cd579ca971bc479e02cc284ec1e5a4255bea6bac3ce6",
+        SystemArchitecture.X86_64 to "3f48e6673ac5907a897d913c97eb96edbfb230162731b4016562c51b3b8f1876",
+        SystemArchitecture.ARMV7 to "1b8911b43c0dc35ad56c158e06a277ccf0cabe94dcdde4d5a05771a48a621edc"
+    ),
     firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
         "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                 "mkdir -p /etc/sudoers.d /etc/pam.d /home/$username 2>/dev/null; " +
@@ -54,7 +59,7 @@ val VoidDistro = DistroDefinition(
                 "chmod 600 /etc/skel/.vnc/passwd 2>/dev/null || true; " +
                 "printf '#!/usr/bin/env python3\\nimport sys, os\\nargs = sys.argv[1:]\\nexec_idx = -1\\nfor i, arg in enumerate(args):\\n    if arg.startswith(\"/usr/\") and os.path.isfile(arg) and os.access(arg, os.X_OK):\\n        exec_idx = i\\n        break\\nif exec_idx >= 0:\\n    os.execv(args[exec_idx], args[exec_idx:])\\nelse:\\n    sys.exit(0)\\n' > /usr/bin/bwrap && chmod 755 /usr/bin/bwrap 2>/dev/null || true; " +
                 "printf '#!/bin/sh\\nunset SESSION_MANAGER\\nunset DBUS_SESSION_BUS_ADDRESS\\nexport XDG_SESSION_TYPE=x11\\nexport XDG_CURRENT_DESKTOP=XFCE\\nexport DESKTOP_SESSION=xfce\\nexport NO_AT_BRIDGE=1\\nexport GDK_BACKEND=x11\\nif command -v dbus-launch >/dev/null 2>&1; then\\n    eval \$(dbus-launch --sh-syntax --exit-with-session)\\nfi\\nxfsettingsd --daemon 2>/dev/null || true\\nxfwm4 --daemon 2>/dev/null || xfwm4 &\\nxfce4-panel &\\nThunar --daemon 2>/dev/null &\\nexec startxfce4\\n' > /etc/vnc/xstartup && chmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup; " +
-                "printf 'securitytypes=None,VncAuth\\ngeometry=1280x720\\nlocalhost=no\\nalwaysshared=1\\n' > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config; " +
+                "printf 'securitytypes=VncAuth\\ngeometry=1280x720\\nlocalhost=yes\\nalwaysshared=1\\n' > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config; " +
                 "for u in /home/*; do if [ -d \"\$u\" ]; then " +
                     "mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && " +
                     "cp /etc/vnc/xstartup \"\$u/.vnc/xstartup\" && " +
@@ -111,7 +116,7 @@ val VoidDistro = DistroDefinition(
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                 "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
                 "(xbps-install -y ttyd curl ca-certificates || xbps-install -y curl ca-certificates) && " +
-                "if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi"
+                "if ! command -v ttyd >/dev/null 2>&1; then ${com.devwithzachary.completelinuxinstaller.model.SoftwarePackage.TTYD_FALLBACK_DOWNLOAD_CMD}; fi"
         },
         "docker_tools" to { _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
@@ -136,7 +141,7 @@ val VoidDistro = DistroDefinition(
                 "fi; done; " +
                 "vncserver -kill :1 2>/dev/null || true; " +
                 "rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 2>/dev/null; " +
-                "vncserver :1 -xstartup /etc/vnc/xstartup -geometry 1280x720 -depth 24 -SecurityTypes None,VncAuth -UseBlacklist=0 --I-KNOW-THIS-IS-INSECURE"
+                "vncserver :1 -xstartup /etc/vnc/xstartup -geometry 1280x720 -depth 24 -SecurityTypes VncAuth -UseBlacklist=0 -localhost"
         },
         "openssh_server" to { port ->
             val validPort = if (port in 1..65535) port else 2222

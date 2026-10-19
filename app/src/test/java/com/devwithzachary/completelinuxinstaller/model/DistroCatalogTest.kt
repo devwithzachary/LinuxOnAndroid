@@ -124,7 +124,9 @@ class DistroCatalogTest {
         val setupScript = arch.buildFirstLaunchSetupScript("root123", "archuser", "user123", true)
         assertTrue("Arch first launch script must sanitize pacman.conf", setupScript.contains("DownloadUser"))
         assertTrue("Arch first launch script must disable sandbox", setupScript.contains("DisableSandbox"))
-        assertTrue("Arch first launch script must set SigLevel to Never", setupScript.contains("SigLevel = Never"))
+        assertFalse("Arch first launch script must not set SigLevel to Never", setupScript.contains("SigLevel = Never"))
+        assertTrue("Arch first launch script must initialize pacman-key", setupScript.contains("pacman-key --init"))
+        assertTrue("Arch first launch script must populate pacman-key keyring", setupScript.contains("pacman-key --populate archlinuxarm"))
 
         val xfceInstallCmd = arch.getSoftwarePackageInstallCommand("xfce_desktop")
         assertNotNull("Arch xfce_desktop install command must exist", xfceInstallCmd)
@@ -340,7 +342,7 @@ class DistroCatalogTest {
 
         val launchCmd = codePkg.launchCommand
         assertNotNull("code_server must have launch command", launchCmd)
-        assertTrue("Launch command must specify 0.0.0.0 bind address", launchCmd!!.contains("--bind-addr 0.0.0.0:"))
+        assertTrue("Launch command must specify 127.0.0.1 bind address by default", launchCmd!!.contains("--bind-addr 127.0.0.1:"))
         assertTrue("Launch command must disable authentication for instant access", launchCmd.contains("--auth none"))
         assertTrue("Launch command must support fallback to 8443 if 8080 is in use", launchCmd.contains("PORT=8443"))
     }
@@ -458,6 +460,33 @@ class DistroCatalogTest {
             assertTrue("Distro ${distro.name} must include COMMON_DOCKER_WRAPPER", cmd!!.contains("/etc/udocker.conf"))
             assertTrue("Distro ${distro.name} must include UDOCKER_INSTALL_PIPELINE", cmd.contains("pip"))
         }
+    }
+
+    @Test
+    fun testDistroChecksums_definedAndValid() {
+        val distrosWithChecksums = listOf(
+            DistroCatalog.UBUNTU_26_04,
+            DistroCatalog.ALPINE_3_21,
+            DistroCatalog.VOID_ROLLING,
+            DistroCatalog.FEDORA_44,
+            DistroCatalog.KALI_ROLLING
+        )
+        for (distro in distrosWithChecksums) {
+            for (arch in distro.downloadUrls.keys) {
+                val checksum = distro.getSha256Checksum(arch)
+                assertNotNull("Distro ${distro.name} ($arch) must have a SHA-256 checksum", checksum)
+                assertEquals("Checksum for ${distro.name} ($arch) must be 64-char hex", 64, checksum!!.length)
+                assertTrue("Checksum must be lowercase hex", checksum.all { it in '0'..'9' || it in 'a'..'f' })
+            }
+        }
+    }
+
+    @Test
+    fun testTtydFallback_pinnedSha256() {
+        val ttydCmd = SoftwarePackage.TTYD_FALLBACK_DOWNLOAD_CMD
+        assertTrue("Fallback command must download from GitHub releases", ttydCmd.contains("https://github.com/tsl0922/ttyd/releases/download/"))
+        assertTrue("Fallback command must verify SHA256 checksum", ttydCmd.contains("sha256sum -c"))
+        assertTrue("Fallback command must include aarch64 pinned hash", ttydCmd.contains("b38acadd89d1d396a0f5649aa52c539edbad07f4bc7348b27b4f4b7219dd4165"))
     }
 }
 

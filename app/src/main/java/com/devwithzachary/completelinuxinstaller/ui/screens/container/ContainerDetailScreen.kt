@@ -84,6 +84,13 @@ fun ContainerDetailScreen(
     onExportFile: (contentResolver: ContentResolver, file: File, targetUri: Uri, onComplete: (Boolean) -> Unit) -> Unit = { _, _, _, _ -> },
     onOpenExternalDirectory: (context: Context, containerId: String) -> Unit = { _, _ -> },
     onGetExternalFiles: (containerId: String) -> List<File> = { emptyList() },
+    onToggleWebTerminalLanAccess: (containerId: String, enabled: Boolean) -> Unit = { _, _ -> },
+    onToggleCodeServerLanAccess: (containerId: String, enabled: Boolean) -> Unit = { _, _ -> },
+    onSetCodeServerPassword: (password: String, containerId: String) -> Unit = { _, _ -> },
+    onRegenerateCodeServerPassword: (containerId: String) -> Unit = {},
+    onToggleVncLanAccess: (containerId: String, enabled: Boolean) -> Unit = { _, _ -> },
+    onRegenerateVncPassword: (containerId: String) -> Unit = {},
+    onSetVncPassword: (password: String, containerId: String) -> Unit = { _, _ -> },
     onRefreshMetrics: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -304,6 +311,13 @@ fun ContainerDetailScreen(
                         onExportFile = { cr, file, targetUri, onComplete -> onExportFile(cr, file, targetUri, onComplete) },
                         onOpenExternalDirectory = { ctx -> onOpenExternalDirectory(ctx, container.id) },
                         onGetExternalFiles = { onGetExternalFiles(container.id) },
+                        onToggleWebTerminalLanAccess = { enabled -> onToggleWebTerminalLanAccess(container.id, enabled) },
+                        onToggleCodeServerLanAccess = { enabled -> onToggleCodeServerLanAccess(container.id, enabled) },
+                        onSetCodeServerPassword = { pwd -> onSetCodeServerPassword(pwd, container.id) },
+                        onRegenerateCodeServerPassword = { onRegenerateCodeServerPassword(container.id) },
+                        onToggleVncLanAccess = { enabled -> onToggleVncLanAccess(container.id, enabled) },
+                        onRegenerateVncPassword = { onRegenerateVncPassword(container.id) },
+                        onSetVncPassword = { pwd -> onSetVncPassword(pwd, container.id) },
                         onDeleteContainer = { onDeleteContainer(container.id) }
                     )
                 }

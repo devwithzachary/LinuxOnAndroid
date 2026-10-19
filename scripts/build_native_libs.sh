@@ -117,6 +117,13 @@ if [ -z "$NDK_DIR" ] || [ ! -d "$NDK_DIR" ]; then
     exit 1
 fi
 
+# Strip deprecated ndk.dir from local.properties files to avoid AGP [CXX5106] warnings during Gradle build
+for prop_path in "$PROJECT_ROOT/local.properties" "$PROJECT_ROOT/app/local.properties"; do
+    if [ -f "$prop_path" ] && grep -q '^ndk\.dir=' "$prop_path"; then
+        grep -v '^ndk\.dir=' "$prop_path" > "$prop_path.tmp" && mv "$prop_path.tmp" "$prop_path"
+    fi
+done
+
 echo "============================================================"
 echo "🛠️  Building LinuxOnAndroid Native Libraries"
 echo "============================================================"

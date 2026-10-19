@@ -531,7 +531,8 @@ object NetworkShims {
             GEOM="1280x720"
             DEPTH="24"
             XSTARTUP="/etc/vnc/xstartup"
-            SECTYPES="None,VncAuth"
+            SECTYPES="VncAuth"
+            LOCALHOST="yes"
 
             while [ ${d}# -gt 0 ]; do
                 case "${d}1" in
@@ -565,6 +566,14 @@ object NetworkShims {
                     -SecurityTypes)
                         shift
                         SECTYPES="${d}1"
+                        shift
+                        ;;
+                    -localhost)
+                        LOCALHOST="yes"
+                        shift
+                        ;;
+                    -nolocalhost)
+                        LOCALHOST="no"
                         shift
                         ;;
                     -help|--help|-h)
@@ -679,8 +688,10 @@ object NetworkShims {
             fi
 
             RFB_PORT=${d}((5900 + DISP_NUM))
+            LH_ARG=""
+            [ "${d}LOCALHOST" = "yes" ] && LH_ARG="-localhost"
             echo "Starting Xvnc on display :${d}DISP_NUM (${d}GEOM, depth ${d}DEPTH)..."
-            Xvnc ":${d}DISP_NUM" -geometry "${d}GEOM" -depth "${d}DEPTH" ${d}PW -SecurityTypes "${d}SECTYPES" -UseBlacklist=0 -ac >/dev/null 2>&1 &
+            Xvnc ":${d}DISP_NUM" -geometry "${d}GEOM" -depth "${d}DEPTH" ${d}PW -SecurityTypes "${d}SECTYPES" -UseBlacklist=0 ${d}LH_ARG >/dev/null 2>&1 &
             sleep 1
 
             if [ -x "${d}XSTARTUP" ]; then
@@ -701,7 +712,7 @@ object NetworkShims {
 
             echo "VNC Server started on port ${d}RFB_PORT (:${d}DISP_NUM)."
             echo "-> Local connection:  127.0.0.1:${d}RFB_PORT"
-            if [ -n "${d}LAN_IP" ] && [ "${d}LAN_IP" != "127.0.0.1" ]; then
+            if [ "${d}LOCALHOST" != "yes" ] && [ -n "${d}LAN_IP" ] && [ "${d}LAN_IP" != "127.0.0.1" ]; then
                 echo "-> Wi-Fi connection:  ${d}LAN_IP:${d}RFB_PORT"
             fi
             echo "-> List sessions:     vncserver -list"
