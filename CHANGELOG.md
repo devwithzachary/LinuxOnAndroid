@@ -5,6 +5,14 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ## [1.7.2] - 2026-10-14
 
 ### 🛡️ Security & Privacy Hardening
+- **Loopback Binding by Default**: Hardened Web Terminal (ttyd), VS Code Server (code-server), and TigerVNC services to bind exclusively to loopback (`127.0.0.1`) by default, preventing unintended network exposure and unauthorized access over public Wi-Fi or local networks.
+- **Opt-In LAN Access & Authentication**: Added dedicated Remote Access & LAN Sharing toggles in container settings for Web Terminal, VS Code Server, and VNC Server. LAN access requires explicit opt-in:
+  - **Web Terminal (ttyd)**: Enforces HTTP Basic authentication using the container's configured user credentials (`-c user:password`) when LAN access is enabled.
+  - **VS Code Server (code-server)**: Enforces password authentication when exposed to the network. Users can set their own custom password or auto-generate secure passwords with one-tap copy and visibility controls in container settings.
+  - **TigerVNC**: Requires password authentication (`SecurityTypes VncAuth`). Users can configure their own custom VNC password directly from container settings with copy and random generation support.
+- **Rootfs Download Integrity Verification**: Added streaming SHA-256 checksum verification in `RootfsManager` across all supported distribution rootfs downloads, preventing man-in-the-middle attacks or mirror tampering. Corrupted or invalid archives are aborted and purged immediately.
+- **Binary Download Integrity Verification**: Pinned official SHA-256 checksums for fallback `ttyd` binary installations and verified via `sha256sum -c`.
+- **Arch Linux Mirror Security & Keyring Initialization**: Switched Arch Linux ARM rootfs downloads to HTTPS and removed pacman signature checking bypass (`SigLevel = Never`) in favor of proper pacman keyring initialization (`pacman-key --init && pacman-key --populate archlinuxarm`).
 - **Backup Data Protection**: Hardened backup configuration by setting `android:allowBackup="false"` and configuring explicit exclude rules in `data_extraction_rules.xml` and `backup_rules.xml`. This prevents Android Auto Backup and device transfers from copying private container data, SSH keys, or VNC credentials.
 - **Opt-In Release Update Checks**: Switched automatic GitHub release update checks to opt-in (disabled by default on startup), ensuring no unsolicited network requests are made during cold boot and complying with F-Droid inclusion policies.
 

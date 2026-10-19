@@ -39,6 +39,25 @@ class ContainerInstanceTest {
     }
 
     @Test
+    fun testContainerInstance_vncPasswordAndEffectiveVncPassword() {
+        val defaultContainer = ContainerInstance(
+            id = "c1",
+            name = "C1",
+            distroId = "debian_12",
+            distroName = "Debian 12",
+            rootDirPath = "/data/local/tmp"
+        )
+        // Default userPassword is "user", vncPassword empty -> effectiveVncPassword is "user"
+        assertEquals("user", defaultContainer.effectiveVncPassword)
+
+        val customUserPwd = defaultContainer.copy(userPassword = "customUserPass")
+        assertEquals("customUserPass", customUserPwd.effectiveVncPassword)
+
+        val customVncPwd = defaultContainer.copy(userPassword = "customUserPass", vncPassword = "customVncPass")
+        assertEquals("customVncPass", customVncPwd.effectiveVncPassword)
+    }
+
+    @Test
     fun testContainerInstance_isInstalled_checksFiles() {
         val rootDir = tempFolder.newFolder("empty_rootfs")
         val container = ContainerInstance(

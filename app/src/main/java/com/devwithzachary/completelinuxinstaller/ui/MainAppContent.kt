@@ -430,6 +430,27 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 onGetExternalFiles = { containerId ->
                                     viewModel.getExternalFiles(containerId)
                                 },
+                                onToggleWebTerminalLanAccess = { containerId, enabled ->
+                                    viewModel.setWebTerminalLanAccess(containerId, enabled)
+                                },
+                                onToggleCodeServerLanAccess = { containerId, enabled ->
+                                    viewModel.setCodeServerLanAccess(containerId, enabled)
+                                },
+                                onSetCodeServerPassword = { pwd, containerId ->
+                                    viewModel.setCodeServerPassword(containerId, pwd)
+                                },
+                                onRegenerateCodeServerPassword = { containerId ->
+                                    viewModel.regenerateCodeServerPassword(containerId)
+                                },
+                                onToggleVncLanAccess = { containerId, enabled ->
+                                    viewModel.setVncLanAccess(containerId, enabled)
+                                },
+                                onRegenerateVncPassword = { containerId ->
+                                    viewModel.regenerateVncPassword(containerId)
+                                },
+                                onSetVncPassword = { pwd, containerId ->
+                                    viewModel.setVncPassword(containerId, pwd)
+                                },
                                 onRefreshMetrics = {
                                     viewModel.triggerMetricsRefresh()
                                 }

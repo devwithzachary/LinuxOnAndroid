@@ -27,6 +27,10 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "October 2026",
         initialExpanded = true,
         highlights = listOf(
+            "Network Service Hardening: Web Terminal (ttyd), VS Code Server (code-server), and TigerVNC now bind exclusively to loopback (127.0.0.1) by default, protecting active containers against unauthorized LAN access.",
+            "Opt-In LAN Access & Custom Passwords: Added per-container Remote Access toggles in container settings with mandatory authentication, allowing users to set custom passwords for VS Code Server and TigerVNC.",
+            "Rootfs & Binary Download Integrity: Implemented streaming SHA-256 checksum verification across all rootfs mirror downloads and pinned official checksums for fallback binary installations.",
+            "Arch Linux Mirror Security: Switched Arch Linux ARM rootfs downloads to HTTPS and removed pacman signature bypass in favor of automated pacman keyring initialization.",
             "Security & Backup Protection: Disabled Android Auto Backup and configured complete exclusion rules to prevent container files, SSH keys, and credentials from being backed up.",
             "Opt-In Update Checks: Switched GitHub release update checks to opt-in (disabled by default on startup), eliminating unwanted network calls.",
             "Native Sources Provenance & Licensing: Added full provenance documentation and LGPL license metadata for all vendored native components (PRoot, libandroid-shmem, talloc).",

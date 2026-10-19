@@ -1,4 +1,6 @@
-• Security: Disabled Android Auto Backup to prevent container data and credentials from being backed up.
-• Privacy: Switched GitHub release update checks to opt-in (disabled by default at startup).
-• Licensing: Added provenance documentation and license metadata for vendored native libraries.
-• Build System: Sanitized build properties and optimized packaging for F-Droid CI reproducibility.
+• Security: Bind Web Terminal, VS Code, and VNC to loopback by default.
+• Remote Access: Added opt-in LAN sharing and custom password controls.
+• Integrity: Added SHA-256 verification for rootfs and binary downloads.
+• Arch Linux: Switched mirrors to HTTPS and enabled pacman keyring.
+• Privacy: Disabled Auto Backup and made update checks opt-in.
+• Packaging: Optimized build reproducibility for F-Droid releases.

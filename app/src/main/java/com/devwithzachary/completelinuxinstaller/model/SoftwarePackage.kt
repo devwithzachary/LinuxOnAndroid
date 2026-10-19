@@ -129,24 +129,59 @@ data class SoftwarePackage(
             return false
         }
 
-        fun buildTtydLaunchCommand(port: Int = 8080): String {
+        fun buildTtydLaunchCommand(
+            port: Int = 8080,
+            lanAccess: Boolean = false,
+            username: String = "user",
+            password: String = "user"
+        ): String {
             val validPort = if (port in 1..65535) port else 8080
-            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=7681; fi; [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true; (pkill -f ttyd 2>/dev/null || true); SHELL_BIN=/bin/bash; [ -x /bin/bash ] || SHELL_BIN=/usr/bin/bash; [ -x \"\$SHELL_BIN\" ] || SHELL_BIN=/bin/sh; (nohup ttyd -W -p \$PORT \$SHELL_BIN >/tmp/ttyd.log 2>&1 &) && sleep 1 && cat /tmp/ttyd.log 2>/dev/null || true; echo \"Web Terminal listening on http://0.0.0.0:\$PORT\""
+            val bindArg = if (lanAccess) "" else "-i 127.0.0.1"
+            val cleanUser = username.ifBlank { "user" }
+            val authArg = if (lanAccess && password.isNotBlank()) "-c $cleanUser:$password" else ""
+            val ttydArgs = listOf(bindArg, authArg, "-W", "-p \$PORT", "\$SHELL_BIN").filter { it.isNotBlank() }.joinToString(" ")
+            val listenMsg = if (lanAccess) "Web Terminal listening on http://0.0.0.0:\$PORT (LAN sharing enabled)" else "Web Terminal listening on http://127.0.0.1:\$PORT (localhost only)"
+            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=7681; fi; [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true; (pkill -f ttyd 2>/dev/null || true); SHELL_BIN=/bin/bash; [ -x /bin/bash ] || SHELL_BIN=/usr/bin/bash; [ -x \"\$SHELL_BIN\" ] || SHELL_BIN=/bin/sh; (nohup ttyd $ttydArgs >/tmp/ttyd.log 2>&1 &) && sleep 1 && cat /tmp/ttyd.log 2>/dev/null || true; echo \"$listenMsg\""
         }
 
-        fun buildTtydPostInstallNotes(port: Int = 8080): String {
+        fun buildTtydPostInstallNotes(port: Int = 8080, lanAccess: Boolean = false): String {
             val validPort = if (port in 1..65535) port else 8080
-            return "Browser Web Terminal (ttyd) running on port $validPort (or 7681 if busy). Access your full Linux shell from any browser on your Wi-Fi network at http://<phone-ip>:$validPort without an SSH client."
+            return if (lanAccess) {
+                "Browser Web Terminal (ttyd) running on port $validPort. Accessible over LAN with container login credentials."
+            } else {
+                "Browser Web Terminal (ttyd) running locally on port $validPort (or 7681 if busy). Access your full Linux shell from your phone's browser at http://localhost:$validPort."
+            }
         }
 
-        fun buildCodeServerLaunchCommand(port: Int = 8080): String {
+        fun buildCodeServerLaunchCommand(
+            port: Int = 8080,
+            lanAccess: Boolean = false,
+            password: String = ""
+        ): String {
             val validPort = if (port in 1..65535) port else 8080
-            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=8443; fi; (pkill -f code-server 2>/dev/null || true); (nohup code-server --bind-addr 0.0.0.0:\$PORT --auth none >/tmp/code-server.log 2>&1 &) && sleep 1 && cat /tmp/code-server.log 2>/dev/null || true; echo \"code-server listening on http://localhost:\$PORT\""
+            val bindAddr = if (lanAccess) "0.0.0.0:\$PORT" else "127.0.0.1:\$PORT"
+            val authEnv = if (lanAccess && password.isNotBlank()) "export PASSWORD='$password'; " else ""
+            val authArg = if (lanAccess && password.isNotBlank()) "--auth password" else "--auth none"
+            val listenMsg = if (lanAccess) "code-server listening on http://0.0.0.0:\$PORT (LAN enabled - auth required)" else "code-server listening on http://127.0.0.1:\$PORT (localhost only)"
+            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=8443; fi; (pkill -f code-server 2>/dev/null || true); ${authEnv}(nohup code-server --bind-addr $bindAddr $authArg >/tmp/code-server.log 2>&1 &) && sleep 1 && cat /tmp/code-server.log 2>/dev/null || true; echo \"$listenMsg\""
         }
 
-        fun buildCodeServerPostInstallNotes(port: Int = 8080): String {
+        fun buildCodeServerPostInstallNotes(port: Int = 8080, lanAccess: Boolean = false): String {
             val validPort = if (port in 1..65535) port else 8080
-            return "VS Code Server runs in your browser without password authentication on port $validPort (or 8443 if 8080 is busy). Open http://localhost:$validPort in Chrome or any browser."
+            return if (lanAccess) {
+                "VS Code Server running on port $validPort. Protected by password over LAN. View or change your password in container settings."
+            } else {
+                "VS Code Server running locally on port $validPort (or 8443 if 8080 is busy). Open http://localhost:$validPort in Chrome or any browser on this device."
+            }
+        }
+
+        fun buildVncLaunchCommand(
+            lanAccess: Boolean = false,
+            password: String = "user"
+        ): String {
+            val cleanPass = password.ifBlank { "user" }
+            val localhostFlag = if (lanAccess) "-nolocalhost" else "-localhost"
+            return "rm -f /etc/tigervnc/vncserver-config-defaults 2>/dev/null || true; mkdir -p /tmp/.X11-unix /tmp/.ICE-unix && chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true; for u in /home/*; do if [ -d \"\$u\" ]; then mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; (echo '$cleanPass' | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true); (echo '$cleanPass' | vncpasswd -f > \"\$u/.vnc/passwd\" 2>/dev/null || true); chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; fi; done; (mkdir -p /root/.vnc /root/.config/tigervnc && echo '$cleanPass' | vncpasswd -f > /root/.vnc/passwd 2>/dev/null && echo '$cleanPass' | vncpasswd -f > /root/.config/tigervnc/passwd 2>/dev/null && chmod 600 /root/.vnc/passwd /root/.config/tigervnc/passwd 2>/dev/null || true); vncserver -kill :1 2>/dev/null || true; rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 2>/dev/null; vncserver :1 -xstartup /etc/vnc/xstartup -geometry 1280x720 -depth 24 -SecurityTypes VncAuth -UseBlacklist=0 $localhostFlag"
         }
 
         fun buildDockerLaunchCommand(): String {
@@ -177,8 +212,37 @@ data class SoftwarePackage(
             return "SSH server listening on port $validPort. Connect via 'ssh <username>@<phone-ip> -p $validPort' using your Linux password."
         }
 
-        fun getPresets(sshPort: Int = 2222): List<SoftwarePackage> {
+        const val TTYD_FALLBACK_DOWNLOAD_CMD = "ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\"; TTYD_HASH=\"b38acadd89d1d396a0f5649aa52c539edbad07f4bc7348b27b4f4b7219dd4165\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\"; TTYD_HASH=\"8a217c968aba172e0dbf3f34447218dc015bc4d5e59bf51db2f2cd12b7be4f55\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\"; TTYD_HASH=\"8240c8438b68d3b10b0e1a4e7c914d70fca6a7606b516f40bf40adfa1044d801\" ;; *) TTYD_BIN=\"ttyd.aarch64\"; TTYD_HASH=\"b38acadd89d1d396a0f5649aa52c539edbad07f4bc7348b27b4f4b7219dd4165\" ;; esac; (curl -fsSL -o /tmp/ttyd_dl \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /tmp/ttyd_dl \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && if echo \"\$TTYD_HASH  /tmp/ttyd_dl\" | sha256sum -c >/dev/null 2>&1; then mv /tmp/ttyd_dl /usr/local/bin/ttyd && chmod 755 /usr/local/bin/ttyd; else rm -f /tmp/ttyd_dl; fi"
+
+        fun getPresetsForContainer(
+            container: ContainerInstance,
+            sshPort: Int = 2222
+        ): List<SoftwarePackage> {
+            return getPresets(
+                sshPort = sshPort,
+                vncLanAccess = container.vncLanAccess,
+                vncPassword = container.effectiveVncPassword,
+                ttydLanAccess = container.webTerminalLanAccess,
+                ttydUser = container.defaultUser,
+                ttydPassword = container.userPassword,
+                codeServerLanAccess = container.codeServerLanAccess,
+                codeServerPassword = container.codeServerPassword
+            )
+        }
+
+        fun getPresets(
+            sshPort: Int = 2222,
+            vncLanAccess: Boolean = false,
+            vncPassword: String = "user",
+            ttydLanAccess: Boolean = false,
+            ttydUser: String = "user",
+            ttydPassword: String = "user",
+            codeServerLanAccess: Boolean = false,
+            codeServerPassword: String = ""
+        ): List<SoftwarePackage> {
             val validPort = if (sshPort in 1..65535) sshPort else 2222
+            val cleanVncPass = vncPassword.ifBlank { "user" }
+            val vncLocalhostSetting = if (vncLanAccess) "no" else "yes"
             return listOf(
                 SoftwarePackage(
                     id = "xfce_desktop",
@@ -186,9 +250,9 @@ data class SoftwarePackage(
                     category = SoftwareCategory.DESKTOP_GUI,
                     description = "Full lightweight graphical desktop environment with XFCE4 and TigerVNC server.",
                     iconName = "DesktopWindows",
-                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS xfce4 xfce4-terminal dbus-x11 tigervnc-standalone-server tigervnc-xorg-extension novnc websockify curl ca-certificates perl python3 libgdk-pixbuf2.0-bin librsvg2-common adwaita-icon-theme hicolor-icon-theme && rm -f /etc/tigervnc/vncserver-config-defaults && mkdir -p /root/.vnc /etc/skel/.vnc /etc/vnc /tmp/.X11-unix /tmp/.ICE-unix && chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true && echo ubuntu | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd && echo ubuntu | vncpasswd -f > /etc/skel/.vnc/passwd && chmod 600 /etc/skel/.vnc/passwd && cat << 'EOF' > /usr/bin/bwrap\n#!/usr/bin/env python3\nimport sys, os\nargs = sys.argv[1:]\nexec_idx = -1\nfor i, arg in enumerate(args):\n    if arg.startswith(\"/usr/\") and os.path.isfile(arg) and os.access(arg, os.X_OK):\n        exec_idx = i\n        break\nif exec_idx >= 0:\n    os.execv(args[exec_idx], args[exec_idx:])\nelse:\n    sys.exit(0)\nEOF\nchmod 755 /usr/bin/bwrap && cat << 'EOF' > /etc/vnc/xstartup\n#!/bin/sh\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nexport XDG_SESSION_TYPE=x11\nexport XDG_CURRENT_DESKTOP=XFCE\nexport DESKTOP_SESSION=xfce\nexport NO_AT_BRIDGE=1\nexport GDK_BACKEND=x11\nexport GTK_OVERLAY_SCROLLING=0\nexport GLYCIN_DISABLE_SANDBOX=1\nexport GLYCIN_ENABLE_SANDBOX=0\nexport LIBGL_ALWAYS_SOFTWARE=1\n[ -r \$HOME/.Xresources ] && xrdb \$HOME/.Xresources 2>/dev/null || true\nif command -v dbus-launch >/dev/null 2>&1; then\n    eval \$(dbus-launch --sh-syntax --exit-with-session)\nfi\nxsetroot -solid \"#1e293b\" 2>/dev/null || true\nxfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true\nxfsettingsd --daemon 2>/dev/null || true\nxfwm4 --compositor=off --daemon 2>/dev/null || xfwm4 --compositor=off &\nxfce4-panel &\nThunar --daemon 2>/dev/null &\nif command -v xfdesktop >/dev/null 2>&1; then\n    exec xfdesktop\nelif command -v startxfce4 >/dev/null 2>&1; then\n    exec startxfce4\nelse\n    exec xterm\nfi\nEOF\nchmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /etc/X11/Xtigervnc-session && chmod 755 /etc/X11/Xtigervnc-session && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup && printf 'securitytypes=None,VncAuth\\ngeometry=1280x720\\nlocalhost=no\\nalwaysshared=1\\n' > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config && for u in /home/*; do if [ -d \"\$u\" ]; then mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && cp /etc/vnc/xstartup \"\$u/.vnc/xstartup\" && cp /etc/vnc/config \"\$u/.vnc/config\" && echo ubuntu | vncpasswd -f > \"\$u/.vnc/passwd\" && echo ubuntu | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" && chmod 755 \"\$u/.vnc/xstartup\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; fi; done 2>/dev/null || true",
-                    launchCommand = "rm -f /etc/tigervnc/vncserver-config-defaults 2>/dev/null || true; mkdir -p /tmp/.X11-unix /tmp/.ICE-unix && chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true; for u in /home/*; do if [ -d \"\$u\" ]; then mkdir -p \"\$u/.config/tigervnc\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; [ -f \"\$u/.config/tigervnc/passwd\" ] || (echo ubuntu | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true); chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; fi; done; vncserver -kill :1 2>/dev/null || true; rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 2>/dev/null; vncserver :1 -xstartup /etc/vnc/xstartup -geometry 1280x720 -depth 24 -SecurityTypes None,VncAuth -UseBlacklist=0 --I-KNOW-THIS-IS-INSECURE",
-                    postInstallNotes = "VNC Server starts on port 5901 (:1). Connect via RealVNC Viewer, AVNC, or bVNC at localhost:5901 (password: ubuntu, or set encryption to Off for passwordless).",
+                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS xfce4 xfce4-terminal dbus-x11 tigervnc-standalone-server tigervnc-xorg-extension novnc websockify curl ca-certificates perl python3 libgdk-pixbuf2.0-bin librsvg2-common adwaita-icon-theme hicolor-icon-theme && rm -f /etc/tigervnc/vncserver-config-defaults && mkdir -p /root/.vnc /etc/skel/.vnc /etc/vnc /tmp/.X11-unix /tmp/.ICE-unix && chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true && echo '$cleanVncPass' | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd && echo '$cleanVncPass' | vncpasswd -f > /etc/skel/.vnc/passwd && chmod 600 /etc/skel/.vnc/passwd && cat << 'EOF' > /usr/bin/bwrap\n#!/usr/bin/env python3\nimport sys, os\nargs = sys.argv[1:]\nexec_idx = -1\nfor i, arg in enumerate(args):\n    if arg.startswith(\"/usr/\") and os.path.isfile(arg) and os.access(arg, os.X_OK):\n        exec_idx = i\n        break\nif exec_idx >= 0:\n    os.execv(args[exec_idx], args[exec_idx:])\nelse:\n    sys.exit(0)\nEOF\nchmod 755 /usr/bin/bwrap && cat << 'EOF' > /etc/vnc/xstartup\n#!/bin/sh\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nexport XDG_SESSION_TYPE=x11\nexport XDG_CURRENT_DESKTOP=XFCE\nexport DESKTOP_SESSION=xfce\nexport NO_AT_BRIDGE=1\nexport GDK_BACKEND=x11\nexport GTK_OVERLAY_SCROLLING=0\nexport GLYCIN_DISABLE_SANDBOX=1\nexport GLYCIN_ENABLE_SANDBOX=0\nexport LIBGL_ALWAYS_SOFTWARE=1\n[ -r \$HOME/.Xresources ] && xrdb \$HOME/.Xresources 2>/dev/null || true\nif command -v dbus-launch >/dev/null 2>&1; then\n    eval \$(dbus-launch --sh-syntax --exit-with-session)\nfi\nxsetroot -solid \"#1e293b\" 2>/dev/null || true\nxfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true\nxfsettingsd --daemon 2>/dev/null || true\nxfwm4 --compositor=off --daemon 2>/dev/null || xfwm4 --compositor=off &\nxfce4-panel &\nThunar --daemon 2>/dev/null &\nif command -v xfdesktop >/dev/null 2>&1; then\n    exec xfdesktop\nelif command -v startxfce4 >/dev/null 2>&1; then\n    exec startxfce4\nelse\n    exec xterm\nfi\nEOF\nchmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /etc/X11/Xtigervnc-session && chmod 755 /etc/X11/Xtigervnc-session && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup && printf 'securitytypes=VncAuth\\ngeometry=1280x720\\nlocalhost=%s\\nalwaysshared=1\\n' \"$vncLocalhostSetting\" > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config && for u in /home/*; do if [ -d \"\$u\" ]; then mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && cp /etc/vnc/xstartup \"\$u/.vnc/xstartup\" && cp /etc/vnc/config \"\$u/.vnc/config\" && echo '$cleanVncPass' | vncpasswd -f > \"\$u/.vnc/passwd\" && echo '$cleanVncPass' | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" && chmod 755 \"\$u/.vnc/xstartup\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; fi; done 2>/dev/null || true",
+                    launchCommand = buildVncLaunchCommand(vncLanAccess, cleanVncPass),
+                    postInstallNotes = "VNC Server starts on port 5901 (:1). Connect via RealVNC Viewer, AVNC, or bVNC at 127.0.0.1:5901 using your container password.",
                     expectedBinaries = listOf("usr/bin/startxfce4", "usr/bin/vncserver"),
                     version = 4
                 ),
@@ -244,8 +308,8 @@ data class SoftwarePackage(
                     description = "Full Visual Studio Code IDE accessible in any web browser with extensions, syntax highlighting, and integrated terminal.",
                     iconName = "Code",
                     installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS curl ca-certificates git procps && (curl -fsSL https://code-server.dev/install.sh | sh || curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local)",
-                    launchCommand = buildCodeServerLaunchCommand(),
-                    postInstallNotes = buildCodeServerPostInstallNotes(),
+                    launchCommand = buildCodeServerLaunchCommand(8080, codeServerLanAccess, codeServerPassword),
+                    postInstallNotes = buildCodeServerPostInstallNotes(8080, codeServerLanAccess),
                     expectedBinaries = listOf("usr/bin/code-server"),
                     version = 1
                 ),
@@ -277,11 +341,11 @@ data class SoftwarePackage(
                     id = "web_terminal",
                     name = "Browser Web Terminal (ttyd)",
                     category = SoftwareCategory.NETWORKING,
-                    description = "Instant browser-based terminal access over local Wi-Fi without needing an SSH client or password setup.",
+                    description = "Browser-based terminal access. Bound to localhost by default with optional LAN sharing.",
                     iconName = "Terminal",
-                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && (apt-get install -y $DPKG_FLAGS ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then ARCH=\$(uname -m); case \"\$ARCH\" in aarch64|arm64) TTYD_BIN=\"ttyd.aarch64\" ;; x86_64|amd64) TTYD_BIN=\"ttyd.x86_64\" ;; armv7*|armhf) TTYD_BIN=\"ttyd.armhf\" ;; *) TTYD_BIN=\"ttyd.aarch64\" ;; esac; (curl -fsSL -o /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\" || wget -qO /usr/local/bin/ttyd \"https://github.com/tsl0922/ttyd/releases/download/1.7.7/\$TTYD_BIN\") && chmod 755 /usr/local/bin/ttyd || true; fi",
-                    launchCommand = buildTtydLaunchCommand(),
-                    postInstallNotes = buildTtydPostInstallNotes(),
+                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && (apt-get install -y $DPKG_FLAGS ttyd curl ca-certificates || true) && if ! command -v ttyd >/dev/null 2>&1; then $TTYD_FALLBACK_DOWNLOAD_CMD; fi",
+                    launchCommand = buildTtydLaunchCommand(8080, ttydLanAccess, ttydUser, ttydPassword),
+                    postInstallNotes = buildTtydPostInstallNotes(8080, ttydLanAccess),
                     expectedBinaries = listOf("usr/bin/ttyd"),
                     version = 1
                 ),

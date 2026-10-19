@@ -24,6 +24,12 @@ class ContainerManager(private val context: Context) {
         private const val KEY_DEFAULT_CONTAINER_ID = "default_container_id"
         const val DEFAULT_CONTAINER_ID = "ubuntu_default"
 
+        fun generateSecurePassword(length: Int = 12): String {
+            val chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+            val random = java.security.SecureRandom()
+            return (1..length).map { chars[random.nextInt(chars.length)] }.joinToString("")
+        }
+
         @android.annotation.SuppressLint("NewApi")
         fun readSymlinkTarget(file: File): String? {
             try {
@@ -308,6 +314,12 @@ class ContainerManager(private val context: Context) {
                 val packageManager = try { PackageManagerType.valueOf(pmName) } catch (_: Exception) { PackageManagerType.APT }
                 val colorHex = obj.optLong("colorHex", DistroCatalog.getById(distroId).colorHex)
                 val externalFolderName = obj.optString("externalFolderName", "")
+                val userPassword = obj.optString("userPassword", "user")
+                val webTerminalLanAccess = obj.optBoolean("webTerminalLanAccess", false)
+                val codeServerLanAccess = obj.optBoolean("codeServerLanAccess", false)
+                val codeServerPassword = obj.optString("codeServerPassword", "")
+                val vncLanAccess = obj.optBoolean("vncLanAccess", false)
+                val vncPassword = obj.optString("vncPassword", "")
 
                 list.add(
                     ContainerInstance(
@@ -323,7 +335,13 @@ class ContainerManager(private val context: Context) {
                         defaultShell = defaultShell,
                         packageManager = packageManager,
                         colorHex = colorHex,
-                        externalFolderName = externalFolderName
+                        externalFolderName = externalFolderName,
+                        userPassword = userPassword,
+                        webTerminalLanAccess = webTerminalLanAccess,
+                        codeServerLanAccess = codeServerLanAccess,
+                        codeServerPassword = codeServerPassword,
+                        vncLanAccess = vncLanAccess,
+                        vncPassword = vncPassword
                     )
                 )
             }
@@ -352,6 +370,12 @@ class ContainerManager(private val context: Context) {
                 obj.put("packageManager", c.packageManager.name)
                 obj.put("colorHex", c.colorHex)
                 obj.put("externalFolderName", c.externalFolderName)
+                obj.put("userPassword", c.userPassword)
+                obj.put("webTerminalLanAccess", c.webTerminalLanAccess)
+                obj.put("codeServerLanAccess", c.codeServerLanAccess)
+                obj.put("codeServerPassword", c.codeServerPassword)
+                obj.put("vncLanAccess", c.vncLanAccess)
+                obj.put("vncPassword", c.vncPassword)
 
                 array.put(obj)
             }
@@ -397,7 +421,8 @@ class ContainerManager(private val context: Context) {
         name: String,
         distroId: String,
         defaultUser: String = "root",
-        defaultShell: String? = null
+        defaultShell: String? = null,
+        userPassword: String = "user"
     ): ContainerInstance {
         val distro = DistroCatalog.getById(distroId)
         val containerDir = File(containersBaseDir, id)
@@ -421,7 +446,8 @@ class ContainerManager(private val context: Context) {
             defaultShell = effectiveShell,
             packageManager = distro.packageManager,
             colorHex = distro.colorHex,
-            externalFolderName = externalFolder
+            externalFolderName = externalFolder,
+            userPassword = userPassword
         )
         try {
             newInstance.getExternalDirectory(context)
@@ -448,6 +474,51 @@ class ContainerManager(private val context: Context) {
         val target = getContainer(containerId) ?: return
         val updated = target.copy(defaultUser = username)
         updateContainer(updated)
+    }
+
+    fun setWebTerminalLanAccess(containerId: String, enabled: Boolean) {
+        val target = getContainer(containerId) ?: return
+        updateContainer(target.copy(webTerminalLanAccess = enabled))
+    }
+
+    fun setCodeServerLanAccess(containerId: String, enabled: Boolean, customPassword: String? = null) {
+        val target = getContainer(containerId) ?: return
+        val pass = customPassword ?: if (target.codeServerPassword.isBlank()) generateSecurePassword() else target.codeServerPassword
+        updateContainer(target.copy(codeServerLanAccess = enabled, codeServerPassword = pass))
+    }
+
+    fun setCodeServerPassword(containerId: String, password: String) {
+        val target = getContainer(containerId) ?: return
+        updateContainer(target.copy(codeServerPassword = password))
+    }
+
+    fun regenerateCodeServerPassword(containerId: String): String {
+        val target = getContainer(containerId) ?: return ""
+        val newPass = generateSecurePassword()
+        updateContainer(target.copy(codeServerPassword = newPass))
+        return newPass
+    }
+
+    fun setVncLanAccess(containerId: String, enabled: Boolean) {
+        val target = getContainer(containerId) ?: return
+        updateContainer(target.copy(vncLanAccess = enabled))
+    }
+
+    fun setVncPassword(containerId: String, password: String) {
+        val target = getContainer(containerId) ?: return
+        updateContainer(target.copy(vncPassword = password))
+    }
+
+    fun regenerateVncPassword(containerId: String): String {
+        val target = getContainer(containerId) ?: return ""
+        val newPass = generateSecurePassword().take(8)
+        updateContainer(target.copy(vncPassword = newPass))
+        return newPass
+    }
+
+    fun setContainerUserPassword(containerId: String, password: String) {
+        val target = getContainer(containerId) ?: return
+        updateContainer(target.copy(userPassword = password))
     }
 
     suspend fun deleteContainer(id: String, onProgress: ((String) -> Unit)? = null): Boolean = withContext(Dispatchers.IO) {

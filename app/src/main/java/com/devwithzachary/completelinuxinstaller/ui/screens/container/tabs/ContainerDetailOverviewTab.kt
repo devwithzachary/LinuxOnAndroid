@@ -224,7 +224,7 @@ fun ServicesCard(
                     modifier = Modifier.weight(1f).handHover(),
                     onClick = {
                         if (isVncInstalled) {
-                            val vncPkg = SoftwarePackage.getPresets().find { it.id == "xfce_desktop" }
+                            val vncPkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "xfce_desktop" }
                             vncPkg?.launchCommand?.let { onRunPresetCommand(it) }
                         } else {
                             onPromptService("TigerVNC & XFCE Desktop", "xfce_desktop")
@@ -240,7 +240,7 @@ fun ServicesCard(
                     modifier = Modifier.weight(1f).handHover(),
                     onClick = {
                         if (isNginxInstalled) {
-                            val nginxPkg = SoftwarePackage.getPresets().find { it.id == "nginx_web" }
+                            val nginxPkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "nginx_web" }
                             nginxPkg?.launchCommand?.let { onRunPresetCommand(it) }
                         } else {
                             onPromptService("NGINX Web Server", "nginx_web")
@@ -256,7 +256,7 @@ fun ServicesCard(
                     modifier = Modifier.weight(1f).handHover(),
                     onClick = {
                         if (isSshInstalled) {
-                            val sshPkg = SoftwarePackage.getPresets(sshPort).find { it.id == "openssh_server" }
+                            val sshPkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "openssh_server" }
                             sshPkg?.launchCommand?.let { onRunPresetCommand(it) }
                         } else {
                             onPromptService("OpenSSH Server", "openssh_server")
@@ -278,7 +278,7 @@ fun ServicesCard(
                     modifier = Modifier.weight(1f).handHover(),
                     onClick = {
                         if (isCodeServerInstalled) {
-                            val codePkg = SoftwarePackage.getPresets().find { it.id == "code_server" }
+                            val codePkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "code_server" }
                             codePkg?.launchCommand?.let { onRunPresetCommand(it) }
                         } else {
                             onPromptService("VS Code Server (code-server)", "code_server")
@@ -294,7 +294,7 @@ fun ServicesCard(
                     modifier = Modifier.weight(1f).handHover(),
                     onClick = {
                         if (isWebTerminalInstalled) {
-                            val ttydPkg = SoftwarePackage.getPresets().find { it.id == "web_terminal" }
+                            val ttydPkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "web_terminal" }
                             ttydPkg?.launchCommand?.let { onRunPresetCommand(it) }
                         } else {
                             onPromptService("Browser Web Terminal (ttyd)", "web_terminal")

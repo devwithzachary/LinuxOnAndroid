@@ -708,16 +708,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val installed = container.isInstalled && rootfsDir.exists()
         val packageVersions = if (installed) RootfsMigrationManager.readPackageVersions(rootfsDir) else emptyMap()
         val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(container.distroId.ifBlank { container.distroName })
+        val containerPresets = SoftwarePackage.getPresetsForContainer(container, _sshPort.value).associateBy { it.id }
 
         return _packages.value.map { pkg ->
-            val effectiveLaunchCommand = distroDef.getSoftwarePackageLaunchCommand(pkg.id, _sshPort.value) ?: pkg.launchCommand
-            val effectiveBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) ?: pkg.expectedBinaries
-            val effectiveVersion = distroDef.getSoftwarePackageVersion(pkg.id) ?: pkg.version
+            val basePkg = containerPresets[pkg.id] ?: pkg
+            val effectiveLaunchCommand = distroDef.getSoftwarePackageLaunchCommand(pkg.id, _sshPort.value, container) ?: basePkg.launchCommand
+            val effectiveBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) ?: basePkg.expectedBinaries
+            val effectiveVersion = distroDef.getSoftwarePackageVersion(pkg.id) ?: basePkg.version
             val hasDistroSpecificBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) != null
 
             if (pkg.status == InstallStatus.INSTALLING) {
                 pkg.copy(
                     launchCommand = effectiveLaunchCommand,
+                    postInstallNotes = basePkg.postInstallNotes,
                     expectedBinaries = effectiveBinaries,
                     version = effectiveVersion
                 )
@@ -726,6 +729,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     status = InstallStatus.NOT_INSTALLED,
                     hasUpgradeAvailable = false,
                     launchCommand = effectiveLaunchCommand,
+                    postInstallNotes = basePkg.postInstallNotes,
                     expectedBinaries = effectiveBinaries,
                     version = effectiveVersion
                 )
@@ -755,6 +759,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     status = actualStatus,
                     hasUpgradeAvailable = hasUpgrade,
                     launchCommand = effectiveLaunchCommand,
+                    postInstallNotes = basePkg.postInstallNotes,
                     expectedBinaries = effectiveBinaries,
                     version = effectiveVersion
                 )
@@ -812,7 +817,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 name = finalName,
                 distroId = distroDef.id,
                 defaultUser = username.ifBlank { "user" },
-                defaultShell = distroDef.defaultShell
+                defaultShell = distroDef.defaultShell,
+                userPassword = userPassword
             )
             rootfsManager.downloadAndInstallDistro(
                 targetDir = container.rootDir,
@@ -843,6 +849,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 rootfsManager.deleteUser("ubuntu")
             }
             rootfsManager.createOrUpdateUser(cleanUsername, userPassword, isSudo = true)
+            val defaultCont = containerManager.getDefaultContainer()
+            if (defaultCont != null) {
+                containerManager.updateContainer(
+                    defaultCont.copy(
+                        defaultUser = cleanUsername,
+                        userPassword = userPassword
+                    )
+                )
+            }
             setDefaultTerminalUser(cleanUsername)
             refreshStatus()
             terminalBridge.startSession(loginUser = cleanUsername)
@@ -900,6 +915,48 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _defaultTerminalUser.value = username
             prefs.edit().putString("default_terminal_user", username).apply()
         }
+        refreshStatus()
+    }
+
+    fun setWebTerminalLanAccess(containerId: String, enabled: Boolean) {
+        containerManager.setWebTerminalLanAccess(containerId, enabled)
+        refreshStatus()
+    }
+
+    fun setCodeServerLanAccess(containerId: String, enabled: Boolean, customPassword: String? = null) {
+        containerManager.setCodeServerLanAccess(containerId, enabled, customPassword)
+        refreshStatus()
+    }
+
+    fun setCodeServerPassword(containerId: String, password: String) {
+        containerManager.setCodeServerPassword(containerId, password)
+        refreshStatus()
+    }
+
+    fun regenerateCodeServerPassword(containerId: String): String {
+        val pass = containerManager.regenerateCodeServerPassword(containerId)
+        refreshStatus()
+        return pass
+    }
+
+    fun setVncLanAccess(containerId: String, enabled: Boolean) {
+        containerManager.setVncLanAccess(containerId, enabled)
+        refreshStatus()
+    }
+
+    fun setVncPassword(containerId: String, password: String) {
+        containerManager.setVncPassword(containerId, password)
+        refreshStatus()
+    }
+
+    fun regenerateVncPassword(containerId: String): String {
+        val pass = containerManager.regenerateVncPassword(containerId)
+        refreshStatus()
+        return pass
+    }
+
+    fun setContainerUserPassword(containerId: String, password: String) {
+        containerManager.setContainerUserPassword(containerId, password)
         refreshStatus()
     }
 

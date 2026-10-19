@@ -127,14 +127,17 @@ class RootfsMigrationTest {
 
     @Test
     fun testHasRootfsImprovements_handlesVersionsWithoutChanges() {
-        // App is on build 11, container is on build 11 -> no improvements
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 11, targetVersionCode = 11))
+        // App is on build 16, container is on build 16 -> no improvements
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 16, targetVersionCode = 16))
 
-        // Hypothetical future app build 12 without any added migrations beyond 11
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 11, targetVersionCode = 12))
+        // Existing container on build 11, app on build 16 -> has pending security migration!
+        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 11, targetVersionCode = 16))
 
-        // Legacy container on build 1 -> has improvements up to build 11
-        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 11))
+        // Hypothetical future app build 17 without any added migrations beyond 16
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 16, targetVersionCode = 17))
+
+        // Legacy container on build 1 -> has improvements up to build 16
+        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 16))
     }
 
     @Test
@@ -162,7 +165,42 @@ class RootfsMigrationTest {
         val vncConfig = File(rootfsDir, "etc/vnc/config")
         assertTrue("vnc config must exist", vncConfig.exists())
         assertTrue("vnc config must specify securitytypes", vncConfig.readText().contains("securitytypes=None,VncAuth"))
+        assertTrue("vnc config must specify localhost=no", vncConfig.readText().contains("localhost=no"))
         assertTrue("vnc config must specify useblacklist=0", vncConfig.readText().contains("useblacklist=0"))
+    }
+
+    @Test
+    fun testMigration_v16_hardensVncConfigAndPacman() {
+        val rootfsDir = tempFolder.newFolder("v16_test_rootfs")
+
+        // First apply v11 to create the initial desktop configuration
+        val migration11 = RootfsMigrationManager.ALL_MIGRATIONS.find { it.targetVersionCode == 11 }
+        assertNotNull("Migration v11 must exist", migration11)
+        migration11?.execute(null, rootfsDir) {}
+
+        // Add a pacman.conf with SigLevel = Never to verify pacman hardening
+        val pacmanConf = File(rootfsDir, "etc/pacman.conf")
+        pacmanConf.writeText("[options]\nHoldPkg = pacman glibc\nSigLevel = Never\n")
+
+        val migration16 = RootfsMigrationManager.ALL_MIGRATIONS.find { it.targetVersionCode == 16 }
+        assertNotNull("Migration v16 must exist", migration16)
+
+        val logs = mutableListOf<String>()
+        val success = migration16?.execute(null, rootfsDir) { logs.add(it) } ?: false
+        assertTrue("Migration v16 must succeed", success)
+
+        val vncConfig = File(rootfsDir, "etc/vnc/config")
+        assertTrue("vnc config must exist", vncConfig.exists())
+        assertTrue("vnc config must specify securitytypes=VncAuth", vncConfig.readText().contains("securitytypes=VncAuth"))
+        assertTrue("vnc config must specify localhost=yes", vncConfig.readText().contains("localhost=yes"))
+        assertFalse("vnc config must not allow None security type", vncConfig.readText().contains("None"))
+        assertTrue("vnc config must retain useblacklist=0", vncConfig.readText().contains("useblacklist=0"))
+
+        val rootVncConfig = File(rootfsDir, "root/.vnc/config")
+        assertTrue("root vnc config must specify securitytypes=VncAuth", rootVncConfig.readText().contains("securitytypes=VncAuth"))
+        assertTrue("root vnc config must specify localhost=yes", rootVncConfig.readText().contains("localhost=yes"))
+
+        assertFalse("pacman.conf must not contain SigLevel = Never", pacmanConf.readText().contains("SigLevel = Never"))
     }
 
     @Test
