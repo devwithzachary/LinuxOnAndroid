@@ -2,7 +2,7 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
-## [1.7.2] - 2026-10-14
+## [1.7.2] - 2026-10-19
 
 ### 🛡️ Security & Privacy Hardening
 - **Loopback Binding by Default**: Hardened Web Terminal (ttyd), VS Code Server (code-server), and TigerVNC services to bind exclusively to loopback (`127.0.0.1`) by default, preventing unintended network exposure and unauthorized access over public Wi-Fi or local networks.

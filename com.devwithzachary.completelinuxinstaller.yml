@@ -15,9 +15,10 @@ Binaries:
   https://github.com/devwithzachary/LinuxOnAndroid/releases/download/%v/LinuxOnAndroid-%v-release.apk
 
 Builds:
-  - versionName: 1.7.1
-    versionCode: 15
-    commit: d371ee80cc1eb743754cebed23e8716c4bc40127
+
+  - versionName: 1.7.2
+    versionCode: 16
+    commit: f088188b5df39ec27d57bc537d305f4b0939c64a
     subdir: app
     sudo:
       - apt-get update
@@ -33,5 +34,5 @@ AllowedAPKSigningKeys: c532d763fd4ec838fa118005d9eb51ec13ce72167d2b0a1a8452ce36f
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.7.1
-CurrentVersionCode: 15
+CurrentVersion: 1.7.2
+CurrentVersionCode: 16

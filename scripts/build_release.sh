@@ -29,6 +29,9 @@ if [ ! -f "app/src/main/jniLibs/arm64-v8a/libproot.so" ]; then
     ./scripts/build_native_libs.sh
 fi
 
+# Clean previous CXX build caches to avoid path discrepancies between environments
+rm -rf "$PROJECT_ROOT/app/.cxx"
+
 # Execute Gradle Clean Build for Release AAB and APK
 ./gradlew clean bundleRelease assembleRelease
 
