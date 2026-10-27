@@ -81,6 +81,11 @@ restore_host_state() {
     if [ -f "$PROJECT_ROOT/local.properties.host" ]; then
         mv "$PROJECT_ROOT/local.properties.host" "$PROJECT_ROOT/local.properties"
     fi
+    if [ ! -f "$PROJECT_ROOT/local.properties" ] || grep -q "/opt/android-sdk" "$PROJECT_ROOT/local.properties" 2>/dev/null; then
+        if [ -d "$HOME/Android/Sdk" ]; then
+            echo "sdk.dir=$HOME/Android/Sdk" > "$PROJECT_ROOT/local.properties"
+        fi
+    fi
 }
 trap restore_host_state EXIT
 
@@ -93,6 +98,8 @@ echo "📁 Container Mount Path: $FDROID_BUILD_DIR"
 
 docker run --rm \
     --platform linux/amd64 \
+    -e HOST_UID="${SUDO_UID:-$(id -u)}" \
+    -e HOST_GID="${SUDO_GID:-$(id -g)}" \
     -v "$PROJECT_ROOT":"$FDROID_BUILD_DIR" \
     -v "$HOME/.cache/android-sdk-linux/ndk":/opt/android-sdk/ndk \
     -v "$HOME/.cache/android-sdk-linux/platforms":/opt/android-sdk/platforms \
@@ -103,6 +110,7 @@ docker run --rm \
     "$DOCKER_IMAGE" \
     bash -c '
         set -e
+        trap '\''chown -R "$HOST_UID:$HOST_GID" "$FDROID_BUILD_DIR" /opt/android-sdk /root/.gradle/caches 2>/dev/null || true'\'' EXIT
         echo "🔧 Installing build prerequisites (make, gawk)..."
         apt-get update -qq
         apt-get install -y -qq make gawk >/dev/null

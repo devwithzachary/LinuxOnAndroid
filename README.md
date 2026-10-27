@@ -6,6 +6,7 @@
   <p><strong>Run full-featured, rootless Linux distributions natively on Android.</strong></p>
 
   <p>
+    <a href="https://f-droid.org/packages/com.devwithzachary.completelinuxinstaller/"><img src="https://img.shields.io/f-droid/v/com.devwithzachary.completelinuxinstaller.svg?logo=f-droid&logoColor=white" alt="F-Droid" /></a>
     <a href="https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller"><img src="https://img.shields.io/badge/Google%20Play-Download-brightgreen.svg?logo=googleplay" alt="Google Play Store" /></a>
     <a href="https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller"><img src="https://img.shields.io/badge/Google%20Play-Open%20Beta-blue.svg?logo=googleplay" alt="Google Play Open Testing" /></a>
     <a href="https://discord.gg/vJbBagx8JA"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2.svg?logo=discord&logoColor=white" alt="Discord Community" /></a>
@@ -20,8 +21,8 @@
 **Complete Linux Installer** is an open-source Android application designed to download, provision, and run full-featured Linux distributions (including Ubuntu 26.04 LTS, Debian 12, Fedora 44, Alpine Linux, Arch Linux ARM, Kali Linux, and Void Linux) natively on Android devices **without requiring root permissions**.
 
 > [!TIP]
-> 📲 **Now Live on the Google Play Store!**  
-> **[Download on Google Play](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)** | **[Join Beta Testing Track](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)**
+> 📲 **Now Live on F-Droid & Google Play!**  
+> **[Get it on F-Droid](https://f-droid.org/packages/com.devwithzachary.completelinuxinstaller/)** | **[Download on Google Play](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)** | **[Join Beta Testing Track](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)**
 
 Powered by a native **PRoot** user-space engine, a multi-session **POSIX PTY terminal bridge**, and a modern **Jetpack Compose Material 3** interface, Complete Linux Installer transforms your Android phone or tablet into a portable Linux workstation, server host, desktop environment, and development platform.
 
@@ -176,6 +177,17 @@ Complete Linux Installer provisions environments using official root filesystem 
 | **Termux Project** | Architectural references for PRoot execution and PTY subprocess management on Android. | [Termux](https://github.com/termux) / [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) |
 | **JetBrains Mono** | Bundled monospace font used in the terminal renderer. | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) / [SIL OFL 1.1](licenses/fonts/JetBrainsMono-OFL-1.1.txt) |
 | **Ubuntu Mono** | Bundled monospace font option for the terminal. | [Ubuntu Font Family](https://design.ubuntu.com/font/) / [Ubuntu Font Licence](licenses/fonts/UbuntuFontLicence.txt) |
+
+---
+
+## 📲 Downloads & Installation
+
+Complete Linux Installer is distributed across multiple official channels:
+
+* **[F-Droid](https://f-droid.org/packages/com.devwithzachary.completelinuxinstaller/)**: Built directly from source and signed with official keys by F-Droid. Recommended for users prioritizing fully audited, open-source distribution.
+* **[Google Play Store](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)**: Standard production release channel for Android devices.
+* **[Google Play Open Beta](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)**: Opt-in early testing track for previewing upcoming features.
+* **[GitHub Releases](https://github.com/devwithzachary/LinuxOnAndroid/releases)**: Direct APK and Android App Bundle (`.aab`) downloads for each release.
 
 ---
 

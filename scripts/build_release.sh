@@ -23,6 +23,13 @@ fi
 echo "📦 Target Version: $VERSION_NAME (code: $VERSION_CODE)"
 echo ""
 
+# Ensure local.properties points to a valid host SDK
+if [ ! -f "local.properties" ] || grep -q "/opt/android-sdk" local.properties 2>/dev/null; then
+    if [ -d "$HOME/Android/Sdk" ]; then
+        echo "sdk.dir=$HOME/Android/Sdk" > local.properties
+    fi
+fi
+
 # Ensure native libraries are present
 if [ ! -f "app/src/main/jniLibs/arm64-v8a/libproot.so" ]; then
     echo "⚠️  Native libraries missing in app/src/main/jniLibs. Rebuilding from source..."
