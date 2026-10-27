@@ -6,6 +6,7 @@ import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.model.LinuxDistribution
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
@@ -41,6 +42,68 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             } catch (_: Exception) {
                 false
             }
+        }
+
+        /**
+         * Parses the expected checksum for [targetFileName] from raw checksum file contents.
+         * Supports single raw hex checksums, GNU style (`hash  *filename`), BSD style (`SHA256 (filename) = hash`),
+         * and MD5/SHA-256/SHA-512 formats.
+         */
+        fun parseExpectedHash(content: String, targetFileName: String): String? {
+            val trimmed = content.trim()
+            if (trimmed.isEmpty()) return null
+
+            val rawHexRegex = Regex("^[0-9a-fA-F]{32}$|^[0-9a-fA-F]{64}$|^[0-9a-fA-F]{128}$")
+            if (rawHexRegex.matches(trimmed)) {
+                return trimmed.lowercase()
+            }
+
+            val bsdPattern = Regex("""(?:SHA256|MD5|SHA512)\s*\([^)]+\)\s*=\s*([0-9a-fA-F]{32,128})""", RegexOption.IGNORE_CASE)
+            val gnuPattern = Regex("""^([0-9a-fA-F]{32,128})\s+[* ]?(.*?)$""")
+            val hexTokenPattern = Regex("""\b([0-9a-fA-F]{128}|[0-9a-fA-F]{64}|[0-9a-fA-F]{32})\b""")
+
+            val allHexTokens = mutableListOf<String>()
+
+            for (rawLine in trimmed.lineSequence()) {
+                val line = rawLine.trim()
+                if (line.isEmpty() || line.startsWith("#") || line.startsWith("-----")) {
+                    continue
+                }
+
+                val bsdMatch = bsdPattern.find(line)
+                if (bsdMatch != null && line.contains(targetFileName, ignoreCase = true)) {
+                    return bsdMatch.groupValues[1].lowercase()
+                }
+
+                val gnuMatch = gnuPattern.find(line)
+                if (gnuMatch != null) {
+                    val hash = gnuMatch.groupValues[1]
+                    val fileName = gnuMatch.groupValues[2].trim()
+                    if (fileName.equals(targetFileName, ignoreCase = true) ||
+                        fileName.endsWith("/$targetFileName", ignoreCase = true) ||
+                        line.contains(targetFileName, ignoreCase = true)
+                    ) {
+                        return hash.lowercase()
+                    }
+                }
+
+                if (line.contains(targetFileName, ignoreCase = true)) {
+                    val match = hexTokenPattern.find(line)
+                    if (match != null) {
+                        return match.groupValues[1].lowercase()
+                    }
+                }
+
+                hexTokenPattern.findAll(line).forEach { match ->
+                    allHexTokens.add(match.groupValues[1].lowercase())
+                }
+            }
+
+            if (allHexTokens.size == 1) {
+                return allHexTokens.first()
+            }
+
+            return null
         }
     }
 
@@ -124,6 +187,22 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         )
     }
 
+    private fun fetchRemoteChecksum(urlStr: String): String {
+        val url = URL(urlStr)
+        val connection = url.openConnection() as HttpURLConnection
+        connection.connectTimeout = 10000
+        connection.readTimeout = 10000
+        connection.instanceFollowRedirects = true
+        connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) LinuxOnAndroid/1.0")
+        connection.connect()
+
+        if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+            throw IOException("HTTP error ${connection.responseCode} ${connection.responseMessage} while fetching checksum from $urlStr")
+        }
+
+        return connection.inputStream.bufferedReader().use { it.readText() }
+    }
+
     fun downloadAndInstallDistro(
         targetDir: File,
         distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition,
@@ -148,6 +227,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val connection = url.openConnection() as HttpURLConnection
             connection.connectTimeout = 15000
             connection.readTimeout = 15000
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) LinuxOnAndroid/1.0")
             connection.connect()
 
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
@@ -158,7 +238,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val fileLength = connection.contentLength.toLong()
             val inputStream = connection.inputStream
             val outputStream = FileOutputStream(archiveFile)
-            val digest = MessageDigest.getInstance("SHA-256")
+            val sha256Digest = MessageDigest.getInstance("SHA-256")
+            val md5Digest = MessageDigest.getInstance("MD5")
 
             val buffer = ByteArray(65536)
             var totalRead = 0L
@@ -167,7 +248,8 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             while (inputStream.read(buffer).also { read = it } != -1) {
                 totalRead += read
                 outputStream.write(buffer, 0, read)
-                digest.update(buffer, 0, read)
+                sha256Digest.update(buffer, 0, read)
+                md5Digest.update(buffer, 0, read)
 
                 val percent = if (fileLength > 0) ((totalRead * 100) / fileLength).toInt() else 0
                 send(DownloadState.Downloading(totalRead, fileLength, percent))
@@ -177,19 +259,50 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             outputStream.close()
             inputStream.close()
 
-            val calculatedHash = digest.digest().joinToString("") { "%02x".format(it) }
-            Log.d(TAG, "Calculated SHA-256 for downloaded rootfs: $calculatedHash")
+            val calculatedSha256 = sha256Digest.digest().joinToString("") { "%02x".format(it) }
+            val calculatedMd5 = md5Digest.digest().joinToString("") { "%02x".format(it) }
+            Log.d(TAG, "Calculated SHA-256 for downloaded rootfs: $calculatedSha256, MD5: $calculatedMd5")
 
-            val expectedHash = distroDef.getSha256Checksum(arch)
+            val checksumUrl = distroDef.getChecksumUrl(arch)
+            val archiveFileName = downloadUrl.substringAfterLast('/')
+            var expectedHash: String? = null
+            var hashSource = "bundled fallback"
+
+            if (!checksumUrl.isNullOrBlank()) {
+                try {
+                    val rawChecksumContent = fetchRemoteChecksum(checksumUrl)
+                    expectedHash = parseExpectedHash(rawChecksumContent, archiveFileName)
+                    if (!expectedHash.isNullOrBlank()) {
+                        hashSource = "remote ($checksumUrl)"
+                        Log.i(TAG, "Parsed remote expected checksum for $archiveFileName: $expectedHash")
+                    } else {
+                        Log.w(TAG, "Could not find checksum for $archiveFileName in remote file $checksumUrl")
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to fetch remote checksum from $checksumUrl, falling back to bundled hash", e)
+                }
+            }
+
+            if (expectedHash.isNullOrBlank()) {
+                expectedHash = distroDef.getSha256Checksum(arch)
+                if (!expectedHash.isNullOrBlank()) {
+                    hashSource = "bundled"
+                }
+            }
+
+            val isMd5 = expectedHash?.length == 32
+            val algoName = if (isMd5) "MD5" else "SHA-256"
+            val calculatedHash = if (isMd5) calculatedMd5 else calculatedSha256
+
             if (!expectedHash.isNullOrBlank()) {
                 if (!calculatedHash.equals(expectedHash, ignoreCase = true)) {
                     archiveFile.delete()
-                    val mismatchMsg = "Rootfs checksum verification failed! Expected: $expectedHash, got: $calculatedHash"
+                    val mismatchMsg = "Rootfs $algoName checksum verification failed! Expected: $expectedHash, got: $calculatedHash. Tap Redownload & Retry to try again."
                     Log.e(TAG, mismatchMsg)
                     send(DownloadState.Error(mismatchMsg))
                     return@channelFlow
                 }
-                Log.i(TAG, "Rootfs SHA-256 checksum verified successfully: $calculatedHash")
+                Log.i(TAG, "Rootfs $algoName checksum verified successfully ($hashSource): $calculatedHash")
             }
 
             val logList = mutableListOf<String>()
@@ -202,7 +315,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             }
 
             if (!expectedHash.isNullOrBlank()) {
-                emitLog("Verified ${distroDef.name} rootfs integrity (SHA-256 match).")
+                emitLog("Verified ${distroDef.name} rootfs integrity ($algoName match from $hashSource).")
             }
             emitLog("Downloading official ${distroDef.name} rootfs tarball...")
             send(DownloadState.Extracting("Extracting ${distroDef.name} rootfs structure...", logList.toList()))

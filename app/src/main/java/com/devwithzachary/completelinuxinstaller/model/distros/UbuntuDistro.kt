@@ -23,6 +23,11 @@ val UbuntuDistro = DistroDefinition(
         SystemArchitecture.X86_64 to "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-amd64.tar.gz",
         SystemArchitecture.ARMV7 to "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-armhf.tar.gz"
     ),
+    checksumUrls = mapOf(
+        SystemArchitecture.ARM64 to "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/SHA256SUMS",
+        SystemArchitecture.X86_64 to "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/SHA256SUMS",
+        SystemArchitecture.ARMV7 to "https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/SHA256SUMS"
+    ),
     sha256Checksums = mapOf(
         SystemArchitecture.ARM64 to "b2b46a37324ea1954e93f293fe6d7c2241daf2fc298c4022e6e4caceeed74cab",
         SystemArchitecture.X86_64 to "046fcabb7f16f45a80ae11824664f2a07e01386c6fb1ed9dc1e225a66a6553a2",

@@ -22,10 +22,15 @@ val KaliDistro = DistroDefinition(
         SystemArchitecture.X86_64 to "https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-amd64.tar.xz",
         SystemArchitecture.ARMV7 to "https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-armhf.tar.xz"
     ),
+    checksumUrls = mapOf(
+        SystemArchitecture.ARM64 to "https://kali.download/nethunter-images/current/rootfs/SHA256SUMS",
+        SystemArchitecture.X86_64 to "https://kali.download/nethunter-images/current/rootfs/SHA256SUMS",
+        SystemArchitecture.ARMV7 to "https://kali.download/nethunter-images/current/rootfs/SHA256SUMS"
+    ),
     sha256Checksums = mapOf(
-        SystemArchitecture.ARM64 to "d6403a5da175df325611d23af4b92330856059c45454eced7f4cdf3ca6df2e4e",
-        SystemArchitecture.X86_64 to "4c0847c6409be9b65c9fe3bb7a8a6af9d265ab56837323e2e319bb733f1ed86a",
-        SystemArchitecture.ARMV7 to "19e3fbf28228257a2d9ec8e0bd05f0c931168941c006a313722084859dd11d1b"
+        SystemArchitecture.ARM64 to "96aeced81a857a987715a14417af05c2934e3e19052d6151c398a1c215448b60",
+        SystemArchitecture.X86_64 to "612e81433fe4adfaff96743ecdf6f0caea39a7e148808b5ededc34eca1c49c1a",
+        SystemArchitecture.ARMV7 to "a361dca67700a6a54bbd25a2e219903eddf0cfbfdce5008ed8b2aab63ded7a31"
     ),
     firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
         "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true); " +

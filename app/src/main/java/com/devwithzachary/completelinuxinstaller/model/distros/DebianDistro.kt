@@ -22,6 +22,16 @@ val DebianDistro = DistroDefinition(
         SystemArchitecture.X86_64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/amd64/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz",
         SystemArchitecture.ARMV7 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm32v7/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz"
     ),
+    checksumUrls = mapOf(
+        SystemArchitecture.ARM64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz.sha256",
+        SystemArchitecture.X86_64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/amd64/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz.sha256",
+        SystemArchitecture.ARMV7 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm32v7/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz.sha256"
+    ),
+    sha256Checksums = mapOf(
+        SystemArchitecture.ARM64 to "500eec4019eab9492cd64c1b07f8061d2fa7eac7fa3ef1fff8b9d6400f60334e",
+        SystemArchitecture.X86_64 to "03e8ce9c6e07367ce89fa4c6c3a34dde952cf8f51824741e4506f86d8a2928a3",
+        SystemArchitecture.ARMV7 to "502c52d27984c146f4b287a3ca51a73ee74864f85ffdb82378180b300b5c59bb"
+    ),
     firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
         "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; chmod 777 /usr /etc 2>/dev/null; " +
                 "rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /etc/*.lock /etc/*.PID /etc/*~ /etc/apt/sources.list.d/* 2>/dev/null; " +

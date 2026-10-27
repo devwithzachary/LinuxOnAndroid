@@ -54,7 +54,8 @@ fun WizardScreen(
     onStartInstallDistro: (distroDef: DistroDefinition, containerName: String, rootPassword: String, username: String, userPassword: String) -> Unit,
     onConfigureAccountsClick: (rootPassword: String, username: String, userPassword: String) -> Unit,
     onFinishWizardClick: () -> Unit,
-    onCancel: () -> Unit = onFinishWizardClick
+    onCancel: () -> Unit = onFinishWizardClick,
+    onResetWizardState: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
     var showLogDialog by remember { mutableStateOf(false) }
@@ -73,7 +74,10 @@ fun WizardScreen(
             currentStep == WizardStep.PERMISSIONS -> currentStep = WizardStep.CONFIG
             currentStep == WizardStep.DISTRO && hasExistingContainers -> onCancel()
             currentStep == WizardStep.INSTALL && downloadState is DownloadState.Success -> onFinishWizardClick()
-            currentStep == WizardStep.INSTALL && downloadState is DownloadState.Error && hasExistingContainers -> onCancel()
+            currentStep == WizardStep.INSTALL && downloadState is DownloadState.Error -> {
+                onResetWizardState()
+                currentStep = WizardStep.DISTRO
+            }
         }
     }
 
@@ -198,6 +202,11 @@ fun WizardScreen(
                                         userPassword.ifBlank { "user" }
                                     )
                                 },
+                                onSelectDifferentDistro = {
+                                    onResetWizardState()
+                                    currentStep = WizardStep.DISTRO
+                                },
+                                onCancel = if (hasExistingContainers) onCancel else null,
                                 onFinish = onFinishWizardClick
                             )
                         }
@@ -893,6 +902,8 @@ private fun InstallationStep(
     downloadState: DownloadState,
     onShowLogs: () -> Unit,
     onRetry: () -> Unit,
+    onSelectDifferentDistro: () -> Unit = {},
+    onCancel: (() -> Unit)? = null,
     onFinish: () -> Unit
 ) {
     Column(
@@ -1057,7 +1068,28 @@ private fun InstallationStep(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Retry Installation")
+                    Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Redownload & Retry")
+                }
+
+                OutlinedButton(
+                    onClick = onSelectDifferentDistro,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Choose Different Distribution")
+                }
+
+                if (onCancel != null) {
+                    TextButton(
+                        onClick = onCancel,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Cancel & Return to Dashboard")
+                    }
                 }
             }
 

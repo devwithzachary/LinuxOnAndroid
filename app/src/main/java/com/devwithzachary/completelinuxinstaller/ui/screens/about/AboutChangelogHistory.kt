@@ -23,9 +23,19 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
-        version = "v1.7.2",
+        version = "v1.8.0",
         date = "October 2026",
         initialExpanded = true,
+        highlights = listOf(
+            "Dynamic Checksum Verification: Automatically downloads and verifies checksums alongside latest rootfs images (Ubuntu, Debian, Kali) to prevent hash mismatch errors when upstream mirrors update, with bundled fallback hashes.",
+            "Installation Recovery Controls: Added 'Redownload & Retry' and 'Choose Different Distribution' buttons if a rootfs download fails, and fixed Back navigation to prevent users from getting trapped.",
+            "Release-Pinned Distribution Strategy: Pinned official stable release artifacts and verified checksums for Alpine 3.21.3, Fedora 44-1.7, Void Linux 20250202, and Arch Linux."
+        )
+    ),
+    ReleaseChangelog(
+        version = "v1.7.2",
+        date = "October 2026",
+        initialExpanded = false,
         highlights = listOf(
             "Network Service Hardening: Web Terminal (ttyd), VS Code Server (code-server), and TigerVNC now bind exclusively to loopback (127.0.0.1) by default, protecting active containers against unauthorized LAN access.",
             "Opt-In LAN Access & Custom Passwords: Added per-container Remote Access toggles in container settings with mandatory authentication, allowing users to set custom passwords for VS Code Server and TigerVNC.",

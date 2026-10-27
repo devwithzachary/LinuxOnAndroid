@@ -23,6 +23,11 @@ val AlpineDistro = DistroDefinition(
         SystemArchitecture.X86_64 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz",
         SystemArchitecture.ARMV7 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/armv7/alpine-minirootfs-3.21.3-armv7.tar.gz"
     ),
+    checksumUrls = mapOf(
+        SystemArchitecture.ARM64 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/aarch64/alpine-minirootfs-3.21.3-aarch64.tar.gz.sha256",
+        SystemArchitecture.X86_64 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz.sha256",
+        SystemArchitecture.ARMV7 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/armv7/alpine-minirootfs-3.21.3-armv7.tar.gz.sha256"
+    ),
     sha256Checksums = mapOf(
         SystemArchitecture.ARM64 to "ead8a4b37867bd19e7417dd078748e2312c0aea364403d96758d63ea8ff261ea",
         SystemArchitecture.X86_64 to "1a694899e406ce55d32334c47ac0b2efb6c06d7e878102d1840892ad44cd5239",

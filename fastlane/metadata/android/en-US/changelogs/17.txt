@@ -1,0 +1,4 @@
+• Integrity: Added dynamic checksum downloads alongside rootfs images.
+• Wizard: Added Redownload & Retry and Choose Different Distro buttons.
+• Navigation: Fixed back button handling on download error screens.
+• Distros: Pinned stable release downloads for Alpine, Fedora, and Void.

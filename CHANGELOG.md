@@ -2,6 +2,14 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.8.0] - 2026-10-27
+
+### 🚀 Distribution & Installation Management
+- **Dynamic Checksum Verification**: Added automatic remote checksum downloading alongside rootfs images for rolling and latest distributions (Ubuntu 26.04 LTS, Debian 12 Bookworm, Kali Rolling). Supports multi-format checksum parsing (GNU format, BSD format, MD5, raw hex) with bundled fallback verification to eliminate hash mismatch errors when upstream mirrors publish updates.
+- **Wizard Redownload & Recovery Controls**: Added prominent "Redownload & Retry" and "Choose Different Distribution" buttons when rootfs download or checksum verification fails, ensuring users are never trapped on the installation failure screen.
+- **Wizard Back Navigation Fix**: Resolved an issue where pressing the device Back button on the installation error step failed to navigate backward for new users without existing containers. The wizard now gracefully resets state and returns to distribution selection.
+- **Release-Pinned Distribution Strategy**: Pinned official stable release artifacts and hashes for distributions without floating checksum files (Alpine Linux 3.21.3, Fedora 44-1.7, Void Linux 20250202, Arch Linux x86_64 2026.10.01 / ARM MD5).
+
 ## [1.7.2] - 2026-10-19
 
 ### 🛡️ Security & Privacy Hardening

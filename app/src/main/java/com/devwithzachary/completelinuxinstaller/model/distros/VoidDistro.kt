@@ -23,6 +23,11 @@ val VoidDistro = DistroDefinition(
         SystemArchitecture.X86_64 to "https://repo-default.voidlinux.org/live/current/void-x86_64-ROOTFS-20250202.tar.xz",
         SystemArchitecture.ARMV7 to "https://repo-default.voidlinux.org/live/current/void-armv7l-ROOTFS-20250202.tar.xz"
     ),
+    checksumUrls = mapOf(
+        SystemArchitecture.ARM64 to "https://repo-default.voidlinux.org/live/current/sha256sum.txt",
+        SystemArchitecture.X86_64 to "https://repo-default.voidlinux.org/live/current/sha256sum.txt",
+        SystemArchitecture.ARMV7 to "https://repo-default.voidlinux.org/live/current/sha256sum.txt"
+    ),
     sha256Checksums = mapOf(
         SystemArchitecture.ARM64 to "01a30f17ae06d4d5b322cd579ca971bc479e02cc284ec1e5a4255bea6bac3ce6",
         SystemArchitecture.X86_64 to "3f48e6673ac5907a897d913c97eb96edbfb230162731b4016562c51b3b8f1876",

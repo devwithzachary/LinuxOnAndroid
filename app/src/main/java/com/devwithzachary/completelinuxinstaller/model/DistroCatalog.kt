@@ -42,6 +42,7 @@ data class DistroDefinition(
     val downloadSizeMb: Int = 33,
     val installedSizeMb: Int = 1500,
     val downloadUrls: Map<SystemArchitecture, String>,
+    val checksumUrls: Map<SystemArchitecture, String> = emptyMap(),
     val sha256Checksums: Map<SystemArchitecture, String> = emptyMap(),
     val colorHex: Long = 0xFFE95420, // Default accent
     val isRecommended: Boolean = false,
@@ -57,6 +58,8 @@ data class DistroDefinition(
     val formattedInstalledSize: String get() = formatDistroSize(installedSizeMb)
 
     fun getDownloadUrl(arch: SystemArchitecture): String? = downloadUrls[arch]
+
+    fun getChecksumUrl(arch: SystemArchitecture): String? = checksumUrls[arch]
 
     fun getSha256Checksum(arch: SystemArchitecture): String? = sha256Checksums[arch]
 

@@ -24,6 +24,11 @@ val FedoraDistro = DistroDefinition(
         SystemArchitecture.X86_64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/x86_64/images/Fedora-WSL-Base-44-1.7.x86_64.wsl",
         SystemArchitecture.ARMV7 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-WSL-Base-44-1.7.aarch64.wsl"
     ),
+    checksumUrls = mapOf(
+        SystemArchitecture.ARM64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-Container-44-1.7-aarch64-CHECKSUM",
+        SystemArchitecture.X86_64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/x86_64/images/Fedora-Container-44-1.7-x86_64-CHECKSUM",
+        SystemArchitecture.ARMV7 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-Container-44-1.7-aarch64-CHECKSUM"
+    ),
     sha256Checksums = mapOf(
         SystemArchitecture.ARM64 to "1a3220262dc918b07d08410278205fb35e92c28a53455382028eea1a980476ee",
         SystemArchitecture.X86_64 to "2e5b153ba4b639952bf546be577fc19b832fe8944caa7de342b32f10da7d319a",

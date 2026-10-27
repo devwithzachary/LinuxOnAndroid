@@ -23,6 +23,14 @@ val ArchDistro = DistroDefinition(
         SystemArchitecture.X86_64 to "https://geo.mirror.pkgbuild.com/iso/latest/archlinux-bootstrap-x86_64.tar.zst",
         SystemArchitecture.ARMV7 to "https://fl.us.mirror.archlinuxarm.org/os/ArchLinuxARM-armv7-latest.tar.gz"
     ),
+    checksumUrls = mapOf(
+        SystemArchitecture.ARM64 to "https://fl.us.mirror.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz.md5",
+        SystemArchitecture.X86_64 to "https://geo.mirror.pkgbuild.com/iso/latest/sha256sums.txt",
+        SystemArchitecture.ARMV7 to "https://fl.us.mirror.archlinuxarm.org/os/ArchLinuxARM-armv7-latest.tar.gz.md5"
+    ),
+    sha256Checksums = mapOf(
+        SystemArchitecture.X86_64 to "0c9c97b7a58a8a023c9e07f84cb307a9e8006e65d8fc4c17b83ddc8010b45c10"
+    ),
     firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
         "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                 "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true; " +

@@ -320,6 +320,9 @@ fun MainAppContent(viewModel: MainViewModel) {
                             onCancel = {
                                 viewModel.resetWizardState()
                                 currentScreen = AppScreen.DASHBOARD
+                            },
+                            onResetWizardState = {
+                                viewModel.resetWizardState()
                             }
                         )
                     }
