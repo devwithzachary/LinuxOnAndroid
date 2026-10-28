@@ -115,7 +115,7 @@ class DistroCatalogTest {
         assertTrue("Debian expected binaries must include vncpasswd", expectedBinaries!!.contains("usr/bin/vncpasswd"))
         assertTrue("Debian expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
 
-        assertEquals("Debian xfce_desktop version must be 5", 5, debian.getSoftwarePackageVersion("xfce_desktop"))
+        assertEquals("Debian xfce_desktop version must be 7", 7, debian.getSoftwarePackageVersion("xfce_desktop"))
     }
 
     @Test
@@ -148,7 +148,7 @@ class DistroCatalogTest {
         assertTrue("Arch expected binaries must include vncpasswd", expectedBinaries.contains("usr/bin/vncpasswd"))
         assertTrue("Arch expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
 
-        assertEquals("Arch xfce_desktop version must be 5", 5, arch.getSoftwarePackageVersion("xfce_desktop"))
+        assertEquals("Arch xfce_desktop version must be 7", 7, arch.getSoftwarePackageVersion("xfce_desktop"))
     }
 
     @Test
@@ -177,7 +177,7 @@ class DistroCatalogTest {
         assertTrue("Kali expected binaries must include vncpasswd", expectedBinaries.contains("usr/bin/vncpasswd"))
         assertTrue("Kali expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
 
-        assertEquals("Kali xfce_desktop version must be 5", 5, kali.getSoftwarePackageVersion("xfce_desktop"))
+        assertEquals("Kali xfce_desktop version must be 7", 7, kali.getSoftwarePackageVersion("xfce_desktop"))
     }
 
     @Test
@@ -211,7 +211,7 @@ class DistroCatalogTest {
         assertTrue("Void expected binaries must include vncpasswd", expectedBinaries.contains("usr/bin/vncpasswd"))
         assertTrue("Void expected binaries must include xstartup", expectedBinaries.contains("etc/vnc/xstartup"))
 
-        assertEquals("Void xfce_desktop version must be 5", 5, void.getSoftwarePackageVersion("xfce_desktop"))
+        assertEquals("Void xfce_desktop version must be 7", 7, void.getSoftwarePackageVersion("xfce_desktop"))
 
         val sshInstallCmd = void.getSoftwarePackageInstallCommand("openssh_server", 2222)
         assertNotNull("Void openssh install command must exist", sshInstallCmd)
@@ -309,7 +309,7 @@ class DistroCatalogTest {
         assertTrue("Must include startxfce4", expectedBinaries!!.contains("usr/bin/startxfce4"))
         assertTrue("Must include vncserver", expectedBinaries.contains("usr/bin/vncserver"))
 
-        assertEquals("Fedora xfce_desktop version must be 5", 5, fedora.getSoftwarePackageVersion("xfce_desktop"))
+        assertEquals("Fedora xfce_desktop version must be 7", 7, fedora.getSoftwarePackageVersion("xfce_desktop"))
 
         val pythonInstall = fedora.getSoftwarePackageInstallCommand("python_dev")
         assertTrue("Fedora python install must use dnf", pythonInstall!!.contains("dnf install -y python3"))

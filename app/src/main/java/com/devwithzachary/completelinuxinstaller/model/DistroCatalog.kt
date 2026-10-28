@@ -15,7 +15,7 @@ enum class PackageManagerType(
 ) {
     APT("APT", "apt-get install -y", "apt-get update"),
     APK("APK", "apk add", "apk update"),
-    PACMAN("Pacman", "pacman -Sy --noconfirm", "pacman -Sy"),
+    PACMAN("Pacman", "pacman -Sy --noconfirm --overwrite \"*\"", "pacman -Sy"),
     DNF("DNF", "dnf install -y", "dnf check-update || true"),
     XBPS("XBPS", "xbps-install -y", "xbps-install -S")
 }
@@ -195,8 +195,8 @@ object DistroCatalog {
             "  FOUND_DISPS=\"\"\\n" +
             "  for lock in /tmp/.X*-lock; do\\n" +
             "    [ -e \"\$lock\" ] || continue\\n" +
-            "    D_NUM=\$(basename \"\$lock\" | sed 's/\\.X//;s/-lock//')\\n" +
-            "    PID=\$(cat \"\$lock\" 2>/dev/null | tr -d ' ' | tr -d '\\n')\\n" +
+            "    D_NUM=\$(basename \"\$lock\" | sed \"s/\\.X//;s/-lock//\")\\n" +
+            "    PID=\$(cat \"\$lock\" 2>/dev/null | tr -d \" \" | tr -d \"\\n\")\\n" +
             "    if [ -n \"\$PID\" ] && ( [ -d \"/proc/\$PID\" ] || kill -0 \"\$PID\" 2>/dev/null ); then\\n" +
             "      PORT=\$((5900 + D_NUM))\\n" +
             "      FOUND_DISPS=\"\${FOUND_DISPS}:\$D_NUM:\"\\n" +
@@ -207,11 +207,11 @@ object DistroCatalog {
             "  PROCS=\$( (ps -ef 2>/dev/null || ps aux 2>/dev/null) | grep -v grep | grep -v libproot | grep -v printf | grep Xvnc )\\n" +
             "  if [ -n \"\$PROCS\" ]; then\\n" +
             "    echo \"\$PROCS\" | while read -r line; do\\n" +
-            "      PID=\$(echo \"\$line\" | awk '{print \$2}')\\n" +
-            "      D=\$(echo \"\$line\" | grep -E -o ':[0-9]+' | head -n1)\\n" +
-            "      D_NUM=\$(echo \"\$D\" | tr -d ':')\\n" +
+            "      PID=\$(echo \"\$line\" | awk \"{print \\\$2}\")\\n" +
+            "      D=\$(echo \"\$line\" | grep -E -o \":[0-9]+\" | head -n1)\\n" +
+            "      D_NUM=\$(echo \"\$D\" | tr -d \":\")\\n" +
             "      PORT=\"\"\\n" +
-            "      RFB_ARG=\$(echo \"\$line\" | grep -E -o '\\-rfbport [0-9]+' | awk '{print \$2}')\\n" +
+            "      RFB_ARG=\$(echo \"\$line\" | grep -E -o \"\\\\-rfbport [0-9]+\" | awk \"{print \\\$2}\")\\n" +
             "      [ -n \"\$RFB_ARG\" ] && PORT=\"\$RFB_ARG\" || PORT=\$((5900 + D_NUM))\\n" +
             "      case \"\$FOUND_DISPS\" in\\n" +
             "        *\":\$D_NUM:\"*) ;;\\n" +
@@ -227,7 +227,7 @@ object DistroCatalog {
             "if [ \"\$ACTION\" = \"kill\" ]; then\\n" +
             "  LOCK=\"/tmp/.X\${DISP_NUM}-lock\"\\n" +
             "  if [ -e \"\$LOCK\" ]; then\\n" +
-            "    LPID=\$(cat \"\$LOCK\" 2>/dev/null | tr -d ' ' | tr -d '\\n')\\n" +
+            "    LPID=\$(cat \"\$LOCK\" 2>/dev/null | tr -d \" \" | tr -d \"\\n\")\\n" +
             "    [ -n \"\$LPID\" ] && kill \"\$LPID\" 2>/dev/null || true\\n" +
             "  fi\\n" +
             "  pkill -f \"Xvnc :\$DISP_NUM\" 2>/dev/null || killall -9 Xvnc 2>/dev/null || true\\n" +
@@ -243,7 +243,7 @@ object DistroCatalog {
             "Xvnc \":\$DISP_NUM\" -geometry \"\$GEOM\" -depth \"\$DEPTH\" \$PW -SecurityTypes \"\$SECTYPES\" -UseBlacklist=0 \$LH_ARG >/dev/null 2>&1 &\\n" +
             "sleep 1\\n" +
             "if [ -x \"\$XSTARTUP\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$XSTARTUP\" >/dev/null 2>&1 & elif [ -x \"\$HOME/.vnc/xstartup\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$HOME/.vnc/xstartup\" >/dev/null 2>&1 & elif command -v startxfce4 >/dev/null 2>&1; then DISPLAY=\":\$DISP_NUM\" startxfce4 >/dev/null 2>&1 & fi\\n" +
-            "LAN_IP=\"\"; [ -f /etc/network/proot_interfaces.conf ] && LAN_IP=\$(grep '^PRIMARY_IP=' /etc/network/proot_interfaces.conf 2>/dev/null | cut -d= -f2); [ -z \"\$LAN_IP\" ] && [ -f /etc/hosts ] && LAN_IP=\$(grep -v '^#' /etc/hosts 2>/dev/null | grep -v '^127\\.' | grep -v '^::1' | awk '{print \$1}' | head -n1)\\n" +
+            "LAN_IP=\"\"; [ -f /etc/network/proot_interfaces.conf ] && LAN_IP=\$(grep \"^PRIMARY_IP=\" /etc/network/proot_interfaces.conf 2>/dev/null | cut -d= -f2); [ -z \"\$LAN_IP\" ] && [ -f /etc/hosts ] && LAN_IP=\$(grep -v \"^#\" /etc/hosts 2>/dev/null | grep -v \"^127\\\\.\" | grep -v \"^::1\" | awk \"{print \\\$1}\" | head -n1)\\n" +
             "echo \"VNC Server started on port \$RFB_PORT (:\$DISP_NUM).\"\\n" +
             "echo \"-> Local connection:  127.0.0.1:\$RFB_PORT\"\\n" +
             "[ \"\$LOCALHOST\" != \"yes\" ] && [ -n \"\$LAN_IP\" ] && [ \"\$LAN_IP\" != \"127.0.0.1\" ] && echo \"-> Wi-Fi connection:  \$LAN_IP:\$RFB_PORT\"\\n" +

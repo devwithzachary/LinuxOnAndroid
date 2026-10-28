@@ -200,6 +200,7 @@ class PRootEngine(val context: Context) {
         }
         FastfetchConfig.ensureFastfetchConfig(targetRootfs)
         NetworkShims.ensureNetworkShims(targetRootfs, context)
+        ensureContainerIntegrity(targetRootfs)
         val loginDefs = File(etcDir, "login.defs")
         if (loginDefs.exists()) {
             try {
@@ -386,6 +387,10 @@ class PRootEngine(val context: Context) {
                 "/proc/self/fd/2:/dev/stderr",
                 "/proc/self:/proc/1"
             )
+            val emptySelinuxDir = File(filesDir, "empty_selinux").apply { if (!exists()) mkdirs() }
+            if (File("/sys/fs/selinux").exists()) {
+                mounts.add("${emptySelinuxDir.absolutePath}:/sys/fs/selinux")
+            }
             if (config.bindSdCard) {
                 val appExternalFilesDir = context.getExternalFilesDir(null)
                 val appSdcard = if (appExternalFilesDir != null) {
@@ -620,7 +625,10 @@ class PRootEngine(val context: Context) {
             "TMPDIR" to "/tmp",
             "TMP" to "/tmp",
             "UBUNTU_CODENAME" to codename,
-            "VERSION_CODENAME" to codename
+            "VERSION_CODENAME" to codename,
+            "GLYCIN_DISABLE_SANDBOX" to "1",
+            "GLYCIN_ENABLE_SANDBOX" to "0",
+            "LIBGL_ALWAYS_SOFTWARE" to "1"
         )
 
         if (loaderFile.exists() && loaderFile.length() > 0L) {
@@ -631,5 +639,217 @@ class PRootEngine(val context: Context) {
         }
 
         return env
+    }
+
+    private fun ensureContainerIntegrity(targetRootfs: File) {
+        try {
+            val etcDir = File(targetRootfs, "etc").apply { if (!exists()) mkdirs() }
+
+            // 1. D-Bus Machine ID (must be valid 32-char hex string, not empty or "uninitialized")
+            val machineIdFile = File(etcDir, "machine-id")
+            val dbusDir = File(targetRootfs, "var/lib/dbus").apply { if (!exists()) mkdirs() }
+            val dbusMachineIdFile = File(dbusDir, "machine-id")
+            val currentId = if (machineIdFile.exists()) {
+                try { machineIdFile.readText().trim() } catch (_: Exception) { "" }
+            } else ""
+            val isValid = currentId.length == 32 &&
+                    currentId != "uninitialized" &&
+                    currentId.all { it in "0123456789abcdefABCDEF" }
+
+            val effectiveId = if (isValid) currentId else java.util.UUID.randomUUID().toString().replace("-", "").lowercase()
+            if (!isValid) {
+                try {
+                    machineIdFile.writeText("$effectiveId\n")
+                    dbusMachineIdFile.writeText("$effectiveId\n")
+                } catch (_: Exception) {}
+            } else if (!dbusMachineIdFile.exists() || dbusMachineIdFile.readText().trim() != effectiveId) {
+                try {
+                    dbusMachineIdFile.writeText("$effectiveId\n")
+                } catch (_: Exception) {}
+            }
+
+            // 2. Fedora / RPM SELinux configuration and plugin removal (SELinux syscalls fail inside PRoot)
+            val selinuxConfigFile = File(targetRootfs, "etc/selinux/config")
+            if (!selinuxConfigFile.exists() || !selinuxConfigFile.readText().contains("SELINUX=disabled")) {
+                try {
+                    selinuxConfigFile.parentFile?.mkdirs()
+                    selinuxConfigFile.writeText("SELINUX=disabled\nSELINUXTYPE=targeted\n")
+                } catch (_: Exception) {}
+            }
+            try {
+                File(targetRootfs, "sys/fs/selinux").mkdirs()
+            } catch (_: Exception) {}
+
+            val selinuxRpmPlugins = listOf(
+                File(targetRootfs, "usr/lib64/rpm-plugins/selinux.so"),
+                File(targetRootfs, "usr/lib/rpm-plugins/selinux.so")
+            )
+            for (so in selinuxRpmPlugins) {
+                if (so.exists()) {
+                    try { so.delete() } catch (_: Exception) {}
+                }
+            }
+
+            // 3. Bubblewrap (bwrap) bypass shim for Glycin / GTK SVG loaders in PRoot
+            val usrBin = File(targetRootfs, "usr/bin")
+            val usrLocalBin = File(targetRootfs, "usr/local/bin").apply { if (!exists()) mkdirs() }
+            val bwrapFile = File(usrBin, "bwrap")
+            val bwrapReal = File(usrBin, "bwrap.real")
+            val bwrapLocalFile = File(usrLocalBin, "bwrap")
+
+            if (bwrapFile.exists() && !bwrapReal.exists()) {
+                try {
+                    val isElf = bwrapFile.inputStream().use { stream ->
+                        val bytes = stream.readNBytes(4)
+                        bytes.size >= 4 && bytes[0] == 0x7F.toByte() && bytes[1] == 'E'.code.toByte() && bytes[2] == 'L'.code.toByte() && bytes[3] == 'F'.code.toByte()
+                    }
+                    if (isElf) {
+                        bwrapFile.renameTo(bwrapReal)
+                    }
+                } catch (_: Exception) {}
+            }
+
+            val bwrapShimScript = """
+                #!/bin/sh
+                # Bubblewrap bypass shim for PRoot environments
+                if [ "${'$'}1" = "--version" ] || [ "${'$'}1" = "-v" ]; then
+                    echo "bubblewrap 0.11.0 (PRoot shim)"
+                    exit 0
+                fi
+
+                while [ ${'$'}# -gt 0 ]; do
+                    case "${'$'}1" in
+                        --)
+                            shift
+                            if [ -n "${'$'}1" ]; then
+                                exec "${'$'}@"
+                            fi
+                            exit 0
+                            ;;
+                        /*|./*)
+                            if [ -x "${'$'}1" ] && [ ! -d "${'$'}1" ]; then
+                                exec "${'$'}@"
+                            fi
+                            ;;
+                    esac
+                    shift
+                done
+                exit 0
+            """.trimIndent() + "\n"
+
+            if (!bwrapLocalFile.exists() || !bwrapLocalFile.readText().contains("PRoot shim")) {
+                try {
+                    bwrapLocalFile.writeText(bwrapShimScript)
+                    bwrapLocalFile.setExecutable(true, false)
+                } catch (_: Exception) {}
+            }
+
+            if (usrBin.exists() && (!bwrapFile.exists() || !bwrapFile.readText().contains("PRoot shim"))) {
+                try {
+                    bwrapFile.writeText(bwrapShimScript)
+                    bwrapFile.setExecutable(true, false)
+                } catch (_: Exception) {}
+            }
+
+            // 4. Heal vncserver executable if corrupted or 0-byte
+            val usrBinVnc = File(targetRootfs, "usr/bin/vncserver")
+            val usrLocalBinVnc = File(targetRootfs, "usr/local/bin/vncserver")
+            if (usrLocalBinVnc.exists() && usrLocalBinVnc.length() > 0L && (!usrBinVnc.exists() || usrBinVnc.length() == 0L)) {
+                try {
+                    usrLocalBinVnc.copyTo(usrBinVnc, overwrite = true)
+                    usrBinVnc.setExecutable(true, false)
+                } catch (_: Exception) {}
+            }
+
+            // 5. VNC xstartup validation: if xstartup exists and lacks sandbox overrides or uses startxfce4, heal it
+            val vncXstartup = File(targetRootfs, "etc/vnc/xstartup")
+            val hasVnc = vncXstartup.exists() || usrBinVnc.exists() || usrLocalBinVnc.exists()
+            if (hasVnc) {
+                val content = try { vncXstartup.readText() } catch (_: Exception) { "" }
+                if (!content.contains("GLYCIN_DISABLE_SANDBOX") || content.contains("--exit-with-session") || content.contains("exec xfdesktop") || !content.contains("export PATH=") || !content.contains("command -v startxfce4") || !content.contains("xfconfd")) {
+                    val standardXstartup = """
+                        #!/bin/sh
+                        export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/xfce4/xfconf:/usr/lib64/xfce4/xfconf:/usr/libexec/xfce4/xfconf:${'$'}PATH"
+                        unset SESSION_MANAGER
+                        unset DBUS_SESSION_BUS_ADDRESS
+                        export XDG_SESSION_TYPE=x11
+                        export XDG_CURRENT_DESKTOP=XFCE
+                        export DESKTOP_SESSION=xfce
+                        export NO_AT_BRIDGE=1
+                        export GDK_BACKEND=x11
+                        export GTK_OVERLAY_SCROLLING=0
+                        export GLYCIN_DISABLE_SANDBOX=1
+                        export GLYCIN_ENABLE_SANDBOX=0
+                        export LIBGL_ALWAYS_SOFTWARE=1
+                        [ -r "${'$'}HOME/.Xresources" ] && xrdb "${'$'}HOME/.Xresources" 2>/dev/null || true
+
+                        if command -v dbus-launch >/dev/null 2>&1; then
+                            eval ${'$'}(dbus-launch --sh-syntax)
+                        fi
+
+                        if command -v xfconfd >/dev/null 2>&1; then
+                            xfconfd &
+                        elif [ -x /usr/lib64/xfce4/xfconf/xfconfd ]; then
+                            /usr/lib64/xfce4/xfconf/xfconfd &
+                        elif [ -x /usr/lib/xfce4/xfconf/xfconfd ]; then
+                            /usr/lib/xfce4/xfconf/xfconfd &
+                        elif [ -x /usr/libexec/xfce4/xfconf/xfconfd ]; then
+                            /usr/libexec/xfce4/xfconf/xfconfd &
+                        fi
+
+                        xsetroot -solid "#1e293b" 2>/dev/null || true
+                        xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true
+
+                        if command -v startxfce4 >/dev/null 2>&1; then
+                            exec startxfce4
+                        elif command -v xfce4-session >/dev/null 2>&1; then
+                            exec xfce4-session
+                        else
+                            xfsettingsd --daemon 2>/dev/null || true
+                            xfwm4 --compositor=off &
+                            xfce4-panel &
+                            Thunar --daemon 2>/dev/null &
+                            if command -v xfdesktop >/dev/null 2>&1; then
+                                exec xfdesktop
+                            else
+                                exec xterm
+                            fi
+                        fi
+                    """.trimIndent() + "\n"
+
+                    try {
+                        vncXstartup.parentFile?.mkdirs()
+                        vncXstartup.writeText(standardXstartup)
+                        vncXstartup.setExecutable(true, false)
+
+                        val x11Session = File(targetRootfs, "etc/X11/Xtigervnc-session")
+                        if (x11Session.parentFile?.exists() == true) {
+                            x11Session.writeText(standardXstartup)
+                            x11Session.setExecutable(true, false)
+                        }
+
+                        val rootVncDir = File(targetRootfs, "root/.vnc").apply { if (!exists()) mkdirs() }
+                        val rootXstartup = File(rootVncDir, "xstartup")
+                        rootXstartup.writeText(standardXstartup)
+                        rootXstartup.setExecutable(true, false)
+
+                        val skelVncDir = File(targetRootfs, "etc/skel/.vnc").apply { if (!exists()) mkdirs() }
+                        val skelXstartup = File(skelVncDir, "xstartup")
+                        skelXstartup.writeText(standardXstartup)
+                        skelXstartup.setExecutable(true, false)
+
+                        val homeDir = File(targetRootfs, "home")
+                        if (homeDir.exists()) {
+                            homeDir.listFiles()?.filter { it.isDirectory }?.forEach { userDir ->
+                                val uVncDir = File(userDir, ".vnc").apply { if (!exists()) mkdirs() }
+                                val uXstartup = File(uVncDir, "xstartup")
+                                uXstartup.writeText(standardXstartup)
+                                uXstartup.setExecutable(true, false)
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        } catch (_: Exception) {}
     }
 }

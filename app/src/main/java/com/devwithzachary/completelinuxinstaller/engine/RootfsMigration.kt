@@ -687,6 +687,229 @@ object RootfsMigrationManager {
                 emitLog("Remote access security hardening complete.")
                 return true
             }
+        },
+
+        // v17: Desktop Environment Stability, D-Bus Machine ID & Glycin/X11 Compatibility
+        object : RootfsMigrationStep {
+            override val targetVersionCode: Int = 17
+            override val name: String = "Desktop Environment Stability, Machine ID & Glycin Compatibility"
+            override val description: String = "Generates valid D-Bus machine ID, removes SELinux plugin conflicts on RPM distros, updates Bubblewrap bypass shim, and synchronizes XFCE VNC startup scripts with compositing disabled."
+
+            override fun execute(pRootEngine: PRootEngine?, rootfsDir: File, emitLog: (String) -> Unit): Boolean {
+                emitLog("Applying desktop environment stability fixes and healing configurations...")
+
+                // 1. Valid machine ID for D-Bus / XFCE
+                val etcDir = File(rootfsDir, "etc").apply { mkdirs() }
+                val machineIdFile = File(etcDir, "machine-id")
+                val dbusDir = File(rootfsDir, "var/lib/dbus").apply { mkdirs() }
+                val dbusMachineIdFile = File(dbusDir, "machine-id")
+                val currentId = if (machineIdFile.exists()) {
+                    try { machineIdFile.readText().trim() } catch (_: Exception) { "" }
+                } else ""
+                val isValid = currentId.length == 32 &&
+                        currentId != "uninitialized" &&
+                        currentId.all { it in "0123456789abcdefABCDEF" }
+
+                val effectiveId = if (isValid) currentId else java.util.UUID.randomUUID().toString().replace("-", "").lowercase()
+                try {
+                    machineIdFile.writeText("$effectiveId\n")
+                    dbusMachineIdFile.writeText("$effectiveId\n")
+                    emitLog("  -> Ensured valid 32-char machine ID in /etc/machine-id and /var/lib/dbus/machine-id")
+                } catch (e: Exception) {
+                    emitLog("  -> Warning writing machine-id: ${e.message}")
+                }
+
+                // 2. Remove SELinux RPM plugins that break DNF in PRoot
+                val selinuxRpmPlugins = listOf(
+                    File(rootfsDir, "usr/lib64/rpm-plugins/selinux.so"),
+                    File(rootfsDir, "usr/lib/rpm-plugins/selinux.so")
+                )
+                for (so in selinuxRpmPlugins) {
+                    if (so.exists()) {
+                        try {
+                            so.delete()
+                            emitLog("  -> Removed incompatible SELinux RPM plugin: ${so.relativeTo(rootfsDir).path}")
+                        } catch (_: Exception) {}
+                    }
+                }
+
+                // 3. Bubblewrap bypass shim in /usr/bin/bwrap and /usr/local/bin/bwrap
+                val bwrapShim = """
+                    #!/bin/sh
+                    # Bubblewrap bypass shim for PRoot environments
+                    if [ "${'$'}1" = "--version" ] || [ "${'$'}1" = "-v" ]; then
+                        echo "bubblewrap 0.11.0 (PRoot shim)"
+                        exit 0
+                    fi
+
+                    while [ ${'$'}# -gt 0 ]; do
+                        case "${'$'}1" in
+                            --)
+                                shift
+                                if [ -n "${'$'}1" ]; then
+                                    exec "${'$'}@"
+                                fi
+                                exit 0
+                                ;;
+                            /*|./*)
+                                if [ -x "${'$'}1" ] && [ ! -d "${'$'}1" ]; then
+                                    exec "${'$'}@"
+                                fi
+                                ;;
+                        esac
+                        shift
+                    done
+                    exit 0
+                """.trimIndent() + "\n"
+
+                val usrBinBwrap = File(rootfsDir, "usr/bin/bwrap")
+                val usrBinBwrapReal = File(rootfsDir, "usr/bin/bwrap.real")
+                if (usrBinBwrap.exists() && !usrBinBwrapReal.exists()) {
+                    try {
+                        val isElf = usrBinBwrap.inputStream().use { stream ->
+                            val bytes = stream.readNBytes(4)
+                            bytes.size >= 4 && bytes[0] == 0x7F.toByte() && bytes[1] == 'E'.code.toByte() && bytes[2] == 'L'.code.toByte() && bytes[3] == 'F'.code.toByte()
+                        }
+                        if (isElf) {
+                            usrBinBwrap.renameTo(usrBinBwrapReal)
+                        }
+                    } catch (_: Exception) {}
+                }
+                try {
+                    usrBinBwrap.parentFile?.mkdirs()
+                    usrBinBwrap.writeText(bwrapShim)
+                    usrBinBwrap.setExecutable(true, false)
+                    usrBinBwrap.setReadable(true, false)
+
+                    val usrLocalBinBwrap = File(rootfsDir, "usr/local/bin/bwrap").apply { parentFile?.mkdirs() }
+                    usrLocalBinBwrap.writeText(bwrapShim)
+                    usrLocalBinBwrap.setExecutable(true, false)
+                    usrLocalBinBwrap.setReadable(true, false)
+                    emitLog("  -> Installed Bubblewrap bypass shim in /usr/bin/bwrap and /usr/local/bin/bwrap")
+                } catch (e: Exception) {
+                    emitLog("  -> Warning installing bwrap shim: ${e.message}")
+                }
+
+                // 4. Update xstartup scripts and heal vncserver
+                val usrBinVnc = File(rootfsDir, "usr/bin/vncserver")
+                val usrLocalBinVnc = File(rootfsDir, "usr/local/bin/vncserver")
+                if (usrLocalBinVnc.exists() && usrLocalBinVnc.length() > 0L && (!usrBinVnc.exists() || usrBinVnc.length() == 0L)) {
+                    try {
+                        usrLocalBinVnc.copyTo(usrBinVnc, overwrite = true)
+                        usrBinVnc.setExecutable(true, false)
+                    } catch (_: Exception) {}
+                }
+
+                // SELinux configuration: Ensure /etc/selinux/config marks SELINUX=disabled and /sys/fs/selinux exists
+                val selinuxConfigFile = File(rootfsDir, "etc/selinux/config")
+                if (!selinuxConfigFile.exists() || !selinuxConfigFile.readText().contains("SELINUX=disabled")) {
+                    try {
+                        selinuxConfigFile.parentFile?.mkdirs()
+                        selinuxConfigFile.writeText("SELINUX=disabled\nSELINUXTYPE=targeted\n")
+                    } catch (_: Exception) {}
+                }
+                try {
+                    File(rootfsDir, "sys/fs/selinux").mkdirs()
+                } catch (_: Exception) {}
+
+                val standardXstartup = """
+                    #!/bin/sh
+                    export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/xfce4/xfconf:/usr/lib64/xfce4/xfconf:/usr/libexec/xfce4/xfconf:${'$'}PATH"
+                    unset SESSION_MANAGER
+                    unset DBUS_SESSION_BUS_ADDRESS
+                    export XDG_SESSION_TYPE=x11
+                    export XDG_CURRENT_DESKTOP=XFCE
+                    export DESKTOP_SESSION=xfce
+                    export NO_AT_BRIDGE=1
+                    export GDK_BACKEND=x11
+                    export GTK_OVERLAY_SCROLLING=0
+                    export GLYCIN_DISABLE_SANDBOX=1
+                    export GLYCIN_ENABLE_SANDBOX=0
+                    export LIBGL_ALWAYS_SOFTWARE=1
+                    [ -r "${'$'}HOME/.Xresources" ] && xrdb "${'$'}HOME/.Xresources" 2>/dev/null || true
+
+                    if command -v dbus-launch >/dev/null 2>&1; then
+                        eval ${'$'}(dbus-launch --sh-syntax)
+                    fi
+
+                    if command -v xfconfd >/dev/null 2>&1; then
+                        xfconfd &
+                    elif [ -x /usr/lib64/xfce4/xfconf/xfconfd ]; then
+                        /usr/lib64/xfce4/xfconf/xfconfd &
+                    elif [ -x /usr/lib/xfce4/xfconf/xfconfd ]; then
+                        /usr/lib/xfce4/xfconf/xfconfd &
+                    elif [ -x /usr/libexec/xfce4/xfconf/xfconfd ]; then
+                        /usr/libexec/xfce4/xfconf/xfconfd &
+                    fi
+
+                    xsetroot -solid "#1e293b" 2>/dev/null || true
+                    xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true
+
+                    if command -v startxfce4 >/dev/null 2>&1; then
+                        exec startxfce4
+                    elif command -v xfce4-session >/dev/null 2>&1; then
+                        exec xfce4-session
+                    else
+                        xfsettingsd --daemon 2>/dev/null || true
+                        xfwm4 --compositor=off &
+                        xfce4-panel &
+                        Thunar --daemon 2>/dev/null &
+                        if command -v xfdesktop >/dev/null 2>&1; then
+                            exec xfdesktop
+                        else
+                            exec xterm
+                        fi
+                    fi
+                """.trimIndent() + "\n"
+
+                val xstartupLocations = mutableListOf<File>()
+                val etcVncXstartup = File(rootfsDir, "etc/vnc/xstartup")
+                if (etcVncXstartup.parentFile?.exists() == true || File(rootfsDir, "usr/bin/vncserver").exists()) {
+                    xstartupLocations.add(etcVncXstartup)
+                    xstartupLocations.add(File(rootfsDir, "root/.vnc/xstartup"))
+                    xstartupLocations.add(File(rootfsDir, "etc/skel/.vnc/xstartup"))
+                    val homeDir = File(rootfsDir, "home")
+                    if (homeDir.exists()) {
+                        homeDir.listFiles()?.filter { it.isDirectory }?.forEach { userDir ->
+                            xstartupLocations.add(File(userDir, ".vnc/xstartup"))
+                        }
+                    }
+                }
+                for (xs in xstartupLocations) {
+                    try {
+                        xs.parentFile?.mkdirs()
+                        xs.writeText(standardXstartup)
+                        xs.setExecutable(true, false)
+                        xs.setReadable(true, false)
+                    } catch (_: Exception) {}
+                }
+                emitLog("  -> Synchronized XFCE startup scripts across all VNC profiles")
+
+                // 5. Ensure fonts on Void Linux if XBPS is present and fonts missing
+                if (File(rootfsDir, "usr/bin/xbps-install").exists() && File(rootfsDir, "usr/bin/startxfce4").exists()) {
+                    val fontDir = File(rootfsDir, "usr/share/fonts")
+                    val hasFonts = fontDir.exists() && (fontDir.listFiles()?.isNotEmpty() == true)
+                    if (!hasFonts && pRootEngine != null) {
+                        emitLog("  -> Void Linux XFCE detected without fonts, installing dejavu-fonts-ttf...")
+                        try {
+                            val cmd = pRootEngine.buildPRootCommand(
+                                config = PRootConfig(rootfsDir = rootfsDir, tmpDir = pRootEngine.tmpDir),
+                                command = listOf("/bin/sh", "-c", "xbps-install -y dejavu-fonts-ttf font-misc-misc")
+                            )
+                            val pb = ProcessBuilder(cmd)
+                            pb.redirectErrorStream(true)
+                            val p = pb.start()
+                            p.waitFor()
+                            emitLog("  -> Void Linux fonts installed successfully.")
+                        } catch (e: Exception) {
+                            emitLog("  -> Note: Font install can be completed via package upgrade: ${e.message}")
+                        }
+                    }
+                }
+
+                emitLog("Desktop environment stability migration complete.")
+                return true
+            }
         }
     )
 

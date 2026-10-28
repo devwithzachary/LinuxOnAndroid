@@ -930,12 +930,6 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = stringResource(R.string.nav_settings),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-
             // Settings Category Filter Tabs
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

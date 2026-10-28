@@ -53,7 +53,8 @@ val VoidDistro = DistroDefinition(
         "xfce_desktop" to { _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                 "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
-                "xbps-install -y xfce4 xfce4-terminal tigervnc libstdc++ curl ca-certificates python3 && " +
+                "xbps-install -y xfce4 xfce4-terminal tigervnc libstdc++ curl ca-certificates python3 dejavu-fonts-ttf font-misc-misc && " +
+                "(xbps-install -y octoxbps 2>/dev/null || true) && " +
                 "$COMMON_VNCSERVER_WRAPPER && " +
                 "rm -f /etc/tigervnc/vncserver-config-defaults 2>/dev/null || true; " +
                 "mkdir -p /root/.vnc /etc/skel/.vnc /etc/vnc /tmp/.X11-unix /tmp/.ICE-unix && " +
@@ -62,17 +63,17 @@ val VoidDistro = DistroDefinition(
                 "chmod 600 /root/.vnc/passwd 2>/dev/null || true; " +
                 "(echo void | vncpasswd -f > /etc/skel/.vnc/passwd 2>/dev/null || echo void | tigervncpasswd -f > /etc/skel/.vnc/passwd 2>/dev/null || true) && " +
                 "chmod 600 /etc/skel/.vnc/passwd 2>/dev/null || true; " +
-                "printf '#!/usr/bin/env python3\\nimport sys, os\\nargs = sys.argv[1:]\\nexec_idx = -1\\nfor i, arg in enumerate(args):\\n    if arg.startswith(\"/usr/\") and os.path.isfile(arg) and os.access(arg, os.X_OK):\\n        exec_idx = i\\n        break\\nif exec_idx >= 0:\\n    os.execv(args[exec_idx], args[exec_idx:])\\nelse:\\n    sys.exit(0)\\n' > /usr/bin/bwrap && chmod 755 /usr/bin/bwrap 2>/dev/null || true; " +
-                "printf '#!/bin/sh\\nunset SESSION_MANAGER\\nunset DBUS_SESSION_BUS_ADDRESS\\nexport XDG_SESSION_TYPE=x11\\nexport XDG_CURRENT_DESKTOP=XFCE\\nexport DESKTOP_SESSION=xfce\\nexport NO_AT_BRIDGE=1\\nexport GDK_BACKEND=x11\\nif command -v dbus-launch >/dev/null 2>&1; then\\n    eval \$(dbus-launch --sh-syntax --exit-with-session)\\nfi\\nxfsettingsd --daemon 2>/dev/null || true\\nxfwm4 --daemon 2>/dev/null || xfwm4 &\\nxfce4-panel &\\nThunar --daemon 2>/dev/null &\\nexec startxfce4\\n' > /etc/vnc/xstartup && chmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup; " +
-                "printf 'securitytypes=VncAuth\\ngeometry=1280x720\\nlocalhost=yes\\nalwaysshared=1\\n' > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config; " +
+                "printf '#!/bin/sh\\nif [ \"\$1\" = \"--version\" ] || [ \"\$1\" = \"-v\" ]; then\\n    echo \"bubblewrap 0.11.0 (PRoot shim)\"\\n    exit 0\\nfi\\nwhile [ \$# -gt 0 ]; do\\n    case \"\$1\" in\\n        --)\\n            shift\\n            [ -n \"\$1\" ] && exec \"\$@\"\\n            exit 0\\n            ;;\\n        /*|./*)\\n            if [ -x \"\$1\" ] && [ ! -d \"\$1\" ]; then\\n                exec \"\$@\"\\n            fi\\n            ;;\\n    esac\\n    shift\\ndone\\nexit 0\\n' > /usr/bin/bwrap && chmod 755 /usr/bin/bwrap 2>/dev/null || true; cp /usr/bin/bwrap /usr/local/bin/bwrap 2>/dev/null || true; chmod 755 /usr/local/bin/bwrap 2>/dev/null || true; " +
+                "printf '#!/bin/sh\\nexport PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/xfce4/xfconf:/usr/lib64/xfce4/xfconf:/usr/libexec/xfce4/xfconf:\$PATH\"\\nunset SESSION_MANAGER\\nunset DBUS_SESSION_BUS_ADDRESS\\nexport XDG_SESSION_TYPE=x11\\nexport XDG_CURRENT_DESKTOP=XFCE\\nexport DESKTOP_SESSION=xfce\\nexport NO_AT_BRIDGE=1\\nexport GDK_BACKEND=x11\\nexport GTK_OVERLAY_SCROLLING=0\\nexport GLYCIN_DISABLE_SANDBOX=1\\nexport GLYCIN_ENABLE_SANDBOX=0\\nexport LIBGL_ALWAYS_SOFTWARE=1\\n[ -r \$HOME/.Xresources ] && xrdb \$HOME/.Xresources 2>/dev/null || true\\nif command -v dbus-launch >/dev/null 2>&1; then\\n    eval \$(dbus-launch --sh-syntax)\\nfi\\nif command -v xfconfd >/dev/null 2>&1; then\\n    xfconfd &\\nelif [ -x /usr/lib64/xfce4/xfconf/xfconfd ]; then\\n    /usr/lib64/xfce4/xfconf/xfconfd &\\nelif [ -x /usr/lib/xfce4/xfconf/xfconfd ]; then\\n    /usr/lib/xfce4/xfconf/xfconfd &\\nelif [ -x /usr/libexec/xfce4/xfconf/xfconfd ]; then\\n    /usr/libexec/xfce4/xfconf/xfconfd &\\nfi\\nxsetroot -solid \"#1e293b\" 2>/dev/null || true\\nxfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true\\nif command -v startxfce4 >/dev/null 2>&1; then\\n    exec startxfce4\\nelif command -v xfce4-session >/dev/null 2>&1; then\\n    exec xfce4-session\\nelse\\n    xfsettingsd --daemon 2>/dev/null || true\\n    xfwm4 --compositor=off &\\n    xfce4-panel &\\n    Thunar --daemon 2>/dev/null &\\n    if command -v xfdesktop >/dev/null 2>&1; then\\n        exec xfdesktop\\n    else\\n        exec xterm\\n    fi\\nfi\\n' > /etc/vnc/xstartup && chmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup; " +
+                "printf 'securitytypes=VncAuth\\ngeometry=1280x720\\nlocalhost=yes\\nalwaysshared=1\\n' > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config && " +
                 "for u in /home/*; do if [ -d \"\$u\" ]; then " +
-                    "mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && " +
-                    "cp /etc/vnc/xstartup \"\$u/.vnc/xstartup\" && " +
-                    "cp /etc/vnc/config \"\$u/.vnc/config\" && " +
-                    "(echo void | vncpasswd -f > \"\$u/.vnc/passwd\" 2>/dev/null || echo void | tigervncpasswd -f > \"\$u/.vnc/passwd\" 2>/dev/null || true) && " +
-                    "(echo void | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || echo void | tigervncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true) && " +
-                    "chmod 755 \"\$u/.vnc/xstartup\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; " +
-                    "chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; " +
+                "    mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && " +
+                "    cp /etc/vnc/xstartup \"\$u/.vnc/xstartup\" && " +
+                "    cp /etc/vnc/config \"\$u/.vnc/config\" && " +
+                "    (echo void | vncpasswd -f > \"\$u/.vnc/passwd\" 2>/dev/null || echo void | tigervncpasswd -f > \"\$u/.vnc/passwd\" 2>/dev/null || true) && " +
+                "    (echo void | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || echo void | tigervncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true) && " +
+                "    chmod 755 \"\$u/.vnc/xstartup\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; " +
+                "    chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; " +
                 "fi; done"
         },
         "python_dev" to { _ ->
@@ -165,6 +166,6 @@ val VoidDistro = DistroDefinition(
         )
     ),
     softwarePackageVersions = mapOf(
-        "xfce_desktop" to 5
+        "xfce_desktop" to 7
     )
 )

@@ -127,17 +127,43 @@ class RootfsMigrationTest {
 
     @Test
     fun testHasRootfsImprovements_handlesVersionsWithoutChanges() {
-        // App is on build 16, container is on build 16 -> no improvements
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 16, targetVersionCode = 16))
+        // App is on build 17, container is on build 17 -> no improvements
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 17, targetVersionCode = 17))
 
-        // Existing container on build 11, app on build 16 -> has pending security migration!
-        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 11, targetVersionCode = 16))
+        // Existing container on build 16, app on build 17 -> has pending desktop stability migration!
+        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 16, targetVersionCode = 17))
 
-        // Hypothetical future app build 17 without any added migrations beyond 16
-        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 16, targetVersionCode = 17))
+        // Hypothetical future app build 18 without any added migrations beyond 17
+        assertFalse(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 17, targetVersionCode = 18))
 
-        // Legacy container on build 1 -> has improvements up to build 16
-        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 16))
+        // Legacy container on build 1 -> has improvements up to build 17
+        assertTrue(RootfsMigrationManager.hasRootfsImprovements(currentVersionCode = 1, targetVersionCode = 17))
+    }
+
+    @Test
+    fun testMigration_v17_configuresDesktopStabilityAndMachineId() {
+        val rootfsDir = tempFolder.newFolder("v17_test_rootfs")
+        val etcDir = File(rootfsDir, "etc").apply { mkdirs() }
+        File(etcDir, "machine-id").writeText("uninitialized\n")
+        val rpmPluginDir = File(rootfsDir, "usr/lib64/rpm-plugins").apply { mkdirs() }
+        val selinuxSo = File(rpmPluginDir, "selinux.so").apply { writeText("fake") }
+        val etcVncDir = File(rootfsDir, "etc/vnc").apply { mkdirs() }
+        val xstartup = File(etcVncDir, "xstartup").apply { writeText("#!/bin/sh\nexec startxfce4\n") }
+
+        val migration17 = RootfsMigrationManager.ALL_MIGRATIONS.find { it.targetVersionCode == 17 }
+        assertNotNull("Migration v17 must exist", migration17)
+
+        val logs = mutableListOf<String>()
+        val success = migration17?.execute(null, rootfsDir) { logs.add(it) } ?: false
+        assertTrue("Migration v17 must succeed", success)
+
+        val machineId = File(etcDir, "machine-id").readText().trim()
+        assertFalse(machineId == "uninitialized")
+        assertEquals(32, machineId.length)
+
+        assertFalse("selinux.so should be removed", selinuxSo.exists())
+        assertTrue("bwrap shim should be created", File(rootfsDir, "usr/bin/bwrap").exists())
+        assertTrue("xstartup should have GLYCIN_DISABLE_SANDBOX", xstartup.readText().contains("GLYCIN_DISABLE_SANDBOX=1"))
     }
 
     @Test

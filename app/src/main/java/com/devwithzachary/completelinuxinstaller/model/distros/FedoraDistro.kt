@@ -36,6 +36,7 @@ val FedoraDistro = DistroDefinition(
     ),
     firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
         "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
+                "rm -f /usr/lib64/rpm-plugins/selinux.so /usr/lib/rpm-plugins/selinux.so 2>/dev/null || true; " +
                 "mkdir -p /etc/sudoers.d /etc/pam.d /etc/selinux /home/$username /run /var/run /var/log 2>/dev/null; " +
                 "(grep -q ^$username: /etc/passwd || echo \"$username:x:1000:1000:$username:/home/$username:/bin/bash\" >> /etc/passwd); " +
                 "(grep -q ^$username: /etc/group || echo \"$username:x:1000:\" >> /etc/group); " +
@@ -54,8 +55,10 @@ val FedoraDistro = DistroDefinition(
     softwarePackageCommands = mapOf(
         "xfce_desktop" to { _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
-                    "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
-                    "dnf install -y xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-terminal thunar dbus-x11 tigervnc-server novnc python3-websockify curl ca-certificates perl python3 && " +
+                    "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true); " +
+                    "rm -f /usr/lib64/rpm-plugins/selinux.so /usr/lib/rpm-plugins/selinux.so 2>/dev/null || true; " +
+                    "dnf install -y xfce4-session xfwm4 xfce4-panel xfdesktop xfce4-terminal thunar xfce4-settings xfce4-appfinder adwaita-icon-theme rsvg-pixbuf-loader dejavu-sans-fonts dbus-x11 tigervnc-server curl ca-certificates perl python3 && " +
+                    "(dnf install -y dnfdragora 2>/dev/null || true) && " +
                     "$COMMON_VNCSERVER_WRAPPER && " +
                     "rm -f /etc/tigervnc/vncserver-config-defaults 2>/dev/null || true; " +
                     "mkdir -p /root/.vnc /etc/skel/.vnc /etc/vnc /tmp/.X11-unix /tmp/.ICE-unix && " +
@@ -65,22 +68,32 @@ val FedoraDistro = DistroDefinition(
                     "(echo fedora | vncpasswd -f > /etc/skel/.vnc/passwd 2>/dev/null || echo fedora | tigervncpasswd -f > /etc/skel/.vnc/passwd 2>/dev/null || true) && " +
                     "chmod 600 /etc/skel/.vnc/passwd 2>/dev/null || true; " +
                     "cat << 'EOF' > /usr/bin/bwrap\n" +
-                    "#!/usr/bin/env python3\n" +
-                    "import sys, os\n" +
-                    "args = sys.argv[1:]\n" +
-                    "exec_idx = -1\n" +
-                    "for i, arg in enumerate(args):\n" +
-                    "    if arg.startswith(\"/usr/\") and os.path.isfile(arg) and os.access(arg, os.X_OK):\n" +
-                    "        exec_idx = i\n" +
-                    "        break\n" +
-                    "if exec_idx >= 0:\n" +
-                    "    os.execv(args[exec_idx], args[exec_idx:])\n" +
-                    "else:\n" +
-                    "    sys.exit(0)\n" +
+                    "#!/bin/sh\n" +
+                    "if [ \"\$1\" = \"--version\" ] || [ \"\$1\" = \"-v\" ]; then\n" +
+                    "    echo \"bubblewrap 0.11.0 (PRoot shim)\"\n" +
+                    "    exit 0\n" +
+                    "fi\n" +
+                    "while [ \$# -gt 0 ]; do\n" +
+                    "    case \"\$1\" in\n" +
+                    "        --)\n" +
+                    "            shift\n" +
+                    "            [ -n \"\$1\" ] && exec \"\$@\"\n" +
+                    "            exit 0\n" +
+                    "            ;;\n" +
+                    "        /*|./*)\n" +
+                    "            if [ -x \"\$1\" ] && [ ! -d \"\$1\" ]; then\n" +
+                    "                exec \"\$@\"\n" +
+                    "            fi\n" +
+                    "            ;;\n" +
+                    "    esac\n" +
+                    "    shift\n" +
+                    "done\n" +
+                    "exit 0\n" +
                     "EOF\n" +
-                    "chmod 755 /usr/bin/bwrap 2>/dev/null || true; " +
+                    "chmod 755 /usr/bin/bwrap 2>/dev/null || true; cp /usr/bin/bwrap /usr/local/bin/bwrap 2>/dev/null || true; chmod 755 /usr/local/bin/bwrap 2>/dev/null || true; " +
                     "cat << 'EOF' > /etc/vnc/xstartup\n" +
                     "#!/bin/sh\n" +
+                    "export PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/xfce4/xfconf:/usr/lib64/xfce4/xfconf:/usr/libexec/xfce4/xfconf:\$PATH\"\n" +
                     "unset SESSION_MANAGER\n" +
                     "unset DBUS_SESSION_BUS_ADDRESS\n" +
                     "export XDG_SESSION_TYPE=x11\n" +
@@ -94,20 +107,33 @@ val FedoraDistro = DistroDefinition(
                     "export LIBGL_ALWAYS_SOFTWARE=1\n" +
                     "[ -r \$HOME/.Xresources ] && xrdb \$HOME/.Xresources 2>/dev/null || true\n" +
                     "if command -v dbus-launch >/dev/null 2>&1; then\n" +
-                    "    eval \$(dbus-launch --sh-syntax --exit-with-session)\n" +
+                    "    eval \$(dbus-launch --sh-syntax)\n" +
+                    "fi\n" +
+                    "if command -v xfconfd >/dev/null 2>&1; then\n" +
+                    "    xfconfd &\n" +
+                    "elif [ -x /usr/lib64/xfce4/xfconf/xfconfd ]; then\n" +
+                    "    /usr/lib64/xfce4/xfconf/xfconfd &\n" +
+                    "elif [ -x /usr/lib/xfce4/xfconf/xfconfd ]; then\n" +
+                    "    /usr/lib/xfce4/xfconf/xfconfd &\n" +
+                    "elif [ -x /usr/libexec/xfce4/xfconf/xfconfd ]; then\n" +
+                    "    /usr/libexec/xfce4/xfconf/xfconfd &\n" +
                     "fi\n" +
                     "xsetroot -solid \"#1e293b\" 2>/dev/null || true\n" +
                     "xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true\n" +
-                    "xfsettingsd --daemon 2>/dev/null || true\n" +
-                    "xfwm4 --compositor=off --daemon 2>/dev/null || xfwm4 --compositor=off &\n" +
-                    "xfce4-panel &\n" +
-                    "Thunar --daemon 2>/dev/null &\n" +
-                    "if command -v xfdesktop >/dev/null 2>&1; then\n" +
-                    "    exec xfdesktop\n" +
-                    "elif command -v startxfce4 >/dev/null 2>&1; then\n" +
+                    "if command -v startxfce4 >/dev/null 2>&1; then\n" +
                     "    exec startxfce4\n" +
+                    "elif command -v xfce4-session >/dev/null 2>&1; then\n" +
+                    "    exec xfce4-session\n" +
                     "else\n" +
-                    "    exec xterm\n" +
+                    "    xfsettingsd --daemon 2>/dev/null || true\n" +
+                    "    xfwm4 --compositor=off &\n" +
+                    "    xfce4-panel &\n" +
+                    "    Thunar --daemon 2>/dev/null &\n" +
+                    "    if command -v xfdesktop >/dev/null 2>&1; then\n" +
+                    "        exec xfdesktop\n" +
+                    "    else\n" +
+                    "        exec xterm\n" +
+                    "    fi\n" +
                     "fi\n" +
                     "EOF\n" +
                     "chmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup; " +
@@ -221,6 +247,6 @@ val FedoraDistro = DistroDefinition(
         )
     ),
     softwarePackageVersions = mapOf(
-        "xfce_desktop" to 5
+        "xfce_desktop" to 7
     )
 )

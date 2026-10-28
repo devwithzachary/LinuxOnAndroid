@@ -3,12 +3,14 @@ package com.devwithzachary.completelinuxinstaller.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -40,6 +42,7 @@ enum class AppScreen(val titleRes: Int) {
     DASHBOARD(R.string.nav_dashboard),
     WIZARD(R.string.app_title),
     TERMINAL(R.string.nav_terminal),
+    DESKTOP(R.string.nav_desktop),
     SETTINGS(R.string.nav_settings),
     ABOUT(R.string.nav_about)
 }
@@ -57,11 +60,12 @@ fun MainAppContent(viewModel: MainViewModel) {
     val requestedScreen by viewModel.requestedScreen.collectAsStateWithLifecycle()
     val systemMetrics by viewModel.systemMetrics.collectAsStateWithLifecycle()
     val containerMetrics by viewModel.containerMetrics.collectAsStateWithLifecycle()
+    val isDesktopRunning by viewModel.isDesktopRunning.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
     val splashDismissed = dashboardState.splashDismissed
-    var currentScreen by remember { mutableStateOf(AppScreen.SPLASH) }
+    var currentScreen by rememberSaveable { mutableStateOf(AppScreen.SPLASH) }
     var selectedContainerTarget by remember { mutableStateOf<Pair<String, com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab>?>(null) }
 
     LaunchedEffect(requestedScreen) {
@@ -99,6 +103,7 @@ fun MainAppContent(viewModel: MainViewModel) {
         )
     } else {
         val isTerminal = currentScreen == AppScreen.TERMINAL
+        val isDesktop = currentScreen == AppScreen.DESKTOP
         val isFullscreenScreen = currentScreen == AppScreen.WIZARD || currentScreen == AppScreen.WELCOME
 
         Box(
@@ -133,11 +138,12 @@ fun MainAppContent(viewModel: MainViewModel) {
                 }
         ) {
             Scaffold(
-                containerColor = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background,
-                contentWindowInsets = if (isTerminal) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
+                containerColor = if (isTerminal || (isDesktop && isDesktopRunning)) Color(0xFF0F172A) else MaterialTheme.colorScheme.background,
+                contentWindowInsets = if (isTerminal || (isDesktop && isDesktopRunning)) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
                 bottomBar = {
                     val isImeVisible = WindowInsets.isImeVisible
-                    if (windowSizeClass.isCompact && (isInstalled || splashDismissed) && !isFullscreenScreen && !(currentScreen == AppScreen.TERMINAL && isImeVisible)) {
+                    if (windowSizeClass.isCompact && (isInstalled || splashDismissed) && !isFullscreenScreen &&
+                        !((currentScreen == AppScreen.TERMINAL || (currentScreen == AppScreen.DESKTOP && isDesktopRunning)) && isImeVisible)) {
                         NavigationBar {
                             NavigationBarItem(
                                 selected = currentScreen == AppScreen.DASHBOARD,
@@ -163,6 +169,25 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     )
                                 },
                                 label = { Text(stringResource(R.string.nav_terminal)) }
+                            )
+                            NavigationBarItem(
+                                selected = currentScreen == AppScreen.DESKTOP,
+                                onClick = { currentScreen = AppScreen.DESKTOP },
+                                icon = {
+                                    BadgedBox(
+                                        badge = {
+                                            if (isDesktopRunning) {
+                                                Badge(containerColor = Color(0xFF4CAF50))
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            Icons.Default.DesktopWindows,
+                                            contentDescription = stringResource(R.string.nav_desktop)
+                                        )
+                                    }
+                                },
+                                label = { Text(stringResource(R.string.nav_desktop)) }
                             )
                             NavigationBarItem(
                                 selected = currentScreen == AppScreen.SETTINGS,
@@ -254,6 +279,25 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 label = { Text(stringResource(R.string.nav_terminal)) }
                             )
                             NavigationRailItem(
+                                selected = currentScreen == AppScreen.DESKTOP,
+                                onClick = { currentScreen = AppScreen.DESKTOP },
+                                icon = {
+                                    BadgedBox(
+                                        badge = {
+                                            if (isDesktopRunning) {
+                                                Badge(containerColor = Color(0xFF4CAF50))
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            Icons.Default.DesktopWindows,
+                                            contentDescription = stringResource(R.string.nav_desktop)
+                                        )
+                                    }
+                                },
+                                label = { Text(stringResource(R.string.nav_desktop)) }
+                            )
+                            NavigationRailItem(
                                 selected = currentScreen == AppScreen.SETTINGS,
                                 onClick = { currentScreen = AppScreen.SETTINGS },
                                 icon = {
@@ -282,8 +326,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .padding(top = if (isTerminal) 0.dp else innerPadding.calculateTopPadding()),
-                        color = if (isTerminal) Color(0xFF1E1E1E) else MaterialTheme.colorScheme.background
+                            .padding(top = if (isTerminal || (isDesktop && isDesktopRunning)) 0.dp else innerPadding.calculateTopPadding()),
+                        color = if (isTerminal || (isDesktop && isDesktopRunning)) Color(0xFF0F172A) else MaterialTheme.colorScheme.background
                     ) {
                         when (currentScreen) {
                     AppScreen.SPLASH -> {
@@ -475,6 +519,17 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     viewModel.startTerminalSessionForContainer(containerId)
                                     currentScreen = AppScreen.TERMINAL
                                 },
+                                onOpenDesktopClick = {
+                                    viewModel.startDesktopSession()
+                                    currentScreen = AppScreen.DESKTOP
+                                },
+                                onOpenContainerDesktopClick = { containerId ->
+                                    viewModel.startDesktopSessionForContainer(containerId)
+                                    currentScreen = AppScreen.DESKTOP
+                                },
+                                isContainerDesktopSetup = { containerId ->
+                                    viewModel.isContainerDesktopSetup(containerId)
+                                },
                                 onContainerClick = { containerId, tab ->
                                     selectedContainerTarget = Pair(containerId, tab)
                                 },
@@ -504,6 +559,15 @@ fun MainAppContent(viewModel: MainViewModel) {
                             fontSizeSp = fontSize,
                             fontFamilyName = fontFamily,
                             isKeepScreenOnEnabled = isKeepScreenOnEnabled
+                        )
+                    }
+
+                    AppScreen.DESKTOP -> {
+                        com.devwithzachary.completelinuxinstaller.ui.screens.desktop.DesktopScreen(
+                            desktopSessionManager = viewModel.desktopSessionManager,
+                            containers = dashboardState.containers,
+                            defaultContainerId = dashboardState.defaultContainerId,
+                            onNavigateToWizard = { currentScreen = AppScreen.WIZARD }
                         )
                     }
 

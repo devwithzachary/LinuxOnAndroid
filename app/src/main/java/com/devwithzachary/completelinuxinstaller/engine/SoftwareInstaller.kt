@@ -69,6 +69,11 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
 
             val isApt = (distroDef?.packageManager == com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT) || (distroDef == null)
             val postSudoFix = "chown -R 0:0 /etc/sudoers /etc/sudoers.d /etc/sudo.conf /usr/bin/sudo /usr/lib/sudo 2>/dev/null || true; chmod 4755 /usr/bin/sudo 2>/dev/null || true; chmod 0440 /etc/sudoers /etc/sudoers.d/* 2>/dev/null || true"
+            val daemonCleanup = "(gpgconf --homedir /etc/pacman.d/gnupg --kill all 2>/dev/null || true); " +
+                "(gpgconf --kill all 2>/dev/null || true); " +
+                "(pkill -9 -x gpg-agent 2>/dev/null || true); " +
+                "(pkill -9 -x dirmngr 2>/dev/null || true); " +
+                "(killall -9 gpg-agent dirmngr 2>/dev/null || true)"
             val sanitizedCommand = if (isApt) {
                 "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                         "chmod 755 /usr /usr/local /usr/bin /usr/sbin /etc 2>/dev/null; " +
@@ -79,14 +84,14 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
                         "mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; " +
                         "chmod 666 /var/lib/dpkg/status* 2>/dev/null; " +
                         "_LOA_ERR=0; ( " + effectiveCommand + " ) || _LOA_ERR=\$?; " +
-                        postSudoFix + "; exit \$_LOA_ERR;"
+                        postSudoFix + "; " + daemonCleanup + "; exit \$_LOA_ERR;"
             } else {
                 "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                         "chmod 755 /usr /usr/local /usr/bin /usr/sbin /etc 2>/dev/null; " +
                         "chmod -R 755 /usr/lib/cargo /usr/libexec 2>/dev/null; " +
                         "mkdir -p /etc/sudoers.d /etc/pam.d /tmp 2>/dev/null; " +
                         "_LOA_ERR=0; ( " + effectiveCommand + " ) || _LOA_ERR=\$?; " +
-                        postSudoFix + "; exit \$_LOA_ERR;"
+                        postSudoFix + "; " + daemonCleanup + "; exit \$_LOA_ERR;"
             }
 
             val shellPath = when {

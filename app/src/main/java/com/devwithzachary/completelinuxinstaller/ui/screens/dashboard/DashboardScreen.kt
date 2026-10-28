@@ -39,6 +39,9 @@ fun DashboardScreen(
     onInstallClick: () -> Unit,
     onOpenTerminalClick: () -> Unit,
     onOpenContainerTerminalClick: (String) -> Unit = {},
+    onOpenDesktopClick: () -> Unit = {},
+    onOpenContainerDesktopClick: (String) -> Unit = {},
+    isContainerDesktopSetup: (String) -> Boolean = { false },
     onContainerClick: (String, ContainerDetailTab) -> Unit = { _, _ -> },
     onSetDefaultContainerClick: (String) -> Unit = {}
 ) {
@@ -95,8 +98,10 @@ fun DashboardScreen(
                         isRunning = isRunning,
                         cMetrics = containerMetrics[container.id],
                         fallbackMetrics = metrics,
+                        isDesktopSetup = isContainerDesktopSetup(container.id),
                         onContainerClick = onContainerClick,
                         onOpenContainerTerminalClick = onOpenContainerTerminalClick,
+                        onOpenContainerDesktopClick = onOpenContainerDesktopClick,
                         onSetDefaultContainerClick = onSetDefaultContainerClick
                     )
                 }
@@ -180,6 +185,19 @@ fun DashboardScreen(
                             Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Open Terminal (Ctrl+Alt+T)")
+                        }
+
+                        val defaultHasDesktop = isContainerDesktopSetup(state.defaultContainerId)
+                        if (defaultHasDesktop) {
+                            FilledTonalButton(
+                                onClick = onOpenDesktopClick,
+                                modifier = Modifier.fillMaxWidth().handHover(),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.DesktopWindows, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Open Desktop Session")
+                            }
                         }
                     }
                 }
@@ -279,8 +297,10 @@ fun DashboardScreen(
                         isRunning = isRunning,
                         cMetrics = containerMetrics[container.id],
                         fallbackMetrics = metrics,
+                        isDesktopSetup = isContainerDesktopSetup(container.id),
                         onContainerClick = onContainerClick,
                         onOpenContainerTerminalClick = onOpenContainerTerminalClick,
+                        onOpenContainerDesktopClick = onOpenContainerDesktopClick,
                         onSetDefaultContainerClick = onSetDefaultContainerClick
                     )
                 }
@@ -335,8 +355,10 @@ private fun ContainerCard(
     isRunning: Boolean,
     cMetrics: SystemResourceMetrics?,
     fallbackMetrics: SystemResourceMetrics,
+    isDesktopSetup: Boolean = false,
     onContainerClick: (String, ContainerDetailTab) -> Unit,
     onOpenContainerTerminalClick: (String) -> Unit,
+    onOpenContainerDesktopClick: (String) -> Unit = {},
     onSetDefaultContainerClick: (String) -> Unit
 ) {
     var showContextMenu by remember { mutableStateOf(false) }
@@ -461,42 +483,77 @@ private fun ContainerCard(
                     )
                 }
 
-                // Card Actions
-                Row(
+                // Card Actions (max 3 buttons per row)
+                val actionButtons = buildList<@Composable (Modifier) -> Unit> {
+                    add { modifier ->
+                        Button(
+                            onClick = { onOpenContainerTerminalClick(container.id) },
+                            modifier = modifier.handHover(),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Terminal", fontSize = 12.sp, maxLines = 1)
+                        }
+                    }
+
+                    add { modifier ->
+                        FilledTonalButton(
+                            onClick = { onContainerClick(container.id, ContainerDetailTab.OVERVIEW) },
+                            modifier = modifier.handHover(),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Overview", fontSize = 12.sp, maxLines = 1)
+                        }
+                    }
+
+                    add { modifier ->
+                        FilledTonalButton(
+                            onClick = { onContainerClick(container.id, ContainerDetailTab.SOFTWARE) },
+                            modifier = modifier.handHover(),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Apps, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Software", fontSize = 12.sp, maxLines = 1)
+                        }
+                    }
+
+                    if (isDesktopSetup) {
+                        add { modifier ->
+                            Button(
+                                onClick = { onOpenContainerDesktopClick(container.id) },
+                                modifier = modifier.handHover(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Default.DesktopWindows, contentDescription = null, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Desktop", fontSize = 12.sp, maxLines = 1)
+                            }
+                        }
+                    }
+                }
+
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Button(
-                        onClick = { onOpenContainerTerminalClick(container.id) },
-                        modifier = Modifier.weight(1f).handHover(),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Terminal", fontSize = 12.sp)
-                    }
-
-                    FilledTonalButton(
-                        onClick = { onContainerClick(container.id, ContainerDetailTab.OVERVIEW) },
-                        modifier = Modifier.weight(1f).handHover(),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Overview", fontSize = 12.sp)
-                    }
-
-                    FilledTonalButton(
-                        onClick = { onContainerClick(container.id, ContainerDetailTab.SOFTWARE) },
-                        modifier = Modifier.weight(1f).handHover(),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.Apps, contentDescription = null, modifier = Modifier.size(15.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Software", fontSize = 12.sp)
+                    actionButtons.chunked(3).forEach { rowActions ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            rowActions.forEach { actionComposable ->
+                                actionComposable(Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
             }
@@ -515,6 +572,16 @@ private fun ContainerCard(
                 },
                 leadingIcon = { Icon(Icons.Default.Terminal, contentDescription = null) }
             )
+            if (isDesktopSetup) {
+                DropdownMenuItem(
+                    text = { Text("Open Desktop") },
+                    onClick = {
+                        showContextMenu = false
+                        onOpenContainerDesktopClick(container.id)
+                    },
+                    leadingIcon = { Icon(Icons.Default.DesktopWindows, contentDescription = null) }
+                )
+            }
             DropdownMenuItem(
                 text = { Text("Overview & Metrics") },
                 onClick = {

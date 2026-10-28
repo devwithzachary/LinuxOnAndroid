@@ -30,7 +30,13 @@ object DesktopKeyHandler {
             return true
         }
 
-        // Screen shortcuts: Alt+1..4 (or Ctrl+1..4 when not in terminal to avoid clash)
+        // Universal shortcut: Ctrl+Alt+D -> Open Desktop from any screen
+        if (isCtrl && isAlt && event.key == Key.D) {
+            onNavigate(AppScreen.DESKTOP)
+            return true
+        }
+
+        // Screen shortcuts: Alt+1..5 (or Ctrl+1..5 when not in terminal to avoid clash)
         if (isAlt || (!isCtrl && isAlt)) {
             when (event.key) {
                 Key.One, Key.NumPad1 -> {
@@ -42,10 +48,14 @@ object DesktopKeyHandler {
                     return true
                 }
                 Key.Three, Key.NumPad3 -> {
-                    onNavigate(AppScreen.SETTINGS)
+                    onNavigate(AppScreen.DESKTOP)
                     return true
                 }
                 Key.Four, Key.NumPad4 -> {
+                    onNavigate(AppScreen.SETTINGS)
+                    return true
+                }
+                Key.Five, Key.NumPad5 -> {
                     onNavigate(AppScreen.ABOUT)
                     return true
                 }

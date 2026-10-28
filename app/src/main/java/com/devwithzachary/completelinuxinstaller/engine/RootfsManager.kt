@@ -1066,7 +1066,14 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
                 ContainerManager.fileOrGuestSymlinkExists(targetDir, "bin/busybox") -> "/bin/sh"
                 else -> "/bin/sh"
             }
-            val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf(shellBin, "-c", setupScript))
+            val effectiveSetupScript = "_LOA_RC=0; ( $setupScript ) || _LOA_RC=\$?; " +
+                "(gpgconf --homedir /etc/pacman.d/gnupg --kill all 2>/dev/null || true); " +
+                "(gpgconf --kill all 2>/dev/null || true); " +
+                "(pkill -9 -x gpg-agent 2>/dev/null || true); " +
+                "(pkill -9 -x dirmngr 2>/dev/null || true); " +
+                "(killall -9 gpg-agent dirmngr 2>/dev/null || true); " +
+                "exit \$_LOA_RC"
+            val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf(shellBin, "-c", effectiveSetupScript))
             val pb = ProcessBuilder(cmd)
             pb.directory(targetDir)
             val env = pb.environment()

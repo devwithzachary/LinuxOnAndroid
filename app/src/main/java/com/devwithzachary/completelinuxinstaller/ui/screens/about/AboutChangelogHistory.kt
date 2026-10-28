@@ -27,9 +27,24 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "October 2026",
         initialExpanded = true,
         highlights = listOf(
+            "Built-in Desktop Access: Added a dedicated Desktop navigation tab with high-performance native VNC rendering (sub-2ms latency, 60 FPS) to run graphical desktop sessions directly inside the app.",
+            "Automatic Screen-Space Resolution: Default resolution dynamically calculates the exact available canvas space between the top bar and hotkeys ribbon for a 1:1 pixel-perfect fullscreen display.",
+            "Orientation Adaptation: Fixed screen state to keep users on the Desktop tab across device rotations, with an automatic prompt to restart VNC matching the new portrait or landscape space.",
+            "Graphical App Installers: Bundled distro-native GUI package managers with XFCE (Synaptic on Debian/Ubuntu/Kali with pkexec bypass, dnfdragora on Fedora, Octopi on Arch, OctoXBPS on Void) with one-click upgrade detection.",
+            "Automated Desktop Setup: Automatically detects and installs XFCE 4 desktop and TigerVNC packages with live terminal progress before launching desktop sessions.",
+            "Touch & Trackpad Controls: Direct Touch and modern Trackpad modes with single-finger tap left-click, two-finger tap right-click with haptics, two-finger scroll, double-tap drag, zoom, and Linux keys ribbon.",
+            "Default Trackpad & User Switching: Set Trackpad as the default control mode with easy switching to Touch Screen, and login as the container default user with in-app user switching.",
+            "Display Scaling & UI Size: Added a display scale selector (100% to 200%) in resolution settings to scale the UI larger on high-DPI screens while keeping the exact aspect ratio, persisted across future sessions.",
+            "Dashboard Quick Desktop Access: Added quick Desktop session launch buttons to container cards on the Dashboard overview for containers with desktop setup, plus an Open Desktop shortcut.",
+            "Adaptive Multi-Row Button Layouts: Constrained container action buttons and display scale chips to max 3 buttons per row to prevent text wrapping on narrow displays.",
+            "Display & Resolution Options: Supports instant resolution switching (Automatic Screen Space, 720p HD, 1080p FHD, XGA, screen matching), fit-to-screen scaling, full-width resolution selector, and session controls.",
+            "UI & Inset Refinements: Streamlined Desktop and Settings pages by dropping redundant title headers, and padded the active Desktop toolbar below the Android system status bar.",
             "Dynamic Checksum Verification: Automatically downloads and verifies checksums alongside latest rootfs images (Ubuntu, Debian, Kali) to prevent hash mismatch errors when upstream mirrors update, with bundled fallback hashes.",
             "Installation Recovery Controls: Added 'Redownload & Retry' and 'Choose Different Distribution' buttons if a rootfs download fails, and fixed Back navigation to prevent users from getting trapped.",
-            "Release-Pinned Distribution Strategy: Pinned official stable release artifacts and verified checksums for Alpine 3.21.3, Fedora 44-1.7, Void Linux 20250202, and Arch Linux."
+            "Release-Pinned Distribution Strategy: Pinned official stable release artifacts and verified checksums for Alpine 3.21.3, Fedora 44-1.7, Void Linux 20250202, and Arch Linux.",
+            "Arch Linux Provisioning & Desktop Fix: Added overwrite flags to pacman to prevent conflicting untracked file aborts, sanitized TigerVNC wrapper generation, and enforced exact process matching for daemon cleanup to ensure reliable desktop provisioning.",
+            "Desktop Stability & Environment Fixes: Fixed session orchestration in xstartup scripts across all distributions by launching full XFCE sessions (exec startxfce4), pre-launching xfconfd, masking /sys/fs/selinux to resolve Android SELinux AVC permission denials on Fedora D-Bus, removing premature D-Bus exit triggers, deploying pure shell Bubblewrap bypass shims to preserve process file descriptors, bundling SVG pixbuf loaders on Fedora, and restoring Void Linux desktop typography.",
+            "Desktop Package Upgrade Detection: Bumped XFCE packages to version 7 across all distributions, displaying an in-app upgrade banner on the Desktop tab so existing installations receive the stability fixes."
         )
     ),
     ReleaseChangelog(

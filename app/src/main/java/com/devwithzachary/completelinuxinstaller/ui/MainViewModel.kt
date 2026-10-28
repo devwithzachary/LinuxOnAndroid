@@ -18,6 +18,8 @@ import com.devwithzachary.completelinuxinstaller.engine.SystemMonitorManager
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
 import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
+import com.devwithzachary.completelinuxinstaller.engine.desktop.DesktopSessionManager
+import com.devwithzachary.completelinuxinstaller.engine.desktop.DesktopUiState
 import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.LinuxDistribution
 import com.devwithzachary.completelinuxinstaller.model.SoftwareCategory
@@ -114,11 +116,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val diagnosticsManager = DiagnosticsManager(application, pRootEngine, rootfsManager, containerManager)
     val systemMonitorManager = SystemMonitorManager(application, pRootEngine, rootfsManager, containerManager, terminalBridge)
     val gitHubReleaseManager = GitHubReleaseManager(application)
+    val desktopSessionManager = DesktopSessionManager(application, pRootEngine, containerManager, softwareInstaller)
 
     val containers: StateFlow<List<com.devwithzachary.completelinuxinstaller.model.ContainerInstance>> = containerManager.containers
     val defaultContainerId: StateFlow<String> = containerManager.defaultContainerId
     val sessions: StateFlow<List<com.devwithzachary.completelinuxinstaller.engine.TerminalSession>> = terminalBridge.sessions
     val activeSessionId: StateFlow<String?> = terminalBridge.activeSessionId
+    val desktopState: StateFlow<DesktopUiState> = desktopSessionManager.desktopState
+    val isDesktopRunning: StateFlow<Boolean> = desktopSessionManager.isDesktopRunning
 
     private val _isGitHubUpdateCheckEnabled = MutableStateFlow(gitHubReleaseManager.isUpdateCheckEnabled())
     val isGitHubUpdateCheckEnabled: StateFlow<Boolean> = _isGitHubUpdateCheckEnabled.asStateFlow()
@@ -1147,10 +1152,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun stopTerminalSession() {
         terminalBridge.stopSession()
+        if (!terminalBridge.isAnySessionRunning.value && !desktopSessionManager.isDesktopRunning.value) {
+            PRootForegroundService.stop(getApplication())
+        }
+        refreshStatus()
+    }
+
+    fun startDesktopSession(containerId: String? = null, loginUser: String? = null) {
+        val target = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        if (_isKeepAliveEnabled.value) {
+            PRootForegroundService.start(getApplication())
+        }
+        desktopSessionManager.startDesktopSession(target?.id, loginUser = loginUser)
+        refreshStatus()
+    }
+
+    fun startDesktopSessionForContainer(containerId: String, loginUser: String? = null) {
+        desktopSessionManager.updateSelectedContainer(containerId)
+        startDesktopSession(containerId, loginUser = loginUser)
+    }
+
+    fun isContainerDesktopSetup(containerId: String): Boolean {
+        return desktopSessionManager.isDesktopInstalled(containerId)
+    }
+
+    fun stopDesktopSession() {
+        desktopSessionManager.stopDesktopSession()
         if (!terminalBridge.isAnySessionRunning.value) {
             PRootForegroundService.stop(getApplication())
         }
         refreshStatus()
+    }
+
+    fun restartDesktopSession() {
+        desktopSessionManager.restartDesktopSession()
     }
 
     fun sendTerminalCommand(command: String, containerId: String? = null) {
@@ -1207,7 +1242,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val existingIdx = currentList.indexOfFirst { it.id == pkgId }
         val installCmd = when (pm) {
             com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APK -> "apk update && apk add $cleanName"
-            com.devwithzachary.completelinuxinstaller.model.PackageManagerType.PACMAN -> "pacman -Sy --noconfirm $cleanName"
+            com.devwithzachary.completelinuxinstaller.model.PackageManagerType.PACMAN -> "pacman -Sy --noconfirm --overwrite \"*\" $cleanName"
             com.devwithzachary.completelinuxinstaller.model.PackageManagerType.DNF -> "dnf install -y $cleanName"
             com.devwithzachary.completelinuxinstaller.model.PackageManagerType.XBPS -> "xbps-install -S && xbps-install -y $cleanName"
             com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT -> "export DEBIAN_FRONTEND=noninteractive && dpkg --configure -a && apt-get update && apt-get install -y -o Dpkg::Options::=\"--force-overwrite\" $cleanName"
@@ -1481,5 +1516,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissBackupStatus() {
         _backupState.value = BackupState.Idle
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        desktopSessionManager.stopDesktopSession()
     }
 }
