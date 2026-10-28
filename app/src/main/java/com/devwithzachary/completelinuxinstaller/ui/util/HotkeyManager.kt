@@ -1,4 +1,4 @@
-package com.devwithzachary.completelinuxinstaller.util
+package com.devwithzachary.completelinuxinstaller.ui.util
 
 import android.content.Context
 import org.json.JSONArray

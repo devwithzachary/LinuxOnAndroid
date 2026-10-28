@@ -3,6 +3,7 @@ package com.devwithzachary.completelinuxinstaller.engine
 import android.content.Context
 import android.os.Environment
 import android.util.Log
+import com.devwithzachary.completelinuxinstaller.engine.desktop.DesktopConfigHelper
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -767,55 +768,7 @@ class PRootEngine(val context: Context) {
             if (hasVnc) {
                 val content = try { vncXstartup.readText() } catch (_: Exception) { "" }
                 if (!content.contains("GLYCIN_DISABLE_SANDBOX") || content.contains("--exit-with-session") || content.contains("exec xfdesktop") || !content.contains("export PATH=") || !content.contains("command -v startxfce4") || !content.contains("xfconfd")) {
-                    val standardXstartup = """
-                        #!/bin/sh
-                        export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/xfce4/xfconf:/usr/lib64/xfce4/xfconf:/usr/libexec/xfce4/xfconf:${'$'}PATH"
-                        unset SESSION_MANAGER
-                        unset DBUS_SESSION_BUS_ADDRESS
-                        export XDG_SESSION_TYPE=x11
-                        export XDG_CURRENT_DESKTOP=XFCE
-                        export DESKTOP_SESSION=xfce
-                        export NO_AT_BRIDGE=1
-                        export GDK_BACKEND=x11
-                        export GTK_OVERLAY_SCROLLING=0
-                        export GLYCIN_DISABLE_SANDBOX=1
-                        export GLYCIN_ENABLE_SANDBOX=0
-                        export LIBGL_ALWAYS_SOFTWARE=1
-                        [ -r "${'$'}HOME/.Xresources" ] && xrdb "${'$'}HOME/.Xresources" 2>/dev/null || true
-
-                        if command -v dbus-launch >/dev/null 2>&1; then
-                            eval ${'$'}(dbus-launch --sh-syntax)
-                        fi
-
-                        if command -v xfconfd >/dev/null 2>&1; then
-                            xfconfd &
-                        elif [ -x /usr/lib64/xfce4/xfconf/xfconfd ]; then
-                            /usr/lib64/xfce4/xfconf/xfconfd &
-                        elif [ -x /usr/lib/xfce4/xfconf/xfconfd ]; then
-                            /usr/lib/xfce4/xfconf/xfconfd &
-                        elif [ -x /usr/libexec/xfce4/xfconf/xfconfd ]; then
-                            /usr/libexec/xfce4/xfconf/xfconfd &
-                        fi
-
-                        xsetroot -solid "#1e293b" 2>/dev/null || true
-                        xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true
-
-                        if command -v startxfce4 >/dev/null 2>&1; then
-                            exec startxfce4
-                        elif command -v xfce4-session >/dev/null 2>&1; then
-                            exec xfce4-session
-                        else
-                            xfsettingsd --daemon 2>/dev/null || true
-                            xfwm4 --compositor=off &
-                            xfce4-panel &
-                            Thunar --daemon 2>/dev/null &
-                            if command -v xfdesktop >/dev/null 2>&1; then
-                                exec xfdesktop
-                            else
-                                exec xterm
-                            fi
-                        fi
-                    """.trimIndent() + "\n"
+                    val standardXstartup = DesktopConfigHelper.buildStandardXstartupScript()
 
                     try {
                         vncXstartup.parentFile?.mkdirs()

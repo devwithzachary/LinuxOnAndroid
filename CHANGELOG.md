@@ -38,6 +38,15 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Wizard Back Navigation Fix**: Resolved an issue where pressing the device Back button on the installation error step failed to navigate backward for new users without existing containers. The wizard now gracefully resets state and returns to distribution selection.
 - **Release-Pinned Distribution Strategy**: Pinned official stable release artifacts and hashes for distributions without floating checksum files (Alpine Linux 3.21.3, Fedora 44-1.7, Void Linux 20250202, Arch Linux x86_64 2026.10.01 / ARM MD5).
 
+### 🧹 Architecture & Codebase Modernization
+- **Decomposition of Monolithic Screens**: Refactored large composable screens into modular, single-responsibility components and step coordinators:
+  - **Container Settings**: Decomposed 1,600+ line `ContainerDetailSettingsTab` into focused cards (`ContainerInfoCard`, `ContainerUpgradeCard`, `ContainerBackupCard`, `ContainerStorageCard`, `ContainerAccountCard`, `ContainerNetworkCard`, `ContainerRemoteAccessCard`, and `ContainerDangerZoneCard`).
+  - **Setup Wizard**: Decomposed 1,100+ line `WizardScreen` into modular step composables (`WizardDistroStep`, `WizardConfigStep`, `WizardPermissionsStep`, and `WizardInstallStep`).
+  - **Application Settings**: Decomposed 1,000+ line `SettingsScreen` into modular settings cards (`AppUpdatesCard`, `TerminalAppearanceCard`, `BackgroundServiceCard`, and `SystemDiagnosticsCard`).
+- **Centralized Desktop Script Generation**: Consolidated redundant `xstartup`, `vncserver`, and wrapper script generation logic from `PRootEngine`, `DistroCatalog`, `RootfsMigration`, and `NetworkShims` into a unified `DesktopConfigHelper`.
+- **Dead Code Purge**: Removed unused legacy components, including `PackageTestRunner`, `AptInstallCard`, `SoftwareHubScreen`, and obsolete string resources.
+- **Package & Naming Standardization**: Consolidated hotkey management into `ui/util/HotkeyManager`, removed orphaned directories, and aligned composable function names with filenames across container detail tabs.
+
 ## [1.7.2] - 2026-10-19
 
 ### 🛡️ Security & Privacy Hardening

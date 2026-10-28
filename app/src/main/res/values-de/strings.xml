@@ -99,9 +99,6 @@
     <string name="label_developer">Entwickler</string>
 
     <!-- Software Hub -->
-    <string name="hub_title">Software- &amp; Paket-Hub</string>
-    <string name="hub_apt_card_title">Beliebige apt-Pakete installieren</string>
-    <string name="hub_apt_placeholder">bspw. ffmpeg, rustc, git</string>
     <string name="btn_install">Installieren</string>
     <string name="btn_one_click_install">1-Klick Installation</string>
     <string name="btn_view_logs">Logs prüfen</string>

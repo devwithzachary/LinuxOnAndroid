@@ -364,3 +364,33 @@ fun ServiceLauncherButton(
         }
     }
 }
+
+@Composable
+fun ContainerDetailOverviewTab(
+    container: ContainerInstance,
+    metrics: SystemResourceMetrics,
+    sshPort: Int,
+    isVncInstalled: Boolean,
+    isNginxInstalled: Boolean,
+    isSshInstalled: Boolean,
+    isCodeServerInstalled: Boolean,
+    isWebTerminalInstalled: Boolean,
+    onKillProcess: (pid: Int) -> Unit,
+    onRunPresetCommand: (command: String) -> Unit,
+    onNavigateToSoftwareTab: () -> Unit,
+    onRefreshMetrics: () -> Unit = {}
+) = OverviewTabContent(
+    container = container,
+    metrics = metrics,
+    sshPort = sshPort,
+    isVncInstalled = isVncInstalled,
+    isNginxInstalled = isNginxInstalled,
+    isSshInstalled = isSshInstalled,
+    isCodeServerInstalled = isCodeServerInstalled,
+    isWebTerminalInstalled = isWebTerminalInstalled,
+    onKillProcess = onKillProcess,
+    onRunPresetCommand = onRunPresetCommand,
+    onNavigateToSoftwareTab = onNavigateToSoftwareTab,
+    onRefreshMetrics = onRefreshMetrics
+)
+

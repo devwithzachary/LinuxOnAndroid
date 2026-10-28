@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.devwithzachary.completelinuxinstaller.R
-import com.devwithzachary.completelinuxinstaller.util.HotkeyManager
+import com.devwithzachary.completelinuxinstaller.ui.util.HotkeyManager
 
 @Composable
 fun EditHotkeysDialog(

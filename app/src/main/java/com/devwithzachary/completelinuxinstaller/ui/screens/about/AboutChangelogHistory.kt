@@ -44,7 +44,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Release-Pinned Distribution Strategy: Pinned official stable release artifacts and verified checksums for Alpine 3.21.3, Fedora 44-1.7, Void Linux 20250202, and Arch Linux.",
             "Arch Linux Provisioning & Desktop Fix: Added overwrite flags to pacman to prevent conflicting untracked file aborts, sanitized TigerVNC wrapper generation, and enforced exact process matching for daemon cleanup to ensure reliable desktop provisioning.",
             "Desktop Stability & Environment Fixes: Fixed session orchestration in xstartup scripts across all distributions by launching full XFCE sessions (exec startxfce4), pre-launching xfconfd, masking /sys/fs/selinux to resolve Android SELinux AVC permission denials on Fedora D-Bus, removing premature D-Bus exit triggers, deploying pure shell Bubblewrap bypass shims to preserve process file descriptors, bundling SVG pixbuf loaders on Fedora, and restoring Void Linux desktop typography.",
-            "Desktop Package Upgrade Detection: Bumped XFCE packages to version 7 across all distributions, displaying an in-app upgrade banner on the Desktop tab so existing installations receive the stability fixes."
+            "Desktop Package Upgrade Detection: Bumped XFCE packages to version 7 across all distributions, displaying an in-app upgrade banner on the Desktop tab so existing installations receive the stability fixes.",
+            "Modular Codebase Modernization: Decomposed monolithic screens (Container Settings, Setup Wizard, Settings) into single-responsibility cards and steps, purged legacy dead code, and centralized desktop startup scripts into DesktopConfigHelper."
         )
     ),
     ReleaseChangelog(

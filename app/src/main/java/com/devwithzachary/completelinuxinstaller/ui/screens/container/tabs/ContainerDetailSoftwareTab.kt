@@ -156,3 +156,21 @@ fun SoftwareTabContent(
         }
     }
 }
+
+@Composable
+fun ContainerDetailSoftwareTab(
+    container: ContainerInstance,
+    packages: List<SoftwarePackage>,
+    onInstallPackage: (packageId: String) -> Unit,
+    onInstallCustomPackage: (packageName: String) -> Unit,
+    onViewLogs: (packageId: String) -> Unit,
+    onRunPresetCommand: (command: String) -> Unit
+) = SoftwareTabContent(
+    container = container,
+    packages = packages,
+    onInstallPackage = onInstallPackage,
+    onInstallCustomPackage = onInstallCustomPackage,
+    onViewLogs = onViewLogs,
+    onRunPresetCommand = onRunPresetCommand
+)
+

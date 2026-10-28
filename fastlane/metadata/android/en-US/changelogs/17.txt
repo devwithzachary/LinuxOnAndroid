@@ -1,7 +1,7 @@
 • Desktop: Native desktop tab, quick launchers, and adaptive UI layouts.
 • Auto-Resolution: Dynamic sizing, UI scaling, and rotation prompt.
-• GUI Stability: Fixed Fedora D-Bus panel, Arch Glycin, and Void fonts.
+• GUI Stability: Fixed Fedora D-Bus, Arch Glycin, and Void fonts.
 • GUI Apps: Distro-native graphical package managers bundled with XFCE.
 • Controls: Default Trackpad mode with in-app login user switching.
 • Integrity: Dynamic remote checksum verification for rootfs images.
-• Setup: Wizard retry controls and Arch Linux package install fixes.
+• Core: Modular UI architecture and centralized container desktop scripts.

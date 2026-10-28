@@ -48,7 +48,7 @@ import com.devwithzachary.completelinuxinstaller.ui.util.handHover
 import com.devwithzachary.completelinuxinstaller.ui.util.isHardwareKeyboardConnected
 import com.devwithzachary.completelinuxinstaller.ui.util.onContextMenu
 import com.devwithzachary.completelinuxinstaller.ui.util.onSecondaryClick
-import com.devwithzachary.completelinuxinstaller.util.HotkeyManager
+import com.devwithzachary.completelinuxinstaller.ui.util.HotkeyManager
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
