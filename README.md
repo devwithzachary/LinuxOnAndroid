@@ -9,7 +9,7 @@
     <a href="https://f-droid.org/packages/com.devwithzachary.completelinuxinstaller/"><img src="https://img.shields.io/f-droid/v/com.devwithzachary.completelinuxinstaller.svg?logo=f-droid&logoColor=white" alt="F-Droid" /></a>
     <a href="https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller"><img src="https://img.shields.io/badge/Google%20Play-Download-brightgreen.svg?logo=googleplay" alt="Google Play Store" /></a>
     <a href="https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller"><img src="https://img.shields.io/badge/Google%20Play-Open%20Beta-blue.svg?logo=googleplay" alt="Google Play Open Testing" /></a>
-    <a href="https://discord.gg/vJbBagx8JA"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2.svg?logo=discord&logoColor=white" alt="Discord Community" /></a>
+    <a href="https://discord.gg/QdT9yCrKmV"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2.svg?logo=discord&logoColor=white" alt="Discord Community" /></a>
     <a href="https://developer.android.com/about/versions/marshmallow"><img src="https://img.shields.io/badge/Min%20SDK-23%20%28Android%206.0%2B%29-brightgreen.svg" alt="Android MinSDK" /></a>
     <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Language-Kotlin-blue.svg" alt="Kotlin" /></a>
     <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20Material3-purple.svg" alt="UI Framework" /></a>
@@ -27,7 +27,7 @@
 Powered by a native **PRoot** user-space engine, a multi-session **POSIX PTY terminal bridge**, and a modern **Jetpack Compose Material 3** interface, Complete Linux Installer transforms your Android phone or tablet into a portable Linux workstation, server host, desktop environment, and development platform.
 
 > [!NOTE]
-> **Active Development & Community Support**: Complete Linux Installer is actively developed and maintained. Join our [Discord Community](https://discord.gg/vJbBagx8JA) for announcements and discussion, or [submit an issue on GitHub](https://github.com/devwithzachary/LinuxOnAndroid/issues) if you discover any bugs!
+> **Active Development & Community Support**: Complete Linux Installer is actively developed and maintained. Join our [Discord Community](https://discord.gg/QdT9yCrKmV) for announcements and discussion, or [submit an issue on GitHub](https://github.com/devwithzachary/LinuxOnAndroid/issues) if you discover any bugs!
 
 ---
 
@@ -275,6 +275,18 @@ To verify that download mirrors, archive hashes, and PRoot runtime execution rem
 Contributions, bug reports, and feature requests are welcome! Feel free to check out the issues page or submit a pull request.
 
 Please review our **[AI Usage Policy](AI.md)** for guidelines on using AI coding assistants when contributing to this project. All code submitted must be thoroughly reviewed and personally owned by the human author; automated bot PRs are not accepted.
+
+---
+
+## ☕ Support the Project
+
+If Complete Linux Installer (LinuxOnAndroid) has been useful to you, consider supporting continued development:
+
+<div align="center">
+  <a href="https://www.patreon.com/DevWithZachary"><img src="https://img.shields.io/badge/Patreon-Become%20a%20Patron-F96854.svg?logo=patreon&logoColor=white&style=for-the-badge" alt="Patreon" /></a>
+  &nbsp;
+  <a href="https://www.buymeacoffee.com/devwithzachary"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Tip%20the%20Dev-FFDD00.svg?logo=buymeacoffee&logoColor=black&style=for-the-badge" alt="Buy Me a Coffee" /></a>
+</div>
 
 ---
 

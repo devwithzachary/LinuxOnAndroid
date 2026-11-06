@@ -100,6 +100,7 @@ docker run --rm \
     --platform linux/amd64 \
     -e HOST_UID="${SUDO_UID:-$(id -u)}" \
     -e HOST_GID="${SUDO_GID:-$(id -g)}" \
+    -e FDROID_BUILD_DIR="$FDROID_BUILD_DIR" \
     -v "$PROJECT_ROOT":"$FDROID_BUILD_DIR" \
     -v "$HOME/.cache/android-sdk-linux/ndk":/opt/android-sdk/ndk \
     -v "$HOME/.cache/android-sdk-linux/platforms":/opt/android-sdk/platforms \
@@ -114,6 +115,8 @@ docker run --rm \
         echo "🔧 Installing build prerequisites (make, gawk)..."
         apt-get update -qq
         apt-get install -y -qq make gawk >/dev/null
+        git config --global --add safe.directory "*"
+        git config --system --add safe.directory "*" 2>/dev/null || true
 
         if [ ! -d "/opt/android-sdk/ndk/28.2.13676358" ]; then
             echo "⬇️  Installing Android NDK 28.2.13676358 (cached on host)..."

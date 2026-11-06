@@ -15,7 +15,6 @@ Binaries:
   https://github.com/devwithzachary/LinuxOnAndroid/releases/download/%v/LinuxOnAndroid-%v-release.apk
 
 Builds:
-
   - versionName: 1.7.2
     versionCode: 16
     commit: f088188b5df39ec27d57bc537d305f4b0939c64a
@@ -32,13 +31,14 @@ Builds:
 
   - versionName: 1.8.0
     versionCode: 17
-    commit: v1.8.0
+    commit: 63395c92c016c4199d40ce918682d9556f27de16
     subdir: app
     sudo:
       - apt-get update
       - apt-get install -y make gawk
     gradle:
       - yes
+    prebuild: sed -i -e 's/VERSION=.*;/VERSION="";/' ../external/proot/GNUmakefile
     scandelete:
       - app/src/main/jniLibs
     build: ../scripts/build_native_libs.sh $$NDK$$
@@ -50,4 +50,3 @@ AutoUpdateMode: Version
 UpdateCheckMode: Tags
 CurrentVersion: 1.8.0
 CurrentVersionCode: 17
-
