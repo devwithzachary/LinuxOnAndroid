@@ -2,6 +2,14 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.8.1] - 2026-11-11
+
+### 💖 Community, Supporters & Links
+- **Expanded Project Supporters List**: Updated the in-app Credits Supporters section to recognize all Patreon, Buy Me a Coffee, and YouTube supporters (Alen, Many Fun Adventures, Old PC Gunk (and stuff), ShoaffSquatch, Swamp Gaming Network, насэр Хорр, Alcove Electronics Workshop, and Ian Scales).
+- **In-App Buy Me a Coffee Action**: Added a dedicated "Buy Me a Coffee" button alongside "Join Patreon" in the Credits Supporters section and updated Credits wording to "Supporters" across English and German translations.
+- **Updated Buy Me a Coffee Links**: Pointed all Buy Me a Coffee support links across the app, README, and GitHub funding metadata to `https://www.buymeacoffee.com/devwithzachary`.
+- **Updated Discord Community Invite**: Updated all Discord community invite links across the app and documentation to `https://discord.gg/QdT9yCrKmV`.
+
 ## [1.8.0] - 2026-10-28
 
 ### 🖥️ Built-in Graphical Desktop Access

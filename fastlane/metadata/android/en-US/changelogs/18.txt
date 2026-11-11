@@ -1,0 +1,4 @@
+• Supporters: Expanded in-app Credits to recognize Patreon, Buy Me a Coffee, and YouTube supporters.
+• Support: Added a Buy Me a Coffee button in the Credits Supporters section and updated links to devwithzachary.
+• Community: Updated Discord community invite links across the app to discord.gg/QdT9yCrKmV.
+

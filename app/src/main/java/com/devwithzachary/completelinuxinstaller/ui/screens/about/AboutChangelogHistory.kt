@@ -23,9 +23,19 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
+        version = "v1.8.1",
+        date = "November 2026",
+        initialExpanded = true,
+        highlights = listOf(
+            "Project Supporters Recognition: Updated the in-app Credits Supporters section to recognize all Patreon, Buy Me a Coffee, and YouTube supporters (Alen, Many Fun Adventures, Old PC Gunk (and stuff), ShoaffSquatch, Swamp Gaming Network, насэр Хорр, Alcove Electronics Workshop, and Ian Scales).",
+            "Buy Me a Coffee Credits Integration: Added a dedicated Buy Me a Coffee button alongside Join Patreon in the Credits Supporters card and unified Credits terminology to Supporters in English and German.",
+            "Updated Community & Support Links: Updated all Buy Me a Coffee links to devwithzachary and updated Discord community invite links across the app to discord.gg/QdT9yCrKmV."
+        )
+    ),
+    ReleaseChangelog(
         version = "v1.8.0",
         date = "October 2026",
-        initialExpanded = true,
+        initialExpanded = false,
         highlights = listOf(
             "Built-in Desktop Access: Added a dedicated Desktop navigation tab with high-performance native VNC rendering (sub-2ms latency, 60 FPS) to run graphical desktop sessions directly inside the app.",
             "Automatic Screen-Space Resolution: Default resolution dynamically calculates the exact available canvas space between the top bar and hotkeys ribbon for a 1:1 pixel-perfect fullscreen display.",

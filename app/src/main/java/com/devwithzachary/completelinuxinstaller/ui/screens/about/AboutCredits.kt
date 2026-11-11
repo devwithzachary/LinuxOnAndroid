@@ -161,12 +161,36 @@ val ISSUE_CONTRIBUTORS: List<Contributor> = listOf(
 
 val PATREON_SPONSORS: List<Sponsor> = listOf(
     Sponsor(
+        name = "Alen",
+        tier = "Tinkerer (BuyMeACoffee)"
+    ),
+    Sponsor(
+        name = "Many Fun Adventures",
+        tier = "Supporter (BuyMeACoffee)"
+    ),
+    Sponsor(
         name = "Old PC Gunk (and stuff)",
-        tier = "Supporter"
+        tier = "Supporter (Patreon)"
+    ),
+    Sponsor(
+        name = "ShoaffSquatch",
+        tier = "Supporter (YouTube)"
+    ),
+    Sponsor(
+        name = "Swamp Gaming Network",
+        tier = "Supporter (Patreon)"
     ),
     Sponsor(
         name = "насэр Хорр",
-        tier = "Supporter"
+        tier = "Supporter (Patreon)"
+    ),
+    Sponsor(
+        name = "Alcove Electronics Workshop",
+        tier = "Tipper (YouTube)"
+    ),
+    Sponsor(
+        name = "Ian Scales",
+        tier = "Tipper (YouTube)"
     )
 )
 
@@ -177,6 +201,7 @@ fun AboutCreditsSection(
 ) {
     val uriHandler = LocalUriHandler.current
     val patreonUrl = stringResource(R.string.patreon_url)
+    val buymeacoffeeUrl = stringResource(R.string.buymeacoffee_url)
     var isSectionExpanded by rememberSaveable { mutableStateOf(initialExpanded) }
     var selectedCategory by remember { mutableStateOf(CreditsCategory.ALL) }
 
@@ -353,7 +378,7 @@ fun AboutCreditsSection(
                 }
             }
 
-            // Patreon Sponsors
+            // Project Supporters
             if (selectedCategory == CreditsCategory.ALL || selectedCategory == CreditsCategory.PATREON) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -365,7 +390,7 @@ fun AboutCreditsSection(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Patreon Sponsors",
+                            text = stringResource(R.string.credits_tab_patreon),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFFFF424D)
@@ -394,17 +419,6 @@ fun AboutCreditsSection(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
-                                Button(
-                                    onClick = {
-                                        try { uriHandler.openUri(patreonUrl) } catch (_: Exception) {}
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                    shape = RoundedCornerShape(10.dp)
-                                ) {
-                                    Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(stringResource(R.string.credits_btn_become_sponsor), fontSize = 13.sp)
-                                }
                             }
                         }
                     } else {
@@ -412,6 +426,37 @@ fun AboutCreditsSection(
                             SponsorCard(sponsor = sponsor, onOpenUrl = { url ->
                                 try { uriHandler.openUri(url) } catch (_: Exception) {}
                             })
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                try { uriHandler.openUri(patreonUrl) } catch (_: Exception) {}
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.btn_join_patreon), fontSize = 13.sp, maxLines = 1)
+                        }
+
+                        Button(
+                            onClick = {
+                                try { uriHandler.openUri(buymeacoffeeUrl) } catch (_: Exception) {}
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.VolunteerActivism, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.btn_buy_me_a_coffee), fontSize = 13.sp, maxLines = 1)
                         }
                     }
                 }

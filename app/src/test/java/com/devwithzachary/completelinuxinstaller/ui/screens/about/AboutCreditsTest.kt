@@ -87,14 +87,23 @@ class AboutCreditsTest {
     @Test
     fun testPatreonSponsors_containsSupporters() {
         val sponsors = PATREON_SPONSORS
-        assertEquals(2, sponsors.size)
+        assertEquals(8, sponsors.size)
 
-        val oldPcGunk = sponsors.firstOrNull { it.name == "Old PC Gunk (and stuff)" }
-        assertTrue("Old PC Gunk (and stuff) must be in Patreon sponsors", oldPcGunk != null)
-        assertEquals("Supporter", oldPcGunk!!.tier)
+        val expectedSponsors = listOf(
+            "Alen" to "Tinkerer (BuyMeACoffee)",
+            "Many Fun Adventures" to "Supporter (BuyMeACoffee)",
+            "Old PC Gunk (and stuff)" to "Supporter (Patreon)",
+            "ShoaffSquatch" to "Supporter (YouTube)",
+            "Swamp Gaming Network" to "Supporter (Patreon)",
+            "насэр Хорр" to "Supporter (Patreon)",
+            "Alcove Electronics Workshop" to "Tipper (YouTube)",
+            "Ian Scales" to "Tipper (YouTube)"
+        )
 
-        val naserHorr = sponsors.firstOrNull { it.name == "насэр Хорр" }
-        assertTrue("насэр Хорр must be in Patreon sponsors", naserHorr != null)
-        assertEquals("Supporter", naserHorr!!.tier)
+        for ((name, tier) in expectedSponsors) {
+            val sponsor = sponsors.firstOrNull { it.name == name }
+            assertTrue("$name must be in sponsors", sponsor != null)
+            assertEquals(tier, sponsor!!.tier)
+        }
     }
 }
