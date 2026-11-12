@@ -137,11 +137,16 @@ fun MainAppContent(viewModel: MainViewModel) {
                     )
                 }
         ) {
+            val isImeVisible = WindowInsets.isImeVisible
             Scaffold(
                 containerColor = if (isTerminal || (isDesktop && isDesktopRunning)) Color(0xFF0F172A) else MaterialTheme.colorScheme.background,
-                contentWindowInsets = if (isTerminal || (isDesktop && isDesktopRunning)) WindowInsets(0, 0, 0, 0) else ScaffoldDefaults.contentWindowInsets,
+                contentWindowInsets = if (isTerminal || (isDesktop && isDesktopRunning)) {
+                    if (isImeVisible) WindowInsets(0, 0, 0, 0)
+                    else WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)
+                } else {
+                    ScaffoldDefaults.contentWindowInsets
+                },
                 bottomBar = {
-                    val isImeVisible = WindowInsets.isImeVisible
                     if (windowSizeClass.isCompact && (isInstalled || splashDismissed) && !isFullscreenScreen &&
                         !((currentScreen == AppScreen.TERMINAL || (currentScreen == AppScreen.DESKTOP && isDesktopRunning)) && isImeVisible)) {
                         NavigationBar {
@@ -218,7 +223,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(bottom = if (windowSizeClass.isCompact) innerPadding.calculateBottomPadding() else 0.dp)
+                        .padding(bottom = innerPadding.calculateBottomPadding())
                 ) {
                     if (windowSizeClass.isMediumOrExpanded && (isInstalled || splashDismissed) && !isFullscreenScreen) {
                         NavigationRail(

@@ -29,7 +29,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         highlights = listOf(
             "Android 6-12 Compatibility Fix: Fixed a NoSuchMethodError crash when starting terminal sessions, installing packages, launching desktops, or migrating containers on Android 12 and older by replacing Java 11 InputStream.readNBytes with an API 23+ compatible ELF header check.",
             "Terminal Resize Thread-Safety: Synchronized TerminalEmulator resize, scroll, and buffer-read methods against background PTY output to prevent NullPointerException crashes during layout/keyboard changes.",
-            "Install Log ANR Fix: Virtualized the Desktop setup log viewer with LazyColumn and bounded package install logs to prevent UI freezes during large apt/pacman/dnf installations."
+            "Install Log ANR Fix: Virtualized the Desktop setup log viewer with LazyColumn and bounded package install logs to prevent UI freezes during large apt/pacman/dnf installations.",
+            "PC Mode & Taskbar Bottom Insets (Issue #57): Preserved navigation bar bottom insets on large/PC-mode screens and active Terminal/Desktop sessions so persistent taskbars no longer overlap bottom controls."
         )
     ),
     ReleaseChangelog(

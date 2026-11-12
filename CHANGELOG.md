@@ -8,6 +8,7 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Android 6-12 Terminal Launch Crash (`NoSuchMethodError`)**: Replaced Java 11 `InputStream.readNBytes(4)` calls in `PRootEngine` and `RootfsMigration` with an Android API 23+ compatible ELF header reader (`DesktopConfigHelper.isElfBinary`), fixing crashes on devices running Android 12 and older when starting terminal sessions, installing packages, launching desktops, or migrating containers.
 - **Terminal Resize Thread-Safety (`NullPointerException`)**: Synchronized `TerminalEmulator` buffer access, scrolling, text extraction, and `resize()` against `appendBytes()` so concurrent PTY output on background threads can no longer race with UI thread terminal resizing or rendering.
 - **Package & Desktop Install Log ANR**: Virtualized the Desktop setup log viewer with `LazyColumn` and capped `packageInstallLogs` / `installLogs` to the most recent 32 KB via `DesktopConfigHelper.appendBoundedLog`, preventing main-thread `nDrawTextRun` layout freezes during long `apt`/`pacman`/`dnf` installations.
+- **Android PC Mode / Taskbar Bottom Padding (Issue #57)**: Applied `WindowInsets.navigationBars` bottom insets across non-compact layouts and active Terminal/Desktop sessions in `MainAppContent`, preventing persistent Android PC Mode taskbars from overlapping bottom controls and extra-keys bars.
 
 ## [1.8.1] - 2026-11-11
 
