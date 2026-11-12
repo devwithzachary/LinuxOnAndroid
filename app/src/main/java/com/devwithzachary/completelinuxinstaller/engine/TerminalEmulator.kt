@@ -26,26 +26,30 @@ class TerminalEmulator(
     var scrollOffset = 0
         private set
 
+    @Synchronized
     fun scrollUp(lines: Int = 1) {
         if (scrollback.isNotEmpty()) {
             scrollOffset = (scrollOffset + lines).coerceIn(0, scrollback.size)
         }
     }
 
+    @Synchronized
     fun scrollDown(lines: Int = 1) {
         scrollOffset = (scrollOffset - lines).coerceIn(0, scrollback.size)
     }
 
+    @Synchronized
     fun scrollToBottom() {
         scrollOffset = 0
     }
 
     val totalBufferRows: Int
-        get() = scrollback.size + rows
+        @Synchronized get() = scrollback.size + rows
 
     /**
      * Converts a visible screen row index (0 until rows) to an absolute buffer row index (0 until totalBufferRows).
      */
+    @Synchronized
     fun screenToBufferRow(r: Int): Int {
         if (totalBufferRows <= 0) return 0
         val target = (scrollback.size + r) - scrollOffset
@@ -56,6 +60,7 @@ class TerminalEmulator(
      * Converts an absolute buffer row index (0 until totalBufferRows) to a visible screen row index.
      * Note that the resulting screen row may be negative (scrolled past top) or >= rows (scrolled past bottom).
      */
+    @Synchronized
     fun bufferToScreenRow(bufferRow: Int): Int {
         return bufferRow - (scrollback.size - scrollOffset)
     }
@@ -63,6 +68,7 @@ class TerminalEmulator(
     /**
      * Retrieves characters for an absolute buffer row index (0 until totalBufferRows).
      */
+    @Synchronized
     fun getBufferRow(bufferRow: Int): Array<TerminalChar> {
         val totalHistory = scrollback.size
         val row = when {
@@ -76,6 +82,7 @@ class TerminalEmulator(
         return if (row.size == cols) row else Array(cols) { c -> if (c < row.size) row[c] else TerminalChar() }
     }
 
+    @Synchronized
     fun getRenderRow(r: Int): Array<TerminalChar> {
         return getBufferRow(screenToBufferRow(r))
     }
@@ -117,6 +124,7 @@ class TerminalEmulator(
     // 16 Standard ANSI Colors
     private val ansiColors = Array(16) { i -> theme.ansiColors.getOrElse(i) { Color.White } }
 
+    @Synchronized
     fun applyTheme(newTheme: com.devwithzachary.completelinuxinstaller.theme.TerminalTheme) {
         theme = newTheme
         for (i in 0 until 16) {
@@ -127,6 +135,7 @@ class TerminalEmulator(
         resetSgr()
     }
 
+    @Synchronized
     fun resize(newCols: Int, newRows: Int) {
         if (newCols <= 0 || newRows <= 0) return
         if (newCols == cols && newRows == rows) return
@@ -550,6 +559,7 @@ class TerminalEmulator(
         }
     }
 
+    @Synchronized
     fun clearTerminal() {
         clearRange(0, 0, rows - 1, cols - 1)
         scrollback.clear()
@@ -558,6 +568,7 @@ class TerminalEmulator(
         cursorY = 0
     }
 
+    @Synchronized
     fun reset() {
         primaryGrid = Array(rows) { Array(cols) { TerminalChar() } }
         altGrid = Array(rows) { Array(cols) { TerminalChar() } }
@@ -647,6 +658,7 @@ class TerminalEmulator(
         }
     }
 
+    @Synchronized
     fun getVisibleText(): String {
         val sb = StringBuilder()
         for (r in 0 until rows) {
@@ -657,6 +669,7 @@ class TerminalEmulator(
         return sb.toString().trimEnd()
     }
 
+    @Synchronized
     fun getAllText(): String {
         val sb = StringBuilder()
         for (row in scrollback) {
@@ -671,6 +684,7 @@ class TerminalEmulator(
         return sb.toString().trimEnd()
     }
 
+    @Synchronized
     fun getWordAtBuffer(bufferRow: Int, col: Int): Pair<Int, Int> {
         if (totalBufferRows == 0 || cols == 0) return Pair(0, 0)
         val bR = bufferRow.coerceIn(0, totalBufferRows - 1)
@@ -713,9 +727,11 @@ class TerminalEmulator(
         return Pair(startC, endC)
     }
 
+    @Synchronized
     fun getWordAt(row: Int, col: Int): Pair<Int, Int> =
         getWordAtBuffer(screenToBufferRow(row), col)
 
+    @Synchronized
     fun getSelectedText(startRow: Int, startCol: Int, endRow: Int, endCol: Int): String {
         if (totalBufferRows == 0 || cols == 0) return ""
         val maxR = totalBufferRows - 1

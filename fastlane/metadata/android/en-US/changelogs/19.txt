@@ -1,2 +1,2 @@
-• Compatibility: Fixed a terminal launch and container migration crash (NoSuchMethodError) on Android 12 and older devices.
-
+• Compatibility: Fixed a container launch/migration crash (NoSuchMethodError) on Android 12 and older devices.
+• Terminal: Fixed a thread-safety NullPointerException crash when resizing the terminal during active output.
