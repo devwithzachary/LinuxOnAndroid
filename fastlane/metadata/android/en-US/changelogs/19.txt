@@ -2,3 +2,4 @@
 • Terminal: Fixed thread-safety NullPointerException and IndexOutOfBoundsException crashes during resize and rendering.
 • Performance: Virtualized and bounded desktop/package install logs to prevent ANRs during large installations.
 • Layout: Preserved bottom taskbar insets in Android PC Mode and large-screen Terminal/Desktop sessions (Issue #57).
+• Services: Prevented Web Terminal and code-server launch shells from self-terminating via pkill -x.

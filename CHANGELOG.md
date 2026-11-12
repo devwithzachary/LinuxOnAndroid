@@ -9,6 +9,7 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Terminal Resize Thread-Safety (`NullPointerException`)**: Synchronized `TerminalEmulator` buffer access, scrolling, text extraction, and `resize()` against `appendBytes()` so concurrent PTY output on background threads can no longer race with UI thread terminal resizing or rendering.
 - **Package & Desktop Install Log ANR**: Virtualized the Desktop setup log viewer with `LazyColumn` and capped `packageInstallLogs` / `installLogs` to the most recent 32 KB via `DesktopConfigHelper.appendBoundedLog`, preventing main-thread `nDrawTextRun` layout freezes during long `apt`/`pacman`/`dnf` installations.
 - **Android PC Mode / Taskbar Bottom Padding (Issue #57)**: Applied `WindowInsets.navigationBars` bottom insets across non-compact layouts and active Terminal/Desktop sessions in `MainAppContent`, preventing persistent Android PC Mode taskbars from overlapping bottom controls and extra-keys bars.
+- **Web Terminal & VS Code Server Launch Stability**: Replaced `pkill -f` with exact process matching (`pkill -x` / `killall -9`) in `buildTtydLaunchCommand` and `buildCodeServerLaunchCommand` to prevent launch shells from self-terminating when starting `ttyd` or `code-server`.
 
 ## [1.8.1] - 2026-11-11
 

@@ -141,7 +141,7 @@ data class SoftwarePackage(
             val authArg = if (lanAccess && password.isNotBlank()) "-c $cleanUser:$password" else ""
             val ttydArgs = listOf(bindArg, authArg, "-W", "-p \$PORT", "\$SHELL_BIN").filter { it.isNotBlank() }.joinToString(" ")
             val listenMsg = if (lanAccess) "Web Terminal listening on http://0.0.0.0:\$PORT (LAN sharing enabled)" else "Web Terminal listening on http://127.0.0.1:\$PORT (localhost only)"
-            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=7681; fi; [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true; (pkill -f ttyd 2>/dev/null || true); SHELL_BIN=/bin/bash; [ -x /bin/bash ] || SHELL_BIN=/usr/bin/bash; [ -x \"\$SHELL_BIN\" ] || SHELL_BIN=/bin/sh; (nohup ttyd $ttydArgs >/tmp/ttyd.log 2>&1 &) && sleep 1 && cat /tmp/ttyd.log 2>/dev/null || true; echo \"$listenMsg\""
+            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=7681; fi; [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true; (pkill -x ttyd 2>/dev/null || killall -9 ttyd 2>/dev/null || true); SHELL_BIN=/bin/bash; [ -x /bin/bash ] || SHELL_BIN=/usr/bin/bash; [ -x \"\$SHELL_BIN\" ] || SHELL_BIN=/bin/sh; (nohup ttyd $ttydArgs >/tmp/ttyd.log 2>&1 &) && sleep 1 && cat /tmp/ttyd.log 2>/dev/null || true; echo \"$listenMsg\""
         }
 
         fun buildTtydPostInstallNotes(port: Int = 8080, lanAccess: Boolean = false): String {
@@ -163,7 +163,7 @@ data class SoftwarePackage(
             val authEnv = if (lanAccess && password.isNotBlank()) "export PASSWORD='$password'; " else ""
             val authArg = if (lanAccess && password.isNotBlank()) "--auth password" else "--auth none"
             val listenMsg = if (lanAccess) "code-server listening on http://0.0.0.0:\$PORT (LAN enabled - auth required)" else "code-server listening on http://127.0.0.1:\$PORT (localhost only)"
-            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=8443; fi; (pkill -f code-server 2>/dev/null || true); ${authEnv}(nohup code-server --bind-addr $bindAddr $authArg >/tmp/code-server.log 2>&1 &) && sleep 1 && cat /tmp/code-server.log 2>/dev/null || true; echo \"$listenMsg\""
+            return "export PATH=/usr/local/bin:/usr/bin:/bin:\$PATH; PORT=$validPort; if ss -tlpn 2>/dev/null | grep -q \":$validPort \" || netstat -tlpn 2>/dev/null | grep -q \":$validPort \"; then PORT=8443; fi; (pkill -x code-server 2>/dev/null || killall -9 code-server 2>/dev/null || true); ${authEnv}(nohup code-server --bind-addr $bindAddr $authArg >/tmp/code-server.log 2>&1 &) && sleep 1 && cat /tmp/code-server.log 2>/dev/null || true; echo \"$listenMsg\""
         }
 
         fun buildCodeServerPostInstallNotes(port: Int = 8080, lanAccess: Boolean = false): String {
