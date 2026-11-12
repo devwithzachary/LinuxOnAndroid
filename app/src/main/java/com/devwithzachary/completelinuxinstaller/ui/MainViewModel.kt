@@ -715,7 +715,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(container.distroId.ifBlank { container.distroName })
         val containerPresets = SoftwarePackage.getPresetsForContainer(container, _sshPort.value).associateBy { it.id }
 
-        return _packages.value.map { pkg ->
+        return _packages.value
+            .filter { pkg -> pkg.id !in distroDef.softwarePackageHidden }
+            .map { pkg ->
             val basePkg = containerPresets[pkg.id] ?: pkg
             val effectiveLaunchCommand = distroDef.getSoftwarePackageLaunchCommand(pkg.id, _sshPort.value, container) ?: basePkg.launchCommand
             val effectiveBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) ?: basePkg.expectedBinaries
