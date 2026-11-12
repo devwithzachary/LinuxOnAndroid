@@ -1,0 +1,123 @@
+name: Bug Report
+description: Report a crash, installation failure, terminal issue, or desktop/VNC problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue! To help us reproduce and fix it quickly, please fill out all required fields below.
+        **Reports missing device info, steps to reproduce, or a Debug Report may be closed until details are provided.**
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App Version
+      description: Found in Settings or the About screen (e.g. 1.8.1).
+      placeholder: "1.8.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install_source
+    attributes:
+      label: Install Source
+      description: Where did you install Linux Installer from?
+      options:
+        - Google Play Store
+        - F-Droid
+        - GitHub Releases (APK)
+        - Built from source
+    validations:
+      required: true
+
+  - type: input
+    id: device_info
+    attributes:
+      label: Device & Android Version
+      description: Include your phone/tablet model, Android version, and CPU architecture if known.
+      placeholder: "e.g. Samsung Galaxy S24, Android 15 (arm64-v8a)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: distro
+    attributes:
+      label: Linux Distribution
+      description: Which distro are you using?
+      options:
+        - Ubuntu
+        - Debian
+        - Kali Linux
+        - Arch Linux
+        - Alpine Linux
+        - Fedora
+        - Other / Not yet installed
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected Area
+      description: Which part of the app is having the issue?
+      options:
+        - Installer / Download / Extraction
+        - Terminal / Shell
+        - Desktop / VNC / GUI
+        - Software Hub / Package Installation
+        - Settings / Backups / Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly, including what you expected to happen and what actually happened (any error message, black screen, hang, crash, etc.).
+      placeholder: "When I tap Start Desktop, it says '...' and ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: List the exact steps needed to trigger the issue.
+      value: |
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug_report
+    attributes:
+      label: Debug Report
+      description: |
+        In the app, go to **Settings -> Diagnostics & Debug Report -> Generate Debug Report**, copy the output, and paste it below.
+        (If the app crashes before you can open Settings, write "Unable to open Settings due to crash" and paste a logcat or stack trace in the Logs field below.)
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error Output / Screenshots
+      description: Paste any terminal output, installer/desktop setup logs, VNC errors, or drag-and-drop screenshots/screen recordings here.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing open and closed issues to make sure this is not a duplicate.
+          required: true
+        - label: I have included my exact app version, device/Android version, distro, and Debug Report.
+          required: true
+

@@ -1,0 +1,29 @@
+name: Feature Request
+description: Suggest a new feature, distro, or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature Summary
+      description: A clear and concise description of what you want to see added or improved.
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case / Motivation
+      description: Explain why this would be useful and what problem it solves.
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Additional Context
+      description: Any mockups, references, or implementation ideas (optional).
+    validations:
+      required: false
+
