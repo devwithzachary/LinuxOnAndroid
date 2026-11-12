@@ -146,10 +146,10 @@ class SoftwarePackageTest {
         val lanWeb = lanPresets.find { it.id == "web_terminal" }!!
 
         assertTrue("Local web terminal must bind to 127.0.0.1", localWeb.launchCommand!!.contains("-i 127.0.0.1"))
-        assertFalse("Local web terminal must not require password", localWeb.launchCommand!!.contains("-c "))
+        assertFalse("Local web terminal must not require password", localWeb.launchCommand.contains("-c "))
 
         assertFalse("LAN web terminal must not bind only to 127.0.0.1", lanWeb.launchCommand!!.contains("-i 127.0.0.1"))
-        assertTrue("LAN web terminal must configure credentials", lanWeb.launchCommand!!.contains("-c customuser:mysecretpassword"))
+        assertTrue("LAN web terminal must configure credentials", lanWeb.launchCommand.contains("-c customuser:mysecretpassword"))
     }
 
     @Test
@@ -164,11 +164,11 @@ class SoftwarePackageTest {
         val lanCode = lanPresets.find { it.id == "code_server" }!!
 
         assertTrue("Local code-server must bind to 127.0.0.1", localCode.launchCommand!!.contains("--bind-addr 127.0.0.1:"))
-        assertTrue("Local code-server must use --auth none", localCode.launchCommand!!.contains("--auth none"))
+        assertTrue("Local code-server must use --auth none", localCode.launchCommand.contains("--auth none"))
 
         assertTrue("LAN code-server must bind to 0.0.0.0", lanCode.launchCommand!!.contains("--bind-addr 0.0.0.0:"))
-        assertTrue("LAN code-server must use --auth password", lanCode.launchCommand!!.contains("--auth password"))
-        assertTrue("LAN code-server must export PASSWORD", lanCode.launchCommand!!.contains("export PASSWORD='token12345678'"))
+        assertTrue("LAN code-server must use --auth password", lanCode.launchCommand.contains("--auth password"))
+        assertTrue("LAN code-server must export PASSWORD", lanCode.launchCommand.contains("export PASSWORD='token12345678'"))
     }
 
     @Test
@@ -183,10 +183,10 @@ class SoftwarePackageTest {
         val lanVnc = lanPresets.find { it.id == "xfce_desktop" }!!
 
         assertTrue("Local VNC must use -localhost", localVnc.launchCommand!!.contains("-localhost"))
-        assertFalse("Local VNC must not use -nolocalhost", localVnc.launchCommand!!.contains("-nolocalhost"))
+        assertFalse("Local VNC must not use -nolocalhost", localVnc.launchCommand.contains("-nolocalhost"))
 
         assertTrue("LAN VNC must use -nolocalhost", lanVnc.launchCommand!!.contains("-nolocalhost"))
-        assertFalse("LAN VNC must not use -localhost ", lanVnc.launchCommand!!.contains("-localhost "))
+        assertFalse("LAN VNC must not use -localhost ", lanVnc.launchCommand.contains("-localhost "))
     }
 
     @Test
