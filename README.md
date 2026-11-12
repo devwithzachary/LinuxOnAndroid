@@ -82,7 +82,7 @@ Powered by a native **PRoot** user-space engine, a multi-session **POSIX PTY ter
 * **📑 Concurrent Multi-Tab Terminal**: Run, switch, and manage multiple independent interactive terminal sessions simultaneously with isolated PTY subprocesses, custom tab titles, session indicators, and container-specific terminal sessions.
 * **⌨️ Termux-Style Grid Hotkeys & Session Safety**: Aligned equal-width 7-column extra keys grid modeled after Termux for consistent muscle memory, custom hotkey editor, and a safety confirmation prompt before stopping active terminal sessions.
 * **🎛️ Installed Containers Dashboard**: Manage multiple Linux distributions installed side-by-side on disk. Includes per-container storage tracking, live RAM and storage gauge dials, isolated process monitoring (`ps aux`), open TCP port listeners with 1-tap browser launcher, and 1-touch service quick-launchers (VNC, Web Terminal, NGINX, SSH).
-* **🖥️ Full Graphical Desktop Access (GUI)**: One-click installation of a complete **XFCE4 Desktop Environment** with TigerVNC support for full windowed desktop access directly on your phone, tablet, or external display.
+* **🖥️ Full Graphical Desktop Access (GUI)**: One-click installation of a complete **XFCE4 Desktop Environment** with TigerVNC support. Launch and interact directly inside the app's **built-in VNC viewer** (with touch gestures, virtual keyboard toolbar, and PC Mode / external display support) or connect from an external VNC client.
 * **🌐 Web Terminal & Remote VS Code**:
   * **Browser Web Terminal (ttyd)**: Access full interactive shells from any local browser over Wi-Fi without SSH clients.
   * **VS Code Server (code-server)**: Run full Visual Studio Code in your browser with extensions and syntax highlighting.
@@ -187,7 +187,7 @@ Complete Linux Installer is distributed across multiple official channels:
 * **[F-Droid](https://f-droid.org/packages/com.devwithzachary.completelinuxinstaller/)**: Built directly from source and signed with official keys by F-Droid. Recommended for users prioritizing fully audited, open-source distribution.
 * **[Google Play Store](https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller)**: Standard production release channel for Android devices.
 * **[Google Play Open Beta](https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller)**: Opt-in early testing track for previewing upcoming features.
-* **[GitHub Releases](https://github.com/devwithzachary/LinuxOnAndroid/releases)**: Direct APK and Android App Bundle (`.aab`) downloads for each release.
+* **[GitHub Releases](https://github.com/devwithzachary/LinuxOnAndroid/releases)**: Direct signed `.apk` downloads for each release.
 
 ---
 
@@ -255,12 +255,12 @@ To verify that download mirrors, archive hashes, and PRoot runtime execution rem
 ### 3. Running Desktops, Web Services & Cloud IDEs
 1. Tap into any container from the Dashboard and navigate to the **Software** tab.
 2. Select any desired service and tap **Install**:
-   * **XFCE4 Desktop + VNC Server**: Connect using any Android VNC viewer at `127.0.0.1:5901`.
-   * **Web Terminal (ttyd)**: Open in any local browser at `http://<device_ip>:8080` (or `7681`).
-   * **VS Code Server (code-server)**: Access full VS Code in your browser at `http://<device_ip>:8443`.
+   * **XFCE4 Desktop + VNC Server**: Start from the **Desktop** tab to use the built-in VNC viewer, or optionally connect with an external Android VNC viewer at `127.0.0.1:5901`.
+   * **Web Terminal (ttyd)**: Open in your device's browser at `http://localhost:8080` (falls back to `7681` if busy), or `http://<device_ip>:8080` when LAN access is enabled.
+   * **VS Code Server (code-server)**: Access full VS Code in your browser at `http://localhost:8080` (falls back to `8443` if busy), or `http://<device_ip>:8080` when LAN access is enabled.
    * **Docker Tools (udocker)**: Run containers with standard `docker` and `docker-compose` commands.
    * **NGINX Web Server** / **OpenSSH Server**: Host local websites and connect securely over LAN.
-3. Once installed, launch the service with a single tap directly from the **Overview** tab service card.
+3. Once installed, launch the service with a single tap directly from the **Overview** tab service card (or the **Desktop** tab for VNC).
 
 ### 4. Multi-Container Management & Backups
 * **Install More Containers**: Add additional distinct Linux distributions anytime from the Dashboard.
@@ -270,11 +270,18 @@ To verify that download mirrors, archive hashes, and PRoot runtime execution rem
 
 ---
 
-## 🤝 Contributing & AI Policy
+## 🔧 Troubleshooting & Reporting Bugs
 
-Contributions, bug reports, and feature requests are welcome! Feel free to check out the issues page or submit a pull request.
+* **Background Process Termination (Android 12+)**: Android's *Phantom Process Killer* or aggressive OEM battery optimization can terminate PRoot/VNC processes in the background. Disable battery optimization for **Linux Installer** in Android Settings if long-running sessions stop unexpectedly.
+* **Generating a Debug Report**: Before opening a bug report on [GitHub Issues](https://github.com/devwithzachary/LinuxOnAndroid/issues) or asking in [Discord](https://discord.gg/QdT9yCrKmV), open **Settings -> Diagnostics & Debug Report -> Generate Debug Report** in the app and paste the output into your report.
 
-Please review our **[AI Usage Policy](AI.md)** for guidelines on using AI coding assistants when contributing to this project. All code submitted must be thoroughly reviewed and personally owned by the human author; automated bot PRs are not accepted.
+---
+
+## 🤝 Contributing, Security & AI Policy
+
+Contributions, bug reports, and feature requests are welcome! Please read our **[Contributing Guide](CONTRIBUTING.md)** before opening a pull request, and see **[SECURITY.md](SECURITY.md)** for reporting security vulnerabilities privately.
+
+Please also review our **[AI Usage Policy](AI.md)** for guidelines on using AI coding assistants when contributing to this project. All code submitted must be thoroughly reviewed and personally owned by the human author; automated bot PRs are not accepted.
 
 ---
 
