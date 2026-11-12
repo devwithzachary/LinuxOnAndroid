@@ -1,2 +1,3 @@
 • Compatibility: Fixed a container launch/migration crash (NoSuchMethodError) on Android 12 and older devices.
-• Terminal: Fixed a thread-safety NullPointerException crash when resizing the terminal during active output.
+• Terminal: Fixed thread-safety NullPointerException and IndexOutOfBoundsException crashes during resize and rendering.
+• Performance: Virtualized and bounded desktop/package install logs to prevent ANRs during large installations.

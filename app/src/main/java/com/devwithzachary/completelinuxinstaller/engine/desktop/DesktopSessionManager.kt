@@ -391,7 +391,7 @@ class DesktopSessionManager(
                             _desktopState.update { state ->
                                 state.copy(
                                     packageInstallProgress = step.logLine,
-                                    packageInstallLogs = state.packageInstallLogs + step.logLine + "\n"
+                                    packageInstallLogs = DesktopConfigHelper.appendBoundedLog(state.packageInstallLogs, step.logLine)
                                 )
                             }
                         }
@@ -400,7 +400,7 @@ class DesktopSessionManager(
                                 state.copy(
                                     isPackagesInstalled = true,
                                     packageInstallProgress = "Installation completed successfully!",
-                                    packageInstallLogs = state.packageInstallLogs + "Installation completed successfully!\n"
+                                    packageInstallLogs = DesktopConfigHelper.appendBoundedLog(state.packageInstallLogs, "Installation completed successfully!")
                                 )
                             }
                             if (autoStartSessionAfter) {
@@ -416,7 +416,7 @@ class DesktopSessionManager(
                                 state.copy(
                                     sessionStatus = DesktopStatus.ERROR,
                                     errorMessage = "Package installation failed: ${step.errorMessage}",
-                                    packageInstallLogs = state.packageInstallLogs + "ERROR: ${step.errorMessage}\n"
+                                    packageInstallLogs = DesktopConfigHelper.appendBoundedLog(state.packageInstallLogs, "ERROR: ${step.errorMessage}")
                                 )
                             }
                         }

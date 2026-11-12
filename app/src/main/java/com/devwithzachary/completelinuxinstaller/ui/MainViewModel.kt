@@ -18,6 +18,7 @@ import com.devwithzachary.completelinuxinstaller.engine.SystemMonitorManager
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
 import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
+import com.devwithzachary.completelinuxinstaller.engine.desktop.DesktopConfigHelper
 import com.devwithzachary.completelinuxinstaller.engine.desktop.DesktopSessionManager
 import com.devwithzachary.completelinuxinstaller.engine.desktop.DesktopUiState
 import com.devwithzachary.completelinuxinstaller.model.InstallStatus
@@ -1298,7 +1299,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (idx != -1) {
                     when (step) {
                         is InstallStepState.Progress -> {
-                            val newLogs = list[idx].installLogs + step.logLine + "\n"
+                            val newLogs = DesktopConfigHelper.appendBoundedLog(list[idx].installLogs, step.logLine)
                             list[idx] = list[idx].copy(
                                 status = InstallStatus.INSTALLING,
                                 progressMessage = step.logLine,
@@ -1309,7 +1310,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         is InstallStepState.Success -> {
                             val currentLogs = list[idx].installLogs
                             val newLogs = if (!currentLogs.trimEnd().endsWith("Installation completed successfully!")) {
-                                currentLogs + "Installation completed successfully!\n"
+                                DesktopConfigHelper.appendBoundedLog(currentLogs, "Installation completed successfully!")
                             } else {
                                 currentLogs
                             }
@@ -1322,7 +1323,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         }
 
                         is InstallStepState.Error -> {
-                            val newLogs = list[idx].installLogs + "ERROR: " + step.errorMessage + "\n"
+                            val newLogs = DesktopConfigHelper.appendBoundedLog(list[idx].installLogs, "ERROR: ${step.errorMessage}")
                             list[idx] = list[idx].copy(
                                 status = InstallStatus.FAILED,
                                 progressMessage = "Failed: " + step.errorMessage,

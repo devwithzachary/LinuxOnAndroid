@@ -6,6 +6,9 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -290,27 +293,35 @@ fun DesktopScreen(
                 }
 
                 // Full terminal output taking all available space below the header and above bottom tab bar
-                val logScrollState = rememberScrollState()
-                LaunchedEffect(state.packageInstallLogs) {
-                    logScrollState.scrollTo(logScrollState.maxValue)
+                val logLines = remember(state.packageInstallLogs) {
+                    val raw = state.packageInstallLogs.ifBlank { "Initializing package manager..." }
+                    raw.trimEnd('\n').split('\n')
+                }
+                val logListState = rememberLazyListState()
+                LaunchedEffect(logLines.size) {
+                    if (logLines.isNotEmpty()) {
+                        logListState.scrollToItem(logLines.lastIndex)
+                    }
                 }
 
-                Box(
+                LazyColumn(
+                    state = logListState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .background(Color(0xFF0F172A), RoundedCornerShape(8.dp))
-                        .border(1.dp, Color(0xFF334155), RoundedCornerShape(8.dp))
-                        .padding(12.dp)
-                        .verticalScroll(logScrollState)
+                        .border(1.dp, Color(0xFF334155), RoundedCornerShape(8.dp)),
+                    contentPadding = PaddingValues(12.dp)
                 ) {
-                    Text(
-                        text = state.packageInstallLogs.ifBlank { "Initializing package manager..." },
-                        color = Color(0xFFE2E8F0),
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp,
-                        lineHeight = 15.sp
-                    )
+                    items(logLines) { line ->
+                        Text(
+                            text = line,
+                            color = Color(0xFFE2E8F0),
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        )
+                    }
                 }
             }
         } else {

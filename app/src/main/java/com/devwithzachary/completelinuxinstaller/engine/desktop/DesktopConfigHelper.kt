@@ -375,4 +375,20 @@ object DesktopConfigHelper {
             false
         }
     }
+
+    /**
+     * Appends [line] to [currentLogs] while capping total length at [maxChars] (trimming from the start
+     * at a newline boundary) so long package installations cannot cause O(N^2) UI text layout ANRs.
+     */
+    fun appendBoundedLog(currentLogs: String, line: String, maxChars: Int = 32_000): String {
+        val combined = "$currentLogs$line\n"
+        if (combined.length <= maxChars) return combined
+        val overflow = combined.length - maxChars
+        val cutAt = combined.indexOf('\n', overflow)
+        return if (cutAt != -1 && cutAt + 1 < combined.length) {
+            combined.substring(cutAt + 1)
+        } else {
+            combined.takeLast(maxChars)
+        }
+    }
 }
