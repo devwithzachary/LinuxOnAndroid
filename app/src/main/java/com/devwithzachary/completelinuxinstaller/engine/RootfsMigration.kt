@@ -767,11 +767,7 @@ object RootfsMigrationManager {
                 val usrBinBwrapReal = File(rootfsDir, "usr/bin/bwrap.real")
                 if (usrBinBwrap.exists() && !usrBinBwrapReal.exists()) {
                     try {
-                        val isElf = usrBinBwrap.inputStream().use { stream ->
-                            val bytes = stream.readNBytes(4)
-                            bytes.size >= 4 && bytes[0] == 0x7F.toByte() && bytes[1] == 'E'.code.toByte() && bytes[2] == 'L'.code.toByte() && bytes[3] == 'F'.code.toByte()
-                        }
-                        if (isElf) {
+                        if (DesktopConfigHelper.isElfBinary(usrBinBwrap)) {
                             usrBinBwrap.renameTo(usrBinBwrapReal)
                         }
                     } catch (_: Exception) {}

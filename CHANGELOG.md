@@ -2,6 +2,11 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.8.2] - 2026-11-12
+
+### 🐛 Bug Fixes & Compatibility
+- **Android 6-12 Terminal Launch Crash (`NoSuchMethodError`)**: Replaced Java 11 `InputStream.readNBytes(4)` calls in `PRootEngine` and `RootfsMigration` with an Android API 23+ compatible ELF header reader (`DesktopConfigHelper.isElfBinary`), fixing crashes on devices running Android 12 and older when starting terminal sessions or migrating containers.
+
 ## [1.8.1] - 2026-11-11
 
 ### 💖 Community, Supporters & Links

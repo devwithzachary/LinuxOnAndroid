@@ -1,0 +1,2 @@
+• Compatibility: Fixed a terminal launch and container migration crash (NoSuchMethodError) on Android 12 and older devices.
+

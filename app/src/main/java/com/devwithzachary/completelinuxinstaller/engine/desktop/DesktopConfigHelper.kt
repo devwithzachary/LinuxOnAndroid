@@ -1,5 +1,7 @@
 package com.devwithzachary.completelinuxinstaller.engine.desktop
 
+import java.io.File
+
 object DesktopConfigHelper {
 
     fun buildStandardXstartupScript(): String {
@@ -348,4 +350,29 @@ object DesktopConfigHelper {
             "[ \"\$LOCALHOST\" != \"yes\" ] && [ -n \"\$LAN_IP\" ] && [ \"\$LAN_IP\" != \"127.0.0.1\" ] && echo \"-> Wi-Fi connection:  \$LAN_IP:\$RFB_PORT\"\\n" +
             "echo \"-> List sessions:     vncserver -list\"\\n" +
             "echo \"-> Stop server:       vncserver -kill :\$DISP_NUM\"\\n' > /usr/bin/vncserver && chmod 755 /usr/bin/vncserver && cp /usr/bin/vncserver /usr/local/bin/vncserver 2>/dev/null || true; chmod 755 /usr/local/bin/vncserver 2>/dev/null || true"
+
+    /**
+     * Checks whether [file] begins with the 4-byte ELF magic header (\x7FELF).
+     * Uses [java.io.InputStream.read] for Android API 23+ compatibility (avoids Java 11 InputStream.readNBytes).
+     */
+    fun isElfBinary(file: File): Boolean {
+        return try {
+            file.inputStream().use { stream ->
+                val header = ByteArray(4)
+                var totalRead = 0
+                while (totalRead < 4) {
+                    val n = stream.read(header, totalRead, 4 - totalRead)
+                    if (n == -1) break
+                    totalRead += n
+                }
+                totalRead == 4 &&
+                    header[0] == 0x7F.toByte() &&
+                    header[1] == 'E'.code.toByte() &&
+                    header[2] == 'L'.code.toByte() &&
+                    header[3] == 'F'.code.toByte()
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
 }

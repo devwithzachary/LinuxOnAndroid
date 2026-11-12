@@ -23,9 +23,17 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
-        version = "v1.8.1",
+        version = "v1.8.2",
         date = "November 2026",
         initialExpanded = true,
+        highlights = listOf(
+            "Android 6-12 Compatibility Fix: Fixed a NoSuchMethodError crash when starting terminal sessions or migrating containers on Android 12 and older by replacing Java 11 InputStream.readNBytes with an API 23+ compatible ELF header check."
+        )
+    ),
+    ReleaseChangelog(
+        version = "v1.8.1",
+        date = "November 2026",
+        initialExpanded = false,
         highlights = listOf(
             "Project Supporters Recognition: Updated the in-app Credits Supporters section to recognize all Patreon, Buy Me a Coffee, and YouTube supporters (Alen, Many Fun Adventures, Old PC Gunk (and stuff), ShoaffSquatch, Swamp Gaming Network, насэр Хорр, Alcove Electronics Workshop, and Ian Scales).",
             "Buy Me a Coffee Credits Integration: Added a dedicated Buy Me a Coffee button alongside Join Patreon in the Credits Supporters card and unified Credits terminology to Supporters in English and German.",

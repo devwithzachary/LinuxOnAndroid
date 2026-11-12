@@ -700,11 +700,7 @@ class PRootEngine(val context: Context) {
 
             if (bwrapFile.exists() && !bwrapReal.exists()) {
                 try {
-                    val isElf = bwrapFile.inputStream().use { stream ->
-                        val bytes = stream.readNBytes(4)
-                        bytes.size >= 4 && bytes[0] == 0x7F.toByte() && bytes[1] == 'E'.code.toByte() && bytes[2] == 'L'.code.toByte() && bytes[3] == 'F'.code.toByte()
-                    }
-                    if (isElf) {
+                    if (DesktopConfigHelper.isElfBinary(bwrapFile)) {
                         bwrapFile.renameTo(bwrapReal)
                     }
                 } catch (_: Exception) {}

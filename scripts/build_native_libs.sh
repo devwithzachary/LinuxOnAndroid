@@ -255,6 +255,10 @@ for ABI in "${ABIS[@]}"; do
     mkdir -p "$PROOT_SRC_COPY"
     cp -R "$EXTERNAL_DIR/proot/." "$PROOT_SRC_COPY/"
 
+    # Match F-Droid's prebuild so libproot.so compiles with default VERSION ("5.1.0")
+    # regardless of git tag/dirty state in local or containerized builds.
+    sed -i -e 's/VERSION=.*;/VERSION="";/' "$PROOT_SRC_COPY/GNUmakefile"
+
     # Ensure clean state in source and copy
     find "$EXTERNAL_DIR" \( -name "*.o" -o -name "*.d" \) -delete 2>/dev/null || true
     find "$PROOT_SRC_COPY" \( -name "*.o" -o -name "*.d" -o -name "proot" \) -delete

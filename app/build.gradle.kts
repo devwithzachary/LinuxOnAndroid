@@ -14,8 +14,8 @@ android {
         applicationId = "com.devwithzachary.completelinuxinstaller"
         minSdk = 23
         targetSdk = 36
-        versionCode = 18
-        versionName = "1.8.1"
+        versionCode = 19
+        versionName = "1.8.2"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
