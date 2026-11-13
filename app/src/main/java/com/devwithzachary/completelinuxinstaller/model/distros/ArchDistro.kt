@@ -32,9 +32,16 @@ val ArchDistro = DistroDefinition(
     sha256Checksums = mapOf(
         SystemArchitecture.X86_64 to "0c9c97b7a58a8a023c9e07f84cb307a9e8006e65d8fc4c17b83ddc8010b45c10"
     ),
-    firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
+    firstLaunchScriptBuilder = { rootPassword, username, userPassword, isArm ->
+        val mirrorSetup = if (isArm) {
+            ""
+        } else {
+            "grep -q '^Server =' /etc/pacman.d/mirrorlist 2>/dev/null || echo 'Server = https://geo.mirror.pkgbuild.com/\$repo/os/\$arch' > /etc/pacman.d/mirrorlist; "
+        }
+        val keyPopulate = if (isArm) "archlinuxarm" else "archlinux"
         "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                 "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true; " +
+                mirrorSetup +
                 "mkdir -p /etc/sudoers.d /etc/pam.d /home/$username 2>/dev/null; " +
                 "(grep -q ^$username: /etc/passwd || echo \"$username:x:1000:1000:$username:/home/$username:/bin/bash\" >> /etc/passwd); " +
                 "(grep -q ^$username: /etc/group || echo \"$username:x:1000:\" >> /etc/group); " +
@@ -44,7 +51,7 @@ val ArchDistro = DistroDefinition(
                 "chmod 644 /etc/shadow /etc/shadow- /etc/passwd /etc/group 2>/dev/null || true; " +
                 "echo \"$username ALL=(ALL:ALL) NOPASSWD:ALL\" > /etc/sudoers.d/$username && chmod 0440 /etc/sudoers.d/$username; " +
                 "printf 'auth sufficient pam_permit.so\\naccount sufficient pam_permit.so\\nsession sufficient pam_permit.so\\npassword sufficient pam_permit.so\\n' > /etc/pam.d/su 2>/dev/null || true; " +
-                "(pacman-key --init 2>/dev/null && pacman-key --populate archlinuxarm 2>/dev/null || true); " +
+                "(pacman-key --init 2>/dev/null && pacman-key --populate $keyPopulate 2>/dev/null || true); " +
                 "(gpgconf --homedir /etc/pacman.d/gnupg --kill all 2>/dev/null || true); " +
                 "(gpgconf --kill all 2>/dev/null || true); " +
                 "(pkill -9 -x gpg-agent 2>/dev/null || true); " +
@@ -61,7 +68,7 @@ val ArchDistro = DistroDefinition(
     softwarePackageCommands = mapOf(
         "xfce_desktop" to { _ ->
             "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && " +
-                "pacman -Syy --noconfirm --overwrite \"*\" xfce4 xfce4-terminal tigervnc curl ca-certificates python ttf-dejavu && " +
+                "pacman -Syyu --noconfirm --overwrite \"*\" xfce4 xfce4-terminal tigervnc curl ca-certificates python ttf-dejavu && " +
                 "(pacman -S --noconfirm --overwrite \"*\" octopi 2>/dev/null || true) && " +
                 "$COMMON_VNCSERVER_WRAPPER && " +
                 "rm -f /etc/tigervnc/vncserver-config-defaults 2>/dev/null || true; " +
@@ -80,28 +87,28 @@ val ArchDistro = DistroDefinition(
                 "(killall -9 gpg-agent dirmngr 2>/dev/null || true)"
         },
         "python_dev" to { _ ->
-            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm --overwrite \"*\" python python-pip git base-devel neovim curl wget ca-certificates"
+            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syyu --noconfirm --overwrite \"*\" python python-pip git base-devel neovim curl wget ca-certificates"
         },
         "node_dev" to { _ ->
-            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm --overwrite \"*\" nodejs npm yarn git base-devel neovim curl wget ca-certificates"
+            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syyu --noconfirm --overwrite \"*\" nodejs npm yarn git base-devel neovim curl wget ca-certificates"
         },
         "android_dev" to { _ ->
-            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm --overwrite \"*\" jdk17-openjdk android-tools gradle git curl wget unzip ca-certificates"
+            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syyu --noconfirm --overwrite \"*\" jdk-openjdk android-tools gradle git curl wget unzip ca-certificates"
         },
         "nginx_web" to { _ ->
-            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm --overwrite \"*\" nginx sqlite curl ca-certificates && (sed -i 's/\\b80\\b/8080/g' /etc/nginx/nginx.conf 2>/dev/null || true) && mkdir -p /run /var/log/nginx /var/lib/nginx && chmod -R 777 /run /var/log/nginx /var/lib/nginx 2>/dev/null || true"
+            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syyu --noconfirm --overwrite \"*\" nginx sqlite curl ca-certificates && (sed -i 's/\\b80\\b/8080/g' /etc/nginx/nginx.conf 2>/dev/null || true) && mkdir -p /run /var/log/nginx /var/lib/nginx && chmod -R 777 /run /var/log/nginx /var/lib/nginx 2>/dev/null || true"
         },
         "openssh_server" to { port ->
-            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm --overwrite \"*\" openssh ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && echo \"Port $port\" >> /etc/ssh/ssh_config && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
+            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syyu --noconfirm --overwrite \"*\" openssh ca-certificates && mkdir -p /run/sshd /var/run/sshd /var/empty && [ -e /dev/ptmx ] || (mknod -m 666 /dev/ptmx c 5 2 2>/dev/null || ln -s /dev/pts/ptmx /dev/ptmx 2>/dev/null || true) && chmod 666 /dev/ptmx 2>/dev/null || true && ssh-keygen -A 2>/dev/null || true && (sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config 2>/dev/null || true) && (sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config 2>/dev/null || true) && echo \"Port $port\" >> /etc/ssh/ssh_config && chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true && chmod 755 /etc/ssh /run/sshd /var/run/sshd /var/empty 2>/dev/null || true"
         },
         "code_server" to { _ ->
-            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm --overwrite \"*\" curl ca-certificates git procps-ng && (curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local || curl -fsSL https://code-server.dev/install.sh | sh)"
+            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syyu --noconfirm --overwrite \"*\" curl ca-certificates git procps-ng && (curl -fsSL https://code-server.dev/install.sh | sh -s -- --method=standalone --prefix=/usr/local || curl -fsSL https://code-server.dev/install.sh | sh)"
         },
         "web_terminal" to { _ ->
-            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm --overwrite \"*\" curl ca-certificates && (pacman -S --noconfirm --overwrite \"*\" ttyd || true) && if ! command -v ttyd >/dev/null 2>&1; then ${SoftwarePackage.TTYD_FALLBACK_DOWNLOAD_CMD}; fi"
+            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syyu --noconfirm --overwrite \"*\" curl ca-certificates && (pacman -S --noconfirm --overwrite \"*\" ttyd || true) && if ! command -v ttyd >/dev/null 2>&1; then ${SoftwarePackage.TTYD_FALLBACK_DOWNLOAD_CMD}; fi"
         },
         "docker_tools" to { _ ->
-            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syy --noconfirm --overwrite \"*\" curl ca-certificates tar python python-pip && (pacman -S --noconfirm --overwrite \"*\" docker docker-compose || true) && " +
+            "sed -i 's/^DownloadUser/#DownloadUser/; s/^#DisableSandbox/DisableSandbox/' /etc/pacman.conf 2>/dev/null || true && pacman -Syyu --noconfirm --overwrite \"*\" curl ca-certificates tar python python-pip && (pacman -S --noconfirm --overwrite \"*\" docker docker-compose || true) && " +
                 "$UDOCKER_INSTALL_PIPELINE && $COMMON_DOCKER_WRAPPER"
         }
     ),

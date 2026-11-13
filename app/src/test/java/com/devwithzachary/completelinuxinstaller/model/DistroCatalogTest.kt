@@ -12,12 +12,19 @@ class DistroCatalogTest {
 
         val ids = distros.map { it.id }
         assertTrue("Must contain ubuntu_26_04", ids.contains("ubuntu_26_04"))
-        assertTrue("Must contain debian_12", ids.contains("debian_12"))
-        assertTrue("Must contain fedora_44", ids.contains("fedora_44"))
-        assertTrue("Must contain alpine_3_21", ids.contains("alpine_3_21"))
+        assertTrue("Must contain debian_13", ids.contains("debian_13"))
+        assertTrue("Must contain fedora_45", ids.contains("fedora_45"))
+        assertTrue("Must contain alpine_3_24", ids.contains("alpine_3_24"))
         assertTrue("Must contain arch_arm", ids.contains("arch_arm"))
         assertTrue("Must contain kali_rolling", ids.contains("kali_rolling"))
         assertTrue("Must contain void_rolling", ids.contains("void_rolling"))
+    }
+
+    @Test
+    fun testGetById_resolvesLegacyDistroIds() {
+        assertEquals("debian_13", DistroCatalog.getById("debian_12").id)
+        assertEquals("fedora_45", DistroCatalog.getById("fedora_44").id)
+        assertEquals("alpine_3_24", DistroCatalog.getById("alpine_3_21").id)
     }
 
     @Test
@@ -260,15 +267,15 @@ class DistroCatalogTest {
     }
 
     @Test
-    fun testFedora44_configurationAndOverrides() {
-        val fedora = DistroCatalog.FEDORA_44
-        assertEquals("fedora_44", fedora.id)
-        assertEquals("Fedora 44", fedora.name)
-        assertEquals("44", fedora.version)
+    fun testFedora45_configurationAndOverrides() {
+        val fedora = DistroCatalog.FEDORA_45
+        assertEquals("fedora_45", fedora.id)
+        assertEquals("Fedora 45", fedora.name)
+        assertEquals("45", fedora.version)
         assertEquals("Leading-Edge & RPM", fedora.tag)
         assertEquals(PackageManagerType.DNF, fedora.packageManager)
         assertEquals("/bin/bash", fedora.defaultShell)
-        assertEquals(142, fedora.downloadSizeMb)
+        assertEquals(149, fedora.downloadSizeMb)
         assertEquals(480, fedora.installedSizeMb)
         assertEquals(0xFF51A2DA, fedora.colorHex)
 
@@ -319,7 +326,7 @@ class DistroCatalogTest {
         assertTrue("Fedora node install must use dnf", nodeInstall!!.contains("dnf install -y nodejs"))
 
         val androidInstall = fedora.getSoftwarePackageInstallCommand("android_dev")
-        assertTrue("Fedora android install must use dnf", androidInstall!!.contains("dnf install -y java-17-openjdk-headless"))
+        assertTrue("Fedora android install must use dnf", androidInstall!!.contains("dnf install -y java-latest-openjdk-headless"))
 
         val nginxInstall = fedora.getSoftwarePackageInstallCommand("nginx_web")
         assertTrue("Fedora nginx install must use dnf", nginxInstall!!.contains("dnf install -y nginx"))
@@ -463,12 +470,32 @@ class DistroCatalogTest {
     }
 
     @Test
+    fun testAllDistros_supportAllPresetSoftwarePackages() {
+        val presets = SoftwarePackage.getPresets()
+        assertEquals(9, presets.size)
+
+        for (distro in DistroCatalog.ALL_DISTROS) {
+            for (pkg in presets) {
+                val cmd = distro.getSoftwarePackageInstallCommand(pkg.id)
+                assertNotNull("Distro ${distro.id} must define install command for ${pkg.id}", cmd)
+                assertTrue("Distro ${distro.id} install command for ${pkg.id} must not be blank", cmd!!.isNotBlank())
+                assertTrue("Preset ${pkg.id} must define expectedBinaries", pkg.expectedBinaries.isNotEmpty())
+                if (pkg.launchCommand != null) {
+                    val distroLaunch = distro.getSoftwarePackageLaunchCommand(pkg.id) ?: pkg.launchCommand
+                    assertNotNull("Distro ${distro.id} must have launch command for ${pkg.id}", distroLaunch)
+                }
+            }
+        }
+    }
+
+    @Test
     fun testDistroChecksums_definedAndValid() {
         val distrosWithChecksums = listOf(
             DistroCatalog.UBUNTU_26_04,
-            DistroCatalog.ALPINE_3_21,
+            DistroCatalog.DEBIAN_13,
+            DistroCatalog.ALPINE_3_24,
             DistroCatalog.VOID_ROLLING,
-            DistroCatalog.FEDORA_44,
+            DistroCatalog.FEDORA_45,
             DistroCatalog.KALI_ROLLING
         )
         for (distro in distrosWithChecksums) {

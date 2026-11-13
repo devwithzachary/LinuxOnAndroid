@@ -8,31 +8,31 @@ import com.devwithzachary.completelinuxinstaller.model.PackageManagerType
 import com.devwithzachary.completelinuxinstaller.model.SystemArchitecture
 
 val FedoraDistro = DistroDefinition(
-    id = "fedora_44",
-    name = "Fedora 44",
-    version = "44",
+    id = "fedora_45",
+    name = "Fedora 45",
+    version = "45",
     tag = "Leading-Edge & RPM",
     description = "Modern, innovative Linux distribution featuring the DNF package manager and RPM ecosystem.",
     packageManager = PackageManagerType.DNF,
     defaultShell = "/bin/bash",
     candidateShells = listOf("/bin/bash", "/usr/bin/bash", "/bin/sh"),
-    downloadSizeMb = 142,
+    downloadSizeMb = 149,
     installedSizeMb = 480,
     colorHex = 0xFF51A2DA,
     downloadUrls = mapOf(
-        SystemArchitecture.ARM64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-WSL-Base-44-1.7.aarch64.wsl",
-        SystemArchitecture.X86_64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/x86_64/images/Fedora-WSL-Base-44-1.7.x86_64.wsl",
-        SystemArchitecture.ARMV7 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-WSL-Base-44-1.7.aarch64.wsl"
+        SystemArchitecture.ARM64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/aarch64/images/Fedora-WSL-Base-45-1.4.aarch64.wsl",
+        SystemArchitecture.X86_64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/x86_64/images/Fedora-WSL-Base-45-1.4.x86_64.wsl",
+        SystemArchitecture.ARMV7 to "https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/aarch64/images/Fedora-WSL-Base-45-1.4.aarch64.wsl"
     ),
     checksumUrls = mapOf(
-        SystemArchitecture.ARM64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-Container-44-1.7-aarch64-CHECKSUM",
-        SystemArchitecture.X86_64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/x86_64/images/Fedora-Container-44-1.7-x86_64-CHECKSUM",
-        SystemArchitecture.ARMV7 to "https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-Container-44-1.7-aarch64-CHECKSUM"
+        SystemArchitecture.ARM64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/aarch64/images/Fedora-Container-45-1.4-aarch64-CHECKSUM",
+        SystemArchitecture.X86_64 to "https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/x86_64/images/Fedora-Container-45-1.4-x86_64-CHECKSUM",
+        SystemArchitecture.ARMV7 to "https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/aarch64/images/Fedora-Container-45-1.4-aarch64-CHECKSUM"
     ),
     sha256Checksums = mapOf(
-        SystemArchitecture.ARM64 to "1a3220262dc918b07d08410278205fb35e92c28a53455382028eea1a980476ee",
-        SystemArchitecture.X86_64 to "2e5b153ba4b639952bf546be577fc19b832fe8944caa7de342b32f10da7d319a",
-        SystemArchitecture.ARMV7 to "1a3220262dc918b07d08410278205fb35e92c28a53455382028eea1a980476ee"
+        SystemArchitecture.ARM64 to "9a25779562113c10ce8f480857217d52f6a386cee2301752d2a34a320e8fd35c",
+        SystemArchitecture.X86_64 to "d20e476140d4cb121b85b1ad2b8fd6bf9fc2750140a7212ad4051ae3c6bd1e23",
+        SystemArchitecture.ARMV7 to "9a25779562113c10ce8f480857217d52f6a386cee2301752d2a34a320e8fd35c"
     ),
     firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
         "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
@@ -161,7 +161,8 @@ val FedoraDistro = DistroDefinition(
         "android_dev" to { _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                     "([ -f /etc/selinux/config ] && sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config 2>/dev/null || true) && " +
-                    "dnf install -y java-17-openjdk-headless git curl wget unzip ca-certificates"
+                    "dnf install -y java-latest-openjdk-headless android-tools git curl wget unzip ca-certificates && " +
+                    "if ! command -v gradle >/dev/null 2>&1; then curl -fsSL -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-8.14.2-bin.zip && unzip -q -o /tmp/gradle.zip -d /opt && ln -sf /opt/gradle-8.14.2/bin/gradle /usr/bin/gradle && rm -f /tmp/gradle.zip; fi"
         },
         "nginx_web" to { _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +

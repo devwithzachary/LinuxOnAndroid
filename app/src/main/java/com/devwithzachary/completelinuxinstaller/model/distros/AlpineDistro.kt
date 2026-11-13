@@ -7,31 +7,31 @@ import com.devwithzachary.completelinuxinstaller.model.PackageManagerType
 import com.devwithzachary.completelinuxinstaller.model.SystemArchitecture
 
 val AlpineDistro = DistroDefinition(
-    id = "alpine_3_21",
-    name = "Alpine Linux 3.21",
-    version = "3.21",
+    id = "alpine_3_24",
+    name = "Alpine Linux 3.24",
+    version = "3.24",
     tag = "Minimalist",
     description = "Ultra-lightweight musl and BusyBox environment. Boots instantly with minimal memory footprint and fast APK package manager.",
     packageManager = PackageManagerType.APK,
     defaultShell = "/bin/sh",
     candidateShells = listOf("/bin/sh", "/bin/ash", "/bin/bash", "/usr/bin/bash"),
-    downloadSizeMb = 3,
+    downloadSizeMb = 4,
     installedSizeMb = 32,
     colorHex = 0xFF0D597F,
     downloadUrls = mapOf(
-        SystemArchitecture.ARM64 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/aarch64/alpine-minirootfs-3.21.3-aarch64.tar.gz",
-        SystemArchitecture.X86_64 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz",
-        SystemArchitecture.ARMV7 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/armv7/alpine-minirootfs-3.21.3-armv7.tar.gz"
+        SystemArchitecture.ARM64 to "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.4-aarch64.tar.gz",
+        SystemArchitecture.X86_64 to "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-minirootfs-3.24.4-x86_64.tar.gz",
+        SystemArchitecture.ARMV7 to "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/armv7/alpine-minirootfs-3.24.4-armv7.tar.gz"
     ),
     checksumUrls = mapOf(
-        SystemArchitecture.ARM64 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/aarch64/alpine-minirootfs-3.21.3-aarch64.tar.gz.sha256",
-        SystemArchitecture.X86_64 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz.sha256",
-        SystemArchitecture.ARMV7 to "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/armv7/alpine-minirootfs-3.21.3-armv7.tar.gz.sha256"
+        SystemArchitecture.ARM64 to "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.4-aarch64.tar.gz.sha256",
+        SystemArchitecture.X86_64 to "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-minirootfs-3.24.4-x86_64.tar.gz.sha256",
+        SystemArchitecture.ARMV7 to "https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/armv7/alpine-minirootfs-3.24.4-armv7.tar.gz.sha256"
     ),
     sha256Checksums = mapOf(
-        SystemArchitecture.ARM64 to "ead8a4b37867bd19e7417dd078748e2312c0aea364403d96758d63ea8ff261ea",
-        SystemArchitecture.X86_64 to "1a694899e406ce55d32334c47ac0b2efb6c06d7e878102d1840892ad44cd5239",
-        SystemArchitecture.ARMV7 to "28b2a97374cccd96646e32ab2ebcbd52fa507f1e456620e86a7b227bc2ab3bd3"
+        SystemArchitecture.ARM64 to "4b14c18f7e90a063b61462ea1462a5732c154bf6adad594974fe6487cd98a8de",
+        SystemArchitecture.X86_64 to "cdaa38cb8de3537967ee5b6c9b6cd00cc962da2b018e6eea48696bb274923012",
+        SystemArchitecture.ARMV7 to "2054061dafea7fe4cd38015701ee77119e780dd0382d0c32fad56986fe31b699"
     ),
     firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
         "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
@@ -63,7 +63,7 @@ val AlpineDistro = DistroDefinition(
             "apk update && apk add --no-cache nodejs npm yarn git build-base neovim curl wget ca-certificates"
         },
         "android_dev" to { _ ->
-            "apk update && apk add --no-cache openjdk17-jre git curl wget unzip ca-certificates"
+            "apk update && apk add --no-cache openjdk17-jdk android-tools gradle git curl wget unzip ca-certificates"
         },
         "nginx_web" to { _ ->
             "apk update && apk add --no-cache nginx sqlite curl ca-certificates && (sed -i 's/\\b80\\b/8080/g' /etc/nginx/http.d/*.conf /etc/nginx/nginx.conf 2>/dev/null || true) && mkdir -p /run /var/log/nginx /var/lib/nginx && chmod -R 777 /run /var/log/nginx /var/lib/nginx 2>/dev/null || true"

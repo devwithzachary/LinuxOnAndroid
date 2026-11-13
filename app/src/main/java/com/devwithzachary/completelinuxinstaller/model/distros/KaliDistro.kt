@@ -70,7 +70,7 @@ val KaliDistro = DistroDefinition(
         },
         "android_dev" to { _ ->
             "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +
-                "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y openjdk-17-jdk-headless android-sdk-platform-tools gradle git curl wget unzip ca-certificates"
+                "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y default-jdk-headless android-sdk-platform-tools gradle git curl wget unzip ca-certificates"
         },
         "nginx_web" to { _ ->
             "([ -s /etc/resolv.conf ] && ! grep -q '213.186.33.99' /etc/resolv.conf && ! grep -q '127.0.0.53' /etc/resolv.conf || printf 'nameserver 8.8.8.8\\nnameserver 1.1.1.1\\nnameserver 8.8.4.4\\n' > /etc/resolv.conf 2>/dev/null || true) && " +

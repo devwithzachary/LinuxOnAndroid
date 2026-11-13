@@ -7,38 +7,38 @@ import com.devwithzachary.completelinuxinstaller.model.PackageManagerType
 import com.devwithzachary.completelinuxinstaller.model.SystemArchitecture
 
 val DebianDistro = DistroDefinition(
-    id = "debian_12",
-    name = "Debian 12",
-    version = "12",
+    id = "debian_13",
+    name = "Debian 13",
+    version = "13",
     tag = "Ultra-Stable",
-    description = "Rock-solid, ultra-stable Debian Bookworm base with vast package repositories and minimal memory footprint.",
+    description = "Rock-solid, ultra-stable Debian Trixie base with vast package repositories and minimal memory footprint.",
     packageManager = PackageManagerType.APT,
     defaultShell = "/bin/bash",
-    downloadSizeMb = 27,
-    installedSizeMb = 244,
+    downloadSizeMb = 29,
+    installedSizeMb = 250,
     colorHex = 0xFFA80030,
     downloadUrls = mapOf(
-        SystemArchitecture.ARM64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz",
-        SystemArchitecture.X86_64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/amd64/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz",
-        SystemArchitecture.ARMV7 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm32v7/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz"
+        SystemArchitecture.ARM64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz",
+        SystemArchitecture.X86_64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/amd64/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz",
+        SystemArchitecture.ARMV7 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm32v7/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz"
     ),
     checksumUrls = mapOf(
-        SystemArchitecture.ARM64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz.sha256",
-        SystemArchitecture.X86_64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/amd64/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz.sha256",
-        SystemArchitecture.ARMV7 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm32v7/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz.sha256"
+        SystemArchitecture.ARM64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz.sha256",
+        SystemArchitecture.X86_64 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/amd64/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz.sha256",
+        SystemArchitecture.ARMV7 to "https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm32v7/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz.sha256"
     ),
     sha256Checksums = mapOf(
-        SystemArchitecture.ARM64 to "500eec4019eab9492cd64c1b07f8061d2fa7eac7fa3ef1fff8b9d6400f60334e",
-        SystemArchitecture.X86_64 to "03e8ce9c6e07367ce89fa4c6c3a34dde952cf8f51824741e4506f86d8a2928a3",
-        SystemArchitecture.ARMV7 to "502c52d27984c146f4b287a3ca51a73ee74864f85ffdb82378180b300b5c59bb"
+        SystemArchitecture.ARM64 to "718655bf236d03e44cd94dc5ff5bc8e7e7060379dd20c866f3d736472334e924",
+        SystemArchitecture.X86_64 to "e3b7186ea5d94e937e0326606ee9765375def7d88b9f1cc0e704dd337196f53a",
+        SystemArchitecture.ARMV7 to "63f7ba598e131d36fdae76c383549f118e11d70c787db2124b53fa6c1dd852c9"
     ),
     firstLaunchScriptBuilder = { rootPassword, username, userPassword, _ ->
         "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; chmod 777 /usr /etc 2>/dev/null; " +
                 "rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /etc/*.lock /etc/*.PID /etc/*~ /etc/apt/sources.list.d/* 2>/dev/null; " +
                 "mkdir -p /usr/sbin /var/lib/dbus /etc/sudoers.d /etc/pam.d /etc/apt/apt.conf.d 2>/dev/null; printf '#!/bin/sh\\nexit 101\\n' > /usr/sbin/policy-rc.d && chmod 755 /usr/sbin/policy-rc.d; " +
-                "echo 'deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware' > /etc/apt/sources.list && " +
-                "echo 'deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware' >> /etc/apt/sources.list && " +
-                "echo 'deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware' >> /etc/apt/sources.list; " +
+                "echo 'deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware' > /etc/apt/sources.list && " +
+                "echo 'deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware' >> /etc/apt/sources.list && " +
+                "echo 'deb http://security.debian.org/debian-security trixie-security main contrib non-free non-free-firmware' >> /etc/apt/sources.list; " +
                 "echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; " +
                 "export DEBIAN_FRONTEND=noninteractive; export DEBIAN_PRIORITY=critical; export UCF_FORCE_CONFFOLD=1; export NEEDRESTART_MODE=a; export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                 "dpkg --configure -a 2>/dev/null; " +
@@ -67,7 +67,7 @@ val DebianDistro = DistroDefinition(
             "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y nodejs npm yarnpkg git build-essential neovim curl wget ca-certificates"
         },
         "android_dev" to { _ ->
-            "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y openjdk-17-jdk-headless android-sdk-platform-tools gradle git curl wget unzip ca-certificates"
+            "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y default-jdk-headless android-sdk-platform-tools gradle git curl wget unzip ca-certificates"
         },
         "nginx_web" to { _ ->
             "export DEBIAN_FRONTEND=noninteractive && export DEBIAN_PRIORITY=critical && export UCF_FORCE_CONFFOLD=1 && export NEEDRESTART_MODE=a && dpkg --configure -a && apt-get update && apt-get install -y nginx sqlite3 curl ca-certificates && (sed -i 's/\\b80\\b/8080/g' /etc/nginx/sites-available/default /etc/nginx/sites-enabled/* /etc/nginx/conf.d/*.conf /etc/nginx/http.d/*.conf /etc/nginx/nginx.conf 2>/dev/null || true) && (sed -i 's/^\\s*user\\s\\+www-data/#user www-data/' /etc/nginx/nginx.conf 2>/dev/null || true) && mkdir -p /run /var/log/nginx /var/lib/nginx && chmod -R 777 /run /var/log/nginx /var/lib/nginx 2>/dev/null || true"

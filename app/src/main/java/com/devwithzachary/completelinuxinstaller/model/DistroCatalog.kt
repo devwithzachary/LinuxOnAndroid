@@ -160,25 +160,34 @@ object DistroCatalog {
     const val COMMON_VNCSERVER_WRAPPER = DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER
 
     val UBUNTU_26_04 = UbuntuDistro
+    val DEBIAN_13 = DebianDistro
     val DEBIAN_12 = DebianDistro
+    val ALPINE_3_24 = AlpineDistro
     val ALPINE_3_21 = AlpineDistro
     val ARCH_ARM = ArchDistro
     val KALI_ROLLING = KaliDistro
     val VOID_ROLLING = VoidDistro
+    val FEDORA_45 = FedoraDistro
     val FEDORA_44 = FedoraDistro
 
     val ALL_DISTROS = listOf(
         UBUNTU_26_04,
-        DEBIAN_12,
-        FEDORA_44,
-        ALPINE_3_21,
+        DEBIAN_13,
+        FEDORA_45,
+        ALPINE_3_24,
         ARCH_ARM,
         KALI_ROLLING,
         VOID_ROLLING
     )
 
     fun getById(id: String): DistroDefinition {
-        return ALL_DISTROS.find { it.id == id || it.name.equals(id, ignoreCase = true) } ?: UBUNTU_26_04
+        val normalizedId = when (id) {
+            "debian_12" -> "debian_13"
+            "fedora_44" -> "fedora_45"
+            "alpine_3_21" -> "alpine_3_24"
+            else -> id
+        }
+        return ALL_DISTROS.find { it.id == normalizedId || it.name.equals(id, ignoreCase = true) } ?: UBUNTU_26_04
     }
 
     fun getForSystemArch(archName: String): SystemArchitecture {

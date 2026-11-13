@@ -84,7 +84,7 @@ val VoidDistro = DistroDefinition(
         "node_dev" to { _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                 "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
-                "xbps-install -y nodejs npm yarn git base-devel neovim curl wget ca-certificates"
+                "xbps-install -y nodejs yarn git base-devel neovim curl wget ca-certificates"
         },
         "android_dev" to { _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
@@ -94,6 +94,7 @@ val VoidDistro = DistroDefinition(
         "nginx_web" to { _ ->
             "export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin; " +
                 "(xbps-install -Syu xbps -y 2>/dev/null || xbps-install -u xbps -y 2>/dev/null || true) && " +
+                "xbps-install -Suy && " +
                 "xbps-install -y nginx sqlite curl ca-certificates && " +
                 "(sed -i 's/\\b80\\b/8080/g' /etc/nginx/nginx.conf 2>/dev/null || true) && " +
                 "mkdir -p /run /var/log/nginx /var/lib/nginx && chmod -R 777 /run /var/log/nginx /var/lib/nginx 2>/dev/null || true"

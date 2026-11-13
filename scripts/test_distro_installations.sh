@@ -30,11 +30,11 @@ print_usage() {
     echo "Usage:"
     echo "  $0 --urls-only                           Verify HTTP availability and archive integrity for all distros/architectures"
     echo "  $0 --device [DEVICE_ID]                  Run live install & PRoot test on connected Android device"
-    echo "  $0 --device [DEVICE_ID] --distro <id>    Run live install & PRoot test for a specific distro (e.g. alpine_3_21)"
+    echo "  $0 --device [DEVICE_ID] --distro <id>    Run live install & PRoot test for a specific distro (e.g. alpine_3_24)"
     echo "  $0 --all [DEVICE_ID]                     Run both URL integrity tests and live device install tests"
     echo "  $0 --help                                Show this help message"
     echo ""
-    echo "Supported Distro IDs: ubuntu_26_04, debian_12, fedora_44, alpine_3_21, arch_arm, kali_rolling, void_rolling"
+    echo "Supported Distro IDs: ubuntu_26_04, debian_13, fedora_45, alpine_3_24, arch_arm, kali_rolling, void_rolling"
 }
 
 # Parse command line arguments
@@ -90,15 +90,15 @@ DISTRO_URLS=(
     "ubuntu_26_04|Ubuntu 26.04 LTS|ARM64|https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-arm64.tar.gz|gzip"
     "ubuntu_26_04|Ubuntu 26.04 LTS|X86_64|https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-amd64.tar.gz|gzip"
     "ubuntu_26_04|Ubuntu 26.04 LTS|ARMV7|https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-armhf.tar.gz|gzip"
-    "debian_12|Debian 12 Bookworm|ARM64|https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz|xz"
-    "debian_12|Debian 12 Bookworm|X86_64|https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/amd64/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz|xz"
-    "debian_12|Debian 12 Bookworm|ARMV7|https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm32v7/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz|xz"
-    "fedora_44|Fedora 44 Rawhide|ARM64|https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-WSL-Base-44-1.7.aarch64.wsl|tar"
-    "fedora_44|Fedora 44 Rawhide|X86_64|https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/x86_64/images/Fedora-WSL-Base-44-1.7.x86_64.wsl|tar"
-    "fedora_44|Fedora 44 Rawhide|ARMV7|https://download.fedoraproject.org/pub/fedora/linux/releases/44/Container/aarch64/images/Fedora-WSL-Base-44-1.7.aarch64.wsl|tar"
-    "alpine_3_21|Alpine Linux 3.21|ARM64|https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/aarch64/alpine-minirootfs-3.21.3-aarch64.tar.gz|gzip"
-    "alpine_3_21|Alpine Linux 3.21|X86_64|https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/x86_64/alpine-minirootfs-3.21.3-x86_64.tar.gz|gzip"
-    "alpine_3_21|Alpine Linux 3.21|ARMV7|https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/armv7/alpine-minirootfs-3.21.3-armv7.tar.gz|gzip"
+    "debian_13|Debian 13 Trixie|ARM64|https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz|xz"
+    "debian_13|Debian 13 Trixie|X86_64|https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/amd64/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz|xz"
+    "debian_13|Debian 13 Trixie|ARMV7|https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm32v7/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz|xz"
+    "fedora_45|Fedora 45|ARM64|https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/aarch64/images/Fedora-WSL-Base-45-1.4.aarch64.wsl|tar"
+    "fedora_45|Fedora 45|X86_64|https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/x86_64/images/Fedora-WSL-Base-45-1.4.x86_64.wsl|tar"
+    "fedora_45|Fedora 45|ARMV7|https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/aarch64/images/Fedora-WSL-Base-45-1.4.aarch64.wsl|tar"
+    "alpine_3_24|Alpine Linux 3.24|ARM64|https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.4-aarch64.tar.gz|gzip"
+    "alpine_3_24|Alpine Linux 3.24|X86_64|https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/x86_64/alpine-minirootfs-3.24.4-x86_64.tar.gz|gzip"
+    "alpine_3_24|Alpine Linux 3.24|ARMV7|https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/armv7/alpine-minirootfs-3.24.4-armv7.tar.gz|gzip"
     "arch_arm|Arch Linux ARM|ARM64|http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz|gzip"
     "arch_arm|Arch Linux ARM|X86_64|https://geo.mirror.pkgbuild.com/iso/latest/archlinux-bootstrap-x86_64.tar.zst|zst"
     "arch_arm|Arch Linux ARM|ARMV7|http://os.archlinuxarm.org/os/ArchLinuxARM-armv7-latest.tar.gz|gzip"
@@ -203,8 +203,12 @@ run_device_tests() {
     # Distros to test on device (ARM64)
     # id | display_name | url | archive_filename | tar_flags | test_cmd | expected_keyword
     DEVICE_TESTS=(
-        "alpine_3_21|Alpine Linux 3.21|https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/aarch64/alpine-minirootfs-3.21.3-aarch64.tar.gz|alpine.tar.gz|-xzf|/bin/cat /etc/alpine-release|3.21"
-        "debian_12|Debian 12 Bookworm|https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/bookworm/rootfs.tar.xz|debian.tar.xz|-xJf|/bin/cat /etc/debian_version|12"
+        "ubuntu_26_04|Ubuntu 26.04 LTS|https://cdimage.ubuntu.com/ubuntu-base/releases/26.04/release/ubuntu-base-26.04-base-arm64.tar.gz|ubuntu.tar.gz|-xzf|/bin/cat /etc/os-release|Ubuntu"
+        "debian_13|Debian 13 Trixie|https://doi-janky.infosiftr.net/job/tianon/job/debuerreotype/job/arm64v8/lastSuccessfulBuild/artifact/trixie/rootfs.tar.xz|debian.tar.xz|-xJf|/bin/cat /etc/debian_version|13"
+        "fedora_45|Fedora 45|https://download.fedoraproject.org/pub/fedora/linux/releases/45/Container/aarch64/images/Fedora-WSL-Base-45-1.4.aarch64.wsl|fedora.wsl|-xzf|/bin/cat /etc/fedora-release|45"
+        "alpine_3_24|Alpine Linux 3.24|https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-minirootfs-3.24.4-aarch64.tar.gz|alpine.tar.gz|-xzf|/bin/cat /etc/alpine-release|3.24"
+        "arch_arm|Arch Linux ARM|http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz|arch.tar.gz|-xzf|/bin/cat /etc/os-release|Arch"
+        "kali_rolling|Kali Rolling|https://kali.download/nethunter-images/current/rootfs/kali-nethunter-rootfs-minimal-arm64.tar.xz|kali.tar.xz|-xJf|/bin/cat /etc/os-release|Kali"
         "void_rolling|Void Linux Rolling|https://repo-default.voidlinux.org/live/current/void-aarch64-ROOTFS-20250202.tar.xz|void.tar.xz|-xJf|/bin/cat /etc/os-release|void"
     )
 
