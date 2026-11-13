@@ -71,10 +71,12 @@ data class DistroDefinition(
 
     fun getSoftwarePackageInstallCommand(packageId: String, sshPort: Int = 2222): String? {
         return softwarePackageCommands[packageId]?.invoke(sshPort)
+            ?: SoftwareRecipeCatalog.buildInstallCommand(packageId, packageManager)
     }
 
     fun getSoftwarePackageUninstallCommand(packageId: String): String {
         return softwarePackageUninstallCommands[packageId]?.invoke()
+            ?: SoftwareRecipeCatalog.buildUninstallCommand(packageId, packageManager)
             ?: DistroCatalog.buildDefaultUninstallCommand(packageId, packageManager)
     }
 

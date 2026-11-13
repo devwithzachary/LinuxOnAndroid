@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,9 +21,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
+import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.SoftwareCategory
 import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
 import com.devwithzachary.completelinuxinstaller.ui.components.SoftwareCard
+
+private enum class SoftwareStatusFilter(val label: String) {
+    ALL("All"),
+    INSTALLED("Installed"),
+    AVAILABLE("Available")
+}
 
 @Composable
 fun SoftwareTabContent(
@@ -35,6 +43,8 @@ fun SoftwareTabContent(
     onRunPresetCommand: (command: String) -> Unit
 ) {
     var selectedSoftwareCategory by remember { mutableStateOf<SoftwareCategory?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
+    var statusFilter by remember { mutableStateOf(SoftwareStatusFilter.ALL) }
     var customPackageInput by remember { mutableStateOf("") }
     var pendingUninstallPackage by remember { mutableStateOf<SoftwarePackage?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -65,8 +75,19 @@ fun SoftwareTabContent(
         )
     }
 
+    val normalizedQuery = searchQuery.trim().lowercase()
     val filteredPackages = packages.filter { pkg ->
-        selectedSoftwareCategory == null || pkg.category == selectedSoftwareCategory
+        val matchesCategory = selectedSoftwareCategory == null || pkg.category == selectedSoftwareCategory
+        val matchesStatus = when (statusFilter) {
+            SoftwareStatusFilter.ALL -> true
+            SoftwareStatusFilter.INSTALLED -> pkg.status == InstallStatus.INSTALLED
+            SoftwareStatusFilter.AVAILABLE -> pkg.status != InstallStatus.INSTALLED
+        }
+        val matchesQuery = normalizedQuery.isEmpty() ||
+            pkg.name.lowercase().contains(normalizedQuery) ||
+            pkg.description.lowercase().contains(normalizedQuery) ||
+            pkg.id.lowercase().contains(normalizedQuery)
+        matchesCategory && matchesStatus && matchesQuery
     }
 
     LazyVerticalGrid(
@@ -150,7 +171,57 @@ fun SoftwareTabContent(
             }
         }
 
-        // 2. Category Filter Tabs (Full Width Span)
+        // 2. Search & Status Filter (Full Width Span)
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search software catalog...", fontSize = 13.sp) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search software"
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Clear search"
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val installedCount = packages.count { it.status == InstallStatus.INSTALLED }
+                    val availableCount = packages.size - installedCount
+                    SoftwareStatusFilter.entries.forEach { filter ->
+                        val count = when (filter) {
+                            SoftwareStatusFilter.ALL -> packages.size
+                            SoftwareStatusFilter.INSTALLED -> installedCount
+                            SoftwareStatusFilter.AVAILABLE -> availableCount
+                        }
+                        FilterChip(
+                            selected = statusFilter == filter,
+                            onClick = { statusFilter = filter },
+                            label = { Text("${filter.label} ($count)") }
+                        )
+                    }
+                }
+            }
+        }
+
+        // 3. Category Filter Tabs (Full Width Span)
         item(span = { GridItemSpan(maxLineSpan) }) {
             SecondaryScrollableTabRow(
                 selectedTabIndex = if (selectedSoftwareCategory == null) 0 else SoftwareCategory.entries.indexOf(selectedSoftwareCategory) + 1,
@@ -172,8 +243,42 @@ fun SoftwareTabContent(
             }
         }
 
-        // 3. Preset Software Cards (Adaptive Columns)
-        items(filteredPackages, key = { it.id }) { pkg ->
+        // 4. Preset Software Cards (Adaptive Columns)
+        if (filteredPackages.isEmpty()) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "No matching packages found",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        TextButton(
+                            onClick = {
+                                searchQuery = ""
+                                statusFilter = SoftwareStatusFilter.ALL
+                                selectedSoftwareCategory = null
+                            }
+                        ) {
+                            Text("Clear filters")
+                        }
+                    }
+                }
+            }
+        } else {
+            items(filteredPackages, key = { it.id }) { pkg ->
             SoftwareCard(
                 pkg = pkg,
                 onInstallClick = { onInstallPackage(pkg.id) },
@@ -182,6 +287,7 @@ fun SoftwareTabContent(
                 onLaunchClick = { cmd -> onRunPresetCommand(cmd) },
                 onUpgradeClick = { onInstallPackage(pkg.id) }
             )
+        }
         }
     }
 }

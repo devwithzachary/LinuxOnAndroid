@@ -27,7 +27,9 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "In Development",
         initialExpanded = true,
         highlights = listOf(
-            "1-Click Package Uninstall: Added full uninstall support with service shutdown, confirmation dialog, and live logs for all 9 1-click packages across all 7 distributions.",
+            "Expanded Software Center (23 Packages): Added 14 new 1-click packages across all 7 distros including Clang/C++, Go, Rust, PHP, PostgreSQL, Redis, tmux/htop/jq, Zsh, FFmpeg, Rclone, iPerf3, Geany, GIMP, and LibreOffice.",
+            "Software Center Search & Filters: Added instant search, All/Installed/Available filter chips, and an Apps & Productivity category.",
+            "1-Click Package Uninstall: Added full uninstall support with service shutdown, confirmation dialog, and live logs for all 1-click packages across all 7 distributions.",
             "Updated Base Images: Upgraded Debian to Debian 13 (Trixie), Fedora to Fedora 45, and Alpine Linux to 3.24.4.",
             "Multi-Distro Package Fixes: Updated Java/Android Dev Tools recipes across Debian 13, Kali, Fedora 45, and Alpine 3.24, and fixed Void Linux and Arch Linux rolling-release package installs."
         )

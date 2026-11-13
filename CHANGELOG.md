@@ -5,7 +5,9 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ## [1.9.0] - In Development
 
 ### ✨ New Features
-- **Full 1-Click Package Uninstall Support**: Added uninstall support for all 9 1-click Software Center packages across all 7 supported distributions (`apt`, `dnf`, `apk`, `pacman`, `xbps`). Running services (VNC, `ttyd`, `code-server`, NGINX, OpenSSH) are stopped cleanly before removing packages and generated wrapper scripts, with a confirmation dialog and live uninstall logs on every `SoftwareCard`.
+- **Expanded Software Center Catalog (23 1-Click Packages)**: Introduced a declarative cross-distro `SoftwareRecipeCatalog` and expanded the Software Center from 9 to 23 1-click packages across all 7 distributions (`apt`, `dnf`, `apk`, `pacman`, `xbps`), including C/C++ (Clang/CMake/GDB), Go, Rust & Cargo, PHP CLI, PostgreSQL, Redis, CLI Power Tools (`tmux`, `htop`, `jq`), Zsh, FFmpeg, Rclone, iPerf3, Geany IDE, GIMP, and LibreOffice under the new **Apps & Productivity** category.
+- **Software Center Search & Status Filters**: Added a real-time search bar, `All` / `Installed` / `Available` filter chips with live package counts, and richer category icons in the Software tab.
+- **Full 1-Click Package Uninstall Support**: Added uninstall support for all 1-click Software Center packages across all 7 supported distributions (`apt`, `dnf`, `apk`, `pacman`, `xbps`). Running services (VNC, `ttyd`, `code-server`, NGINX, OpenSSH, Redis) are stopped cleanly before removing packages and generated wrapper scripts, with a confirmation dialog and live uninstall logs on every `SoftwareCard`.
 
 ### 📦 Distribution & Package Updates
 - **Updated Base Images**: Upgraded Debian to **Debian 13 (Trixie)**, Fedora to **Fedora 45**, and Alpine Linux to **Alpine 3.24.4** with updated SHA-256 checksums and backward-compatible legacy container ID resolution.

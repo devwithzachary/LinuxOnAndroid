@@ -35,6 +35,12 @@ fun SoftwareCard(
         "Terminal" -> Icons.Default.Terminal
         "Security" -> Icons.Default.Security
         "Android" -> Icons.Default.Android
+        "Storage" -> Icons.Default.Storage
+        "Build" -> Icons.Default.Build
+        "Palette" -> Icons.Default.Palette
+        "Description" -> Icons.Default.Description
+        "Public" -> Icons.Default.Public
+        "Tune" -> Icons.Default.Tune
         else -> Icons.Default.Apps
     }
 

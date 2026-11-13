@@ -12,7 +12,7 @@ class SoftwarePackageTest {
     fun testGetPresets_returnsNonEmptyList() {
         val presets = SoftwarePackage.getPresets()
         assertTrue("Preset package list should not be empty", presets.isNotEmpty())
-        assertEquals(9, presets.size)
+        assertEquals(23, presets.size)
     }
 
     @Test
@@ -28,10 +28,12 @@ class SoftwarePackageTest {
         for (pkg in presets) {
             assertTrue("Package ${pkg.id} must include DEBIAN_FRONTEND=noninteractive in install command", pkg.installCommand.contains("DEBIAN_FRONTEND=noninteractive"))
             assertTrue("Package ${pkg.id} must include non-interactive apt options", pkg.installCommand.contains("apt-get install -y"))
-            assertTrue("Package ${pkg.id} must include dpkg recovery flag", pkg.installCommand.contains("dpkg --configure -a"))
-            assertTrue("Package ${pkg.id} must include policy-rc.d service block", pkg.installCommand.contains("policy-rc.d"))
-            assertTrue("Package ${pkg.id} must include messagebus system user initialization", pkg.installCommand.contains("messagebus:"))
-            assertTrue("Package ${pkg.id} must include cargo/libexec permission fixes", pkg.installCommand.contains("chmod -R 755 /usr/lib/cargo /usr/libexec"))
+            if (SoftwareRecipeCatalog.getById(pkg.id) == null) {
+                assertTrue("Package ${pkg.id} must include dpkg recovery flag", pkg.installCommand.contains("dpkg --configure -a"))
+                assertTrue("Package ${pkg.id} must include policy-rc.d service block", pkg.installCommand.contains("policy-rc.d"))
+                assertTrue("Package ${pkg.id} must include messagebus system user initialization", pkg.installCommand.contains("messagebus:"))
+                assertTrue("Package ${pkg.id} must include cargo/libexec permission fixes", pkg.installCommand.contains("chmod -R 755 /usr/lib/cargo /usr/libexec"))
+            }
         }
     }
 

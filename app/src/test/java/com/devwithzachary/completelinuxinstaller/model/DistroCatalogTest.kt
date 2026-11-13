@@ -472,7 +472,7 @@ class DistroCatalogTest {
     @Test
     fun testAllDistros_supportAllPresetSoftwarePackages() {
         val presets = SoftwarePackage.getPresets()
-        assertEquals(9, presets.size)
+        assertEquals(23, presets.size)
 
         for (distro in DistroCatalog.ALL_DISTROS) {
             for (pkg in presets) {

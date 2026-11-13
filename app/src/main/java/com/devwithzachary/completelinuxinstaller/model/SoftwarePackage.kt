@@ -8,7 +8,8 @@ enum class SoftwareCategory(val displayName: String) {
     WEB_SERVER("Web & Database"),
     UTILITIES("CLI & System Utilities"),
     NETWORKING("Remote & SSH"),
-    DESKTOP_GUI("Desktop Environments")
+    DESKTOP_GUI("Desktop Environments"),
+    PRODUCTIVITY("Apps & Productivity")
 }
 
 enum class InstallStatus {
@@ -121,6 +122,38 @@ data class SoftwarePackage(
                         "usr/bin/udocker"
                     )
                     for (alias in dockerAliases) {
+                        if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
+                            return true
+                        }
+                    }
+                }
+                "usr/bin/redis-server", "usr/sbin/redis-server" -> {
+                    val redisAliases = listOf("usr/bin/redis-server", "usr/sbin/redis-server")
+                    for (alias in redisAliases) {
+                        if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
+                            return true
+                        }
+                    }
+                }
+                "usr/bin/go", "usr/local/go/bin/go", "usr/lib/go/bin/go" -> {
+                    val goAliases = listOf("usr/bin/go", "usr/local/go/bin/go", "usr/lib/go/bin/go")
+                    for (alias in goAliases) {
+                        if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
+                            return true
+                        }
+                    }
+                }
+                "usr/bin/zsh", "bin/zsh" -> {
+                    val zshAliases = listOf("usr/bin/zsh", "bin/zsh")
+                    for (alias in zshAliases) {
+                        if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
+                            return true
+                        }
+                    }
+                }
+                "usr/bin/iperf3", "usr/sbin/iperf3" -> {
+                    val iperfAliases = listOf("usr/bin/iperf3", "usr/sbin/iperf3")
+                    for (alias in iperfAliases) {
                         if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
                             return true
                         }
@@ -363,7 +396,7 @@ data class SoftwarePackage(
                     expectedBinaries = listOf("usr/bin/docker", "usr/local/bin/docker"),
                     version = 1
                 )
-            )
+            ) + SoftwareRecipeCatalog.recipes.map { it.toSoftwarePackage() }
         }
     }
 }

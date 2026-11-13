@@ -1,4 +1,3 @@
-• Software Center: Added full 1-click uninstall support with service shutdown and confirmation for all 9 packages across all 7 distros.
-• Base Images: Updated Debian to 13 (Trixie), Fedora to 45, and Alpine Linux to 3.24.4.
-• Package Fixes: Updated Android/Java dev tools on Debian 13, Kali, Fedora 45, and Alpine 3.24, and fixed Void and Arch package installs.
-
+• Software Center: Expanded from 9 to 23 1-click packages (C/C++, Go, Rust, PHP, PostgreSQL, Redis, FFmpeg, Rclone, Geany, GIMP, LibreOffice) with search and Installed/Available filters.
+• 1-Click Uninstall: Full uninstall support with service shutdown and confirmation across all 7 distros.
+• Base Images & Fixes: Updated Debian 13, Fedora 45, and Alpine 3.24.4, plus multi-distro package fixes.
