@@ -479,6 +479,9 @@ class DistroCatalogTest {
                 val cmd = distro.getSoftwarePackageInstallCommand(pkg.id)
                 assertNotNull("Distro ${distro.id} must define install command for ${pkg.id}", cmd)
                 assertTrue("Distro ${distro.id} install command for ${pkg.id} must not be blank", cmd!!.isNotBlank())
+                val uninstallCmd = distro.getSoftwarePackageUninstallCommand(pkg.id)
+                assertTrue("Distro ${distro.id} uninstall command for ${pkg.id} must not be blank", uninstallCmd.isNotBlank())
+                assertFalse("Uninstall command for ${distro.id}/${pkg.id} must never use pkill -f", uninstallCmd.contains("pkill -f"))
                 assertTrue("Preset ${pkg.id} must define expectedBinaries", pkg.expectedBinaries.isNotEmpty())
                 if (pkg.launchCommand != null) {
                     val distroLaunch = distro.getSoftwarePackageLaunchCommand(pkg.id) ?: pkg.launchCommand

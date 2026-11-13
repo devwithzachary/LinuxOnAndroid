@@ -23,6 +23,7 @@ import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
 fun SoftwareCard(
     pkg: SoftwarePackage,
     onInstallClick: () -> Unit,
+    onUninstallClick: () -> Unit = {},
     onViewLogsClick: () -> Unit,
     onLaunchClick: (String) -> Unit = {},
     onUpgradeClick: () -> Unit = {}
@@ -108,7 +109,7 @@ fun SoftwareCard(
                                 }
                             }
                         }
-                        InstallStatus.INSTALLING -> {
+                        InstallStatus.INSTALLING, InstallStatus.UNINSTALLING -> {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         }
                         InstallStatus.FAILED -> {
@@ -159,7 +160,7 @@ fun SoftwareCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (pkg.status == InstallStatus.INSTALLING) {
+                if (pkg.status == InstallStatus.INSTALLING || pkg.status == InstallStatus.UNINSTALLING) {
                     Spacer(modifier = Modifier.weight(2f))
                     Button(
                         onClick = onViewLogsClick,
@@ -243,6 +244,17 @@ fun SoftwareCard(
                         Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(stringResource(R.string.btn_view_logs), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp)
+                    }
+
+                    IconButton(
+                        onClick = onUninstallClick,
+                        modifier = Modifier.size(38.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "Uninstall ${pkg.name}",
+                            tint = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }

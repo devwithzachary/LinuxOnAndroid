@@ -129,6 +129,24 @@ object RootfsMigrationManager {
         return map[packageId]
     }
 
+    fun removePackageVersion(rootfsDir: File, packageId: String) {
+        val pkgFile = File(rootfsDir, PACKAGE_VERSION_FILE_PATH)
+        if (!pkgFile.exists()) return
+        try {
+            val currentMap = readPackageVersions(rootfsDir).toMutableMap()
+            if (currentMap.remove(packageId) != null) {
+                val content = buildString {
+                    for ((id, ver) in currentMap) {
+                        appendLine("$id=$ver")
+                    }
+                }
+                pkgFile.writeText(content)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error removing package version for $packageId", e)
+        }
+    }
+
     val ALL_MIGRATIONS: List<RootfsMigrationStep> = listOf(
         // v2: DNS Resolver & Hosts Configuration
         object : RootfsMigrationStep {

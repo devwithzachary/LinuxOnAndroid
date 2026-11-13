@@ -14,6 +14,7 @@ enum class SoftwareCategory(val displayName: String) {
 enum class InstallStatus {
     NOT_INSTALLED,
     INSTALLING,
+    UNINSTALLING,
     INSTALLED,
     FAILED
 }
@@ -25,6 +26,7 @@ data class SoftwarePackage(
     val description: String,
     val iconName: String,
     val installCommand: String,
+    val uninstallCommand: String = "",
     val launchCommand: String? = null,
     val postInstallNotes: String? = null,
     val expectedBinaries: List<String> = emptyList(),

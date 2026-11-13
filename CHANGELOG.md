@@ -2,6 +2,18 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.9.0] - In Development
+
+### ✨ New Features
+- **Full 1-Click Package Uninstall Support**: Added uninstall support for all 9 1-click Software Center packages across all 7 supported distributions (`apt`, `dnf`, `apk`, `pacman`, `xbps`). Running services (VNC, `ttyd`, `code-server`, NGINX, OpenSSH) are stopped cleanly before removing packages and generated wrapper scripts, with a confirmation dialog and live uninstall logs on every `SoftwareCard`.
+
+### 📦 Distribution & Package Updates
+- **Updated Base Images**: Upgraded Debian to **Debian 13 (Trixie)**, Fedora to **Fedora 45**, and Alpine Linux to **Alpine 3.24.4** with updated SHA-256 checksums and backward-compatible legacy container ID resolution.
+- **Multi-Distro 1-Click Package Fixes**:
+  - Updated `android_dev` recipes for Debian 13 and Kali (`default-jdk-headless`), Fedora 45 (`java-latest-openjdk-headless`, `android-tools`, and `gradle`), and Alpine 3.24 (`openjdk17-jdk`, `android-tools`, `gradle`).
+  - Fixed Void Linux `node_dev` (removed nonexistent `npm` package, bundled in `nodejs`) and `nginx_web` (added `xbps-install -Suy` before install).
+  - Fixed Arch Linux `x86_64` mirror/keyring initialization and switched `pacman -Syy` to `pacman -Syyu` to prevent `openssl` partial-upgrade conflicts.
+
 ## [1.8.2] - 2026-11-12
 
 ### 🐛 Bug Fixes & Compatibility

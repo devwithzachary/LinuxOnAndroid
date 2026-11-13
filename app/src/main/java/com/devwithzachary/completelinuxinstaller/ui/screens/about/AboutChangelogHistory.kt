@@ -23,9 +23,19 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
+        version = "v1.9.0",
+        date = "In Development",
+        initialExpanded = true,
+        highlights = listOf(
+            "1-Click Package Uninstall: Added full uninstall support with service shutdown, confirmation dialog, and live logs for all 9 1-click packages across all 7 distributions.",
+            "Updated Base Images: Upgraded Debian to Debian 13 (Trixie), Fedora to Fedora 45, and Alpine Linux to 3.24.4.",
+            "Multi-Distro Package Fixes: Updated Java/Android Dev Tools recipes across Debian 13, Kali, Fedora 45, and Alpine 3.24, and fixed Void Linux and Arch Linux rolling-release package installs."
+        )
+    ),
+    ReleaseChangelog(
         version = "v1.8.2",
         date = "November 2026",
-        initialExpanded = true,
+        initialExpanded = false,
         highlights = listOf(
             "Android 6-12 Compatibility Fix: Fixed a NoSuchMethodError crash when starting terminal sessions, installing packages, launching desktops, or migrating containers on Android 12 and older by replacing Java 11 InputStream.readNBytes with an API 23+ compatible ELF header check.",
             "Terminal Resize Thread-Safety: Synchronized TerminalEmulator resize, scroll, and buffer-read methods against background PTY output to prevent NullPointerException crashes during layout/keyboard changes.",

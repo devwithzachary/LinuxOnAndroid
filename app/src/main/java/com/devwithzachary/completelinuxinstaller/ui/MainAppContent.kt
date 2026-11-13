@@ -426,6 +426,9 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 onInstallPackage = { pkgId, containerId ->
                                     viewModel.installSoftwarePackage(pkgId, containerId)
                                 },
+                                onUninstallPackage = { pkgId, containerId ->
+                                    viewModel.uninstallSoftwarePackage(pkgId, containerId)
+                                },
                                 onInstallCustomPackage = { pkgName, containerId ->
                                     viewModel.installCustomPackage(pkgName, containerId)
                                 },

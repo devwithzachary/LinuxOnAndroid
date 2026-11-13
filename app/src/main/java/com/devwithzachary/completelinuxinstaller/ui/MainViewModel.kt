@@ -634,7 +634,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val users = if (installed) rootfsManager.getContainerUsers() else emptyList()
 
         val syncedPackages = _packages.value.map { pkg ->
-            if (pkg.status == InstallStatus.INSTALLING) {
+            if (pkg.status == InstallStatus.INSTALLING || pkg.status == InstallStatus.UNINSTALLING) {
                 pkg
             } else if (!installed) {
                 pkg.copy(
@@ -723,7 +723,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val effectiveVersion = distroDef.getSoftwarePackageVersion(pkg.id) ?: basePkg.version
             val hasDistroSpecificBinaries = distroDef.getSoftwarePackageExpectedBinaries(pkg.id) != null
 
-            if (pkg.status == InstallStatus.INSTALLING) {
+            if (pkg.status == InstallStatus.INSTALLING || pkg.status == InstallStatus.UNINSTALLING) {
                 pkg.copy(
                     launchCommand = effectiveLaunchCommand,
                     postInstallNotes = basePkg.postInstallNotes,
@@ -1269,6 +1269,61 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun installSoftwarePackage(packageId: String, containerId: String? = null) {
+        val currentSshPort = _sshPort.value
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(container?.distroId ?: container?.distroName ?: "")
+        runSoftwarePackageAction(
+            packageId = packageId,
+            container = container,
+            activeStatus = InstallStatus.INSTALLING,
+            initMessage = "Initializing installation...",
+            startLogLine = { pkg ->
+                val effectiveCommand = distroDef.getSoftwarePackageInstallCommand(pkg.id, currentSshPort) ?: pkg.installCommand
+                "Starting installation of ${pkg.name} into ${container?.name ?: "container"}...\nExecuting script: $effectiveCommand\n"
+            },
+            successStatus = InstallStatus.INSTALLED,
+            successLogMarker = "Installation completed successfully!",
+            successMessage = { step -> "Installed! " + (step.notes ?: "") },
+            flowProvider = { targetPkg ->
+                softwareInstaller.installPackage(targetPkg, targetDir, distroDef, currentSshPort)
+            }
+        )
+    }
+
+    fun uninstallSoftwarePackage(packageId: String, containerId: String? = null) {
+        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
+        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
+        val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(container?.distroId ?: container?.distroName ?: "")
+        runSoftwarePackageAction(
+            packageId = packageId,
+            container = container,
+            activeStatus = InstallStatus.UNINSTALLING,
+            initMessage = "Initializing uninstallation...",
+            startLogLine = { pkg ->
+                val effectiveCommand = distroDef.getSoftwarePackageUninstallCommand(pkg.id)
+                "Starting uninstallation of ${pkg.name} from ${container?.name ?: "container"}...\nExecuting script: $effectiveCommand\n"
+            },
+            successStatus = InstallStatus.NOT_INSTALLED,
+            successLogMarker = "Uninstallation completed successfully!",
+            successMessage = { "Uninstalled" },
+            flowProvider = { targetPkg ->
+                softwareInstaller.uninstallPackage(targetPkg, targetDir, distroDef)
+            }
+        )
+    }
+
+    private fun runSoftwarePackageAction(
+        packageId: String,
+        container: ContainerInstance?,
+        activeStatus: InstallStatus,
+        initMessage: String,
+        startLogLine: (SoftwarePackage) -> String,
+        successStatus: InstallStatus,
+        successLogMarker: String,
+        successMessage: (InstallStepState.Success) -> String,
+        flowProvider: (SoftwarePackage) -> kotlinx.coroutines.flow.Flow<InstallStepState>
+    ) {
         if (_isKeepAliveEnabled.value) {
             PRootForegroundService.start(getApplication())
         }
@@ -1276,24 +1331,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val index = currentPackages.indexOfFirst { it.id == packageId }
         if (index == -1) return
 
-        val container = containerId?.let { containerManager.getContainer(it) } ?: containerManager.getDefaultContainer()
-        val targetDir = container?.rootDir ?: pRootEngine.rootfsDir
         val distroDef = com.devwithzachary.completelinuxinstaller.model.DistroCatalog.getById(container?.distroId ?: container?.distroName ?: "")
-        val currentSshPort = _sshPort.value
-
         val pkg = currentPackages[index]
-        val effectiveCommand = distroDef.getSoftwarePackageInstallCommand(pkg.id, currentSshPort) ?: pkg.installCommand
         val effectiveVersion = distroDef.getSoftwarePackageVersion(pkg.id) ?: pkg.version
         val targetPkg = pkg.copy(version = effectiveVersion)
         currentPackages[index] = targetPkg.copy(
-            status = InstallStatus.INSTALLING,
-            progressMessage = "Initializing installation...",
-            installLogs = "Starting installation of ${pkg.name} into ${container?.name ?: "container"}...\nExecuting script: $effectiveCommand\n"
+            status = activeStatus,
+            progressMessage = initMessage,
+            installLogs = startLogLine(pkg)
         )
         _packages.value = currentPackages
 
         viewModelScope.launch {
-            softwareInstaller.installPackage(targetPkg, targetDir, distroDef, currentSshPort).collect { step ->
+            flowProvider(targetPkg).collect { step ->
                 val list = _packages.value.toMutableList()
                 val idx = list.indexOfFirst { it.id == packageId }
                 if (idx != -1) {
@@ -1301,7 +1351,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         is InstallStepState.Progress -> {
                             val newLogs = DesktopConfigHelper.appendBoundedLog(list[idx].installLogs, step.logLine)
                             list[idx] = list[idx].copy(
-                                status = InstallStatus.INSTALLING,
+                                status = activeStatus,
                                 progressMessage = step.logLine,
                                 installLogs = newLogs
                             )
@@ -1309,14 +1359,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                         is InstallStepState.Success -> {
                             val currentLogs = list[idx].installLogs
-                            val newLogs = if (!currentLogs.trimEnd().endsWith("Installation completed successfully!")) {
-                                DesktopConfigHelper.appendBoundedLog(currentLogs, "Installation completed successfully!")
+                            val newLogs = if (!currentLogs.trimEnd().endsWith(successLogMarker)) {
+                                DesktopConfigHelper.appendBoundedLog(currentLogs, successLogMarker)
                             } else {
                                 currentLogs
                             }
                             list[idx] = list[idx].copy(
-                                status = InstallStatus.INSTALLED,
-                                progressMessage = "Installed! " + (step.notes ?: ""),
+                                status = successStatus,
+                                hasUpgradeAvailable = if (successStatus == InstallStatus.NOT_INSTALLED) false else list[idx].hasUpgradeAvailable,
+                                progressMessage = successMessage(step),
                                 installLogs = newLogs
                             )
                             refreshStatus()

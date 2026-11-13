@@ -66,6 +66,7 @@ fun ContainerDetailScreen(
     onKillProcess: (pid: Int) -> Unit,
     onRunPresetCommand: (command: String) -> Unit,
     onInstallPackage: (packageId: String, containerId: String) -> Unit,
+    onUninstallPackage: (packageId: String, containerId: String) -> Unit = { _, _ -> },
     onInstallCustomPackage: (packageName: String, containerId: String) -> Unit,
     onDeleteContainer: (containerId: String) -> Unit = {},
     onUpgradeRootfs: (containerId: String) -> Unit = {},
@@ -281,6 +282,7 @@ fun ContainerDetailScreen(
                         container = container,
                         packages = packages,
                         onInstallPackage = { pkgId -> onInstallPackage(pkgId, container.id) },
+                        onUninstallPackage = { pkgId -> onUninstallPackage(pkgId, container.id) },
                         onInstallCustomPackage = { pkgName -> onInstallCustomPackage(pkgName, container.id) },
                         onViewLogs = { pkgId -> activeLogPackageId = pkgId },
                         onRunPresetCommand = onRunPresetCommand

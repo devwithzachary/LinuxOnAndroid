@@ -29,13 +29,41 @@ fun SoftwareTabContent(
     container: ContainerInstance,
     packages: List<SoftwarePackage>,
     onInstallPackage: (packageId: String) -> Unit,
+    onUninstallPackage: (packageId: String) -> Unit = {},
     onInstallCustomPackage: (packageName: String) -> Unit,
     onViewLogs: (packageId: String) -> Unit,
     onRunPresetCommand: (command: String) -> Unit
 ) {
     var selectedSoftwareCategory by remember { mutableStateOf<SoftwareCategory?>(null) }
     var customPackageInput by remember { mutableStateOf("") }
+    var pendingUninstallPackage by remember { mutableStateOf<SoftwarePackage?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    pendingUninstallPackage?.let { pkgToUninstall ->
+        AlertDialog(
+            onDismissRequest = { pendingUninstallPackage = null },
+            title = { Text("Uninstall ${pkgToUninstall.name}?") },
+            text = {
+                Text("This will stop any running ${pkgToUninstall.name} service and remove its packages from ${container.name}. Your personal files in /home and /sdcard will not be touched.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onUninstallPackage(pkgToUninstall.id)
+                        pendingUninstallPackage = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Uninstall")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingUninstallPackage = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     val filteredPackages = packages.filter { pkg ->
         selectedSoftwareCategory == null || pkg.category == selectedSoftwareCategory
@@ -149,6 +177,7 @@ fun SoftwareTabContent(
             SoftwareCard(
                 pkg = pkg,
                 onInstallClick = { onInstallPackage(pkg.id) },
+                onUninstallClick = { pendingUninstallPackage = pkg },
                 onViewLogsClick = { onViewLogs(pkg.id) },
                 onLaunchClick = { cmd -> onRunPresetCommand(cmd) },
                 onUpgradeClick = { onInstallPackage(pkg.id) }
@@ -162,6 +191,7 @@ fun ContainerDetailSoftwareTab(
     container: ContainerInstance,
     packages: List<SoftwarePackage>,
     onInstallPackage: (packageId: String) -> Unit,
+    onUninstallPackage: (packageId: String) -> Unit = {},
     onInstallCustomPackage: (packageName: String) -> Unit,
     onViewLogs: (packageId: String) -> Unit,
     onRunPresetCommand: (command: String) -> Unit
@@ -169,6 +199,7 @@ fun ContainerDetailSoftwareTab(
     container = container,
     packages = packages,
     onInstallPackage = onInstallPackage,
+    onUninstallPackage = onUninstallPackage,
     onInstallCustomPackage = onInstallCustomPackage,
     onViewLogs = onViewLogs,
     onRunPresetCommand = onRunPresetCommand

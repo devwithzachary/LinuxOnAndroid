@@ -105,14 +105,14 @@ fun LogViewerDialog(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         when (pkg.status) {
-                            InstallStatus.INSTALLING -> {
+                            InstallStatus.INSTALLING, InstallStatus.UNINSTALLING -> {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
                                     strokeWidth = 2.dp,
                                     color = Color(0xFF58A6FF)
                                 )
                                 Text(
-                                    text = stringResource(R.string.log_status_installing),
+                                    text = if (pkg.status == InstallStatus.UNINSTALLING) "UNINSTALLING..." else stringResource(R.string.log_status_installing),
                                     color = Color(0xFF58A6FF),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp

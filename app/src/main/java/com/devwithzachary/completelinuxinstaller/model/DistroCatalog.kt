@@ -49,6 +49,7 @@ data class DistroDefinition(
     val isRecommended: Boolean = false,
     val firstLaunchScriptBuilder: (rootPassword: String, username: String, userPassword: String, isArm: Boolean) -> String = { _, _, _, _ -> "" },
     val softwarePackageCommands: Map<String, (sshPort: Int) -> String> = emptyMap(),
+    val softwarePackageUninstallCommands: Map<String, () -> String> = emptyMap(),
     val softwarePackageLaunchCommands: Map<String, (sshPort: Int) -> String> = emptyMap(),
     val softwarePackageExpectedBinaries: Map<String, List<String>> = emptyMap(),
     val softwarePackageVersions: Map<String, Int> = emptyMap()
@@ -70,6 +71,11 @@ data class DistroDefinition(
 
     fun getSoftwarePackageInstallCommand(packageId: String, sshPort: Int = 2222): String? {
         return softwarePackageCommands[packageId]?.invoke(sshPort)
+    }
+
+    fun getSoftwarePackageUninstallCommand(packageId: String): String {
+        return softwarePackageUninstallCommands[packageId]?.invoke()
+            ?: DistroCatalog.buildDefaultUninstallCommand(packageId, packageManager)
     }
 
     fun getSoftwarePackageLaunchCommand(packageId: String, sshPort: Int = 2222, container: ContainerInstance? = null): String? {
@@ -188,6 +194,75 @@ object DistroCatalog {
             else -> id
         }
         return ALL_DISTROS.find { it.id == normalizedId || it.name.equals(id, ignoreCase = true) } ?: UBUNTU_26_04
+    }
+
+    fun buildDefaultUninstallCommand(packageId: String, pm: PackageManagerType): String {
+        fun removePkgs(vararg pkgs: String): String {
+            val joined = pkgs.joinToString(" ")
+            return when (pm) {
+                PackageManagerType.APT -> "DEBIAN_FRONTEND=noninteractive apt-get remove -y --purge $joined 2>/dev/null || true; DEBIAN_FRONTEND=noninteractive apt-get autoremove -y 2>/dev/null || true"
+                PackageManagerType.DNF -> "dnf remove -y $joined 2>/dev/null || true"
+                PackageManagerType.APK -> "apk del $joined 2>/dev/null || true"
+                PackageManagerType.PACMAN -> "pacman -Rns --noconfirm $joined 2>/dev/null || pacman -R --noconfirm $joined 2>/dev/null || true"
+                PackageManagerType.XBPS -> "xbps-remove -Ry $joined 2>/dev/null || xbps-remove -y $joined 2>/dev/null || true"
+            }
+        }
+
+        return when (packageId) {
+            "xfce_desktop" -> {
+                val stop = "vncserver -kill :1 2>/dev/null || true; (pkill -x Xtigervnc 2>/dev/null || pkill -x Xvnc 2>/dev/null || true)"
+                val pkgCmd = when (pm) {
+                    PackageManagerType.APT -> removePkgs("xfce4", "xfce4-terminal", "tigervnc-standalone-server", "tigervnc-xorg-extension", "tigervnc-tools", "tigervnc-common", "tightvncserver", "synaptic")
+                    PackageManagerType.DNF -> removePkgs("xfce4-session", "xfce4-panel", "xfce4-terminal", "tigervnc-server", "tigervnc", "dnfdragora")
+                    PackageManagerType.APK -> removePkgs("xfce4", "xfce4-terminal", "tigervnc")
+                    PackageManagerType.PACMAN -> removePkgs("xfce4", "xfce4-terminal", "tigervnc", "octopi")
+                    PackageManagerType.XBPS -> removePkgs("xfce4", "xfce4-terminal", "tigervnc", "octoxbps")
+                }
+                "$stop; $pkgCmd; rm -f /usr/bin/vncserver /usr/bin/startxfce4 /usr/bin/synaptic-pkexec /etc/vnc/xstartup /etc/vnc/config /etc/X11/Xtigervnc-session 2>/dev/null || true"
+            }
+            "python_dev" -> when (pm) {
+                PackageManagerType.APT -> removePkgs("python3-pip", "python3-venv", "build-essential", "neovim")
+                PackageManagerType.DNF -> removePkgs("python3-pip", "gcc", "gcc-c++", "neovim")
+                PackageManagerType.APK -> removePkgs("py3-pip", "build-base", "neovim")
+                PackageManagerType.PACMAN -> removePkgs("python-pip", "base-devel", "neovim")
+                PackageManagerType.XBPS -> removePkgs("python3-pip", "base-devel", "neovim")
+            }
+            "node_dev" -> when (pm) {
+                PackageManagerType.APT -> removePkgs("nodejs", "npm", "yarnpkg", "neovim")
+                PackageManagerType.DNF -> removePkgs("nodejs", "npm", "neovim")
+                PackageManagerType.APK -> removePkgs("nodejs", "npm", "yarn", "neovim")
+                PackageManagerType.PACMAN -> removePkgs("nodejs", "npm", "yarn", "neovim")
+                PackageManagerType.XBPS -> removePkgs("nodejs", "yarn", "neovim")
+            }
+            "android_dev" -> when (pm) {
+                PackageManagerType.APT -> removePkgs("default-jdk-headless", "openjdk-17-jdk-headless", "android-sdk-platform-tools", "gradle")
+                PackageManagerType.DNF -> "${removePkgs("java-latest-openjdk-headless", "java-25-openjdk-headless", "java-17-openjdk-headless", "android-tools")}; rm -rf /opt/gradle-* /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true"
+                PackageManagerType.APK -> removePkgs("openjdk17-jdk", "openjdk17-jre", "android-tools", "gradle")
+                PackageManagerType.PACMAN -> removePkgs("jdk-openjdk", "jdk17-openjdk", "android-tools", "gradle")
+                PackageManagerType.XBPS -> removePkgs("openjdk17-jre", "android-tools", "gradle")
+            }
+            "code_server" -> "(pkill -x code-server 2>/dev/null || killall -9 code-server 2>/dev/null || true); (npm uninstall -g code-server 2>/dev/null || true); ${removePkgs("code-server")}; rm -rf /usr/local/bin/code-server /usr/bin/code-server /usr/lib/code-server /usr/local/lib/code-server* 2>/dev/null || true"
+            "nginx_web" -> {
+                val stop = "(nginx -s quit 2>/dev/null || pkill -x nginx 2>/dev/null || killall -9 nginx 2>/dev/null || true)"
+                val pkgCmd = when (pm) {
+                    PackageManagerType.APT -> removePkgs("nginx", "nginx-common", "nginx-core", "sqlite3")
+                    else -> removePkgs("nginx", "sqlite")
+                }
+                "$stop; $pkgCmd"
+            }
+            "openssh_server" -> {
+                val stop = "(pkill -x sshd 2>/dev/null || killall -9 sshd 2>/dev/null || true)"
+                val pkgCmd = when (pm) {
+                    PackageManagerType.APT, PackageManagerType.DNF -> removePkgs("openssh-server")
+                    PackageManagerType.APK -> removePkgs("openssh", "openssh-server")
+                    PackageManagerType.PACMAN, PackageManagerType.XBPS -> removePkgs("openssh")
+                }
+                "$stop; $pkgCmd; rm -f /usr/sbin/sshd /usr/bin/sshd 2>/dev/null || true"
+            }
+            "web_terminal" -> "(pkill -x ttyd 2>/dev/null || killall -9 ttyd 2>/dev/null || true); ${removePkgs("ttyd")}; rm -f /usr/local/bin/ttyd /usr/bin/ttyd 2>/dev/null || true"
+            "docker_tools" -> "(pip3 uninstall -y --break-system-packages udocker 2>/dev/null || pip uninstall -y udocker 2>/dev/null || true); ${removePkgs("docker", "docker.io", "docker-cli", "docker-compose")}; rm -f /usr/local/bin/docker /usr/bin/docker /usr/local/bin/udocker /usr/bin/udocker /etc/udocker.conf 2>/dev/null || true"
+            else -> "true"
+        }
     }
 
     fun getForSystemArch(archName: String): SystemArchitecture {

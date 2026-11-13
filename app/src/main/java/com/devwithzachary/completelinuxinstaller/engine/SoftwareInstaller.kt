@@ -26,9 +26,49 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
         targetDir: java.io.File = pRootEngine.rootfsDir,
         distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition? = null,
         sshPort: Int = 2222
-    ): Flow<InstallStepState> = flow {
+    ): Flow<InstallStepState> {
         val effectiveCommand = distroDef?.getSoftwarePackageInstallCommand(pkg.id, sshPort) ?: pkg.installCommand
-        emit(InstallStepState.Progress(pkg.id, "Starting installation of ${pkg.name}..."))
+        return executePackageCommand(
+            pkg = pkg,
+            effectiveCommand = effectiveCommand,
+            actionLabel = "installation",
+            targetDir = targetDir,
+            distroDef = distroDef,
+            isUninstall = false
+        )
+    }
+
+    fun uninstallPackage(
+        pkg: SoftwarePackage,
+        targetDir: java.io.File = pRootEngine.rootfsDir,
+        distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition? = null
+    ): Flow<InstallStepState> {
+        val effectiveCommand = distroDef?.getSoftwarePackageUninstallCommand(pkg.id)
+            ?: pkg.uninstallCommand.ifBlank {
+                com.devwithzachary.completelinuxinstaller.model.DistroCatalog.buildDefaultUninstallCommand(
+                    pkg.id,
+                    com.devwithzachary.completelinuxinstaller.model.PackageManagerType.APT
+                )
+            }
+        return executePackageCommand(
+            pkg = pkg,
+            effectiveCommand = effectiveCommand,
+            actionLabel = "uninstallation",
+            targetDir = targetDir,
+            distroDef = distroDef,
+            isUninstall = true
+        )
+    }
+
+    private fun executePackageCommand(
+        pkg: SoftwarePackage,
+        effectiveCommand: String,
+        actionLabel: String,
+        targetDir: java.io.File,
+        distroDef: com.devwithzachary.completelinuxinstaller.model.DistroDefinition?,
+        isUninstall: Boolean
+    ): Flow<InstallStepState> = flow {
+        emit(InstallStepState.Progress(pkg.id, "Starting $actionLabel of ${pkg.name}..."))
         emit(InstallStepState.Progress(pkg.id, "Executing script: $effectiveCommand"))
 
         try {
@@ -143,18 +183,24 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
             reader.close()
 
             if (exitCode == 0) {
-                val effectiveVersion = distroDef?.getSoftwarePackageVersion(pkg.id) ?: pkg.version
-                RootfsMigrationManager.writePackageVersion(targetDir, pkg.id, effectiveVersion)
-                emit(InstallStepState.Progress(pkg.id, "Installation completed successfully!"))
-                emit(InstallStepState.Success(pkg.id, pkg.postInstallNotes))
+                if (isUninstall) {
+                    RootfsMigrationManager.removePackageVersion(targetDir, pkg.id)
+                    emit(InstallStepState.Progress(pkg.id, "Uninstallation completed successfully!"))
+                    emit(InstallStepState.Success(pkg.id, null))
+                } else {
+                    val effectiveVersion = distroDef?.getSoftwarePackageVersion(pkg.id) ?: pkg.version
+                    RootfsMigrationManager.writePackageVersion(targetDir, pkg.id, effectiveVersion)
+                    emit(InstallStepState.Progress(pkg.id, "Installation completed successfully!"))
+                    emit(InstallStepState.Success(pkg.id, pkg.postInstallNotes))
+                }
             } else {
                 emit(InstallStepState.Progress(pkg.id, "Process finished with exit code $exitCode"))
-                emit(InstallStepState.Error(pkg.id, "Installation failed with exit code $exitCode. See terminal logs."))
+                emit(InstallStepState.Error(pkg.id, "${actionLabel.replaceFirstChar { it.uppercase() }} failed with exit code $exitCode. See terminal logs."))
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed installing package ${pkg.id}", e)
-            emit(InstallStepState.Error(pkg.id, e.localizedMessage ?: "Unknown installation error"))
+            Log.e(TAG, "Failed $actionLabel for package ${pkg.id}", e)
+            emit(InstallStepState.Error(pkg.id, e.localizedMessage ?: "Unknown $actionLabel error"))
         }
     }.flowOn(Dispatchers.IO)
 }
