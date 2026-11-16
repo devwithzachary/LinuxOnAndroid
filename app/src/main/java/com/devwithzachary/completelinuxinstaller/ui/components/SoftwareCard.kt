@@ -34,6 +34,7 @@ fun SoftwareCard(
         "Terminal" -> Icons.Default.Terminal
         "Security" -> Icons.Default.Security
         "Android" -> Icons.Default.Android
+        "Settings" -> Icons.Default.Settings
         else -> Icons.Default.Apps
     }
 

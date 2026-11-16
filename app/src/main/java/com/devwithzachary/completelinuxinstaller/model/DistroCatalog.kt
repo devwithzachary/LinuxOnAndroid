@@ -51,7 +51,8 @@ data class DistroDefinition(
     val softwarePackageCommands: Map<String, (sshPort: Int) -> String> = emptyMap(),
     val softwarePackageLaunchCommands: Map<String, (sshPort: Int) -> String> = emptyMap(),
     val softwarePackageExpectedBinaries: Map<String, List<String>> = emptyMap(),
-    val softwarePackageVersions: Map<String, Int> = emptyMap()
+    val softwarePackageVersions: Map<String, Int> = emptyMap(),
+    val softwarePackageHidden: Set<String> = emptySet()
 ) {
     val expectedSizeMb: Int get() = downloadSizeMb
 
