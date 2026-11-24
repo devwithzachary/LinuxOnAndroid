@@ -46,7 +46,7 @@ class WhatsNewTest {
         assertTrue(release.displayVersion.isNotBlank())
         assertTrue(release.headline.isNotBlank())
         assertTrue(release.subtitle.isNotBlank())
-        assertEquals(4, release.features.size)
+        assertEquals(5, release.features.size)
         release.features.forEach { feature ->
             assertTrue(feature.badge.isNotBlank())
             assertTrue(feature.title.isNotBlank())

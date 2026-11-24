@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Apps
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.DesktopWindows
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.RocketLaunch
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -37,9 +38,20 @@ object WhatsNewLogic {
 val CURRENT_WHATS_NEW_RELEASE: WhatsNewRelease = WhatsNewRelease(
     versionKey = "1.9.0",
     displayVersion = "v1.9.0",
-    headline = "33 1-Click Packages, Beta GUI Apps & More",
+    headline = "Material 3 Redesign, 33 1-Click Packages & More",
     subtitle = "Welcome to LinuxOnAndroid 1.9.0! Here are the key new features in this release and where to find them in the app.",
     features = listOf(
+        WhatsNewFeature(
+            badge = "NEW UI",
+            title = "Material 3 Redesign & App Themes",
+            summary = "Every screen has been redesigned with Material 3 tonal surfaces, segmented lists, concentric progress rings, bottom-sheet dialogs, and refreshed Terminal and Desktop chrome. Switch between System, Light, and Dark modes, toggle Material You Dynamic Color vs the LinuxOnAndroid Classic palette, or enjoy the new app-matched LinuxOnAndroid default terminal theme.",
+            stepsToFind = listOf(
+                "Open Settings -> Appearance to switch between System, Light, and Dark modes.",
+                "Toggle Dynamic Color on Android 12+ to switch between Material You wallpaper colors and the LinuxOnAndroid Classic palette.",
+                "Select LinuxOnAndroid (or any preset/custom palette) under Terminal Theme."
+            ),
+            icon = Icons.Rounded.Palette
+        ),
         WhatsNewFeature(
             badge = "NEW CATALOG",
             title = "Expanded Software Center (33 Packages)",

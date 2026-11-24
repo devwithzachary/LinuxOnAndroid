@@ -5,6 +5,7 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ## [1.9.0] - In Development
 
 ### ✨ New Features
+- **Material 3 Expressive UI Redesign & Themes**: Redesigned every screen across the app (Dashboard, Container Overview, Software Center, Container Settings, Setup Wizard, Desktop, Terminal header/tabs/extra keys, Settings, About, Welcome, and What's New) with unified tonal surfaces, segmented lists, concentric progress rings, Plus Jakarta Sans headlines, JetBrains Mono technical chips, `ModalBottomSheet` dialogs, and rounded Material icons. Added persistent **App Theme** (`System`, `Light`, `Dark`) and **Dynamic Color** (`Material You` vs `LinuxOnAndroid Classic` palette) toggles in Settings, plus a new warm `LinuxOnAndroid` default terminal color theme.
 - **Expanded Software Center Catalog (33 1-Click Packages)**: Refactored 1-click software recipes into modular per-package files under `model/software/` and expanded the Software Center from 9 to 33 packages across all 7 distributions (`apt`, `dnf`, `apk`, `pacman`, `xbps`):
   - **Developer Tools**: C/C++ (Clang, CMake, GDB), Go, Rust & Cargo, PHP CLI, Ruby, and **VS Code (Desktop) (Beta)** (glibc distros, with `--no-sandbox` support).
   - **Web & Database**: PostgreSQL, MariaDB (MySQL), and Redis.

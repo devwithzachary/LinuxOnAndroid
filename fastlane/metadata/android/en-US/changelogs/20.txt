@@ -1,3 +1,4 @@
-• Software Center: Expanded to 33 1-click packages with search, filters, and 1-click uninstall across all 7 distros.
-• Desktop GUI Apps (Beta): VS Code, Blender, Kdenlive, GIMP, LibreOffice, Geany, and Firefox marked Beta (software rendering until GPU acceleration arrives).
-• What's New Guide & Stability: Added What's New screen on updates, Debian 13/Fedora 45/Alpine 3.24.4 updates, and /dev/shm + Phantom Process Killer fixes.
+• Material 3 Redesign: Unified dark/light/Material You & Classic themes, bottom sheets, refreshed Terminal/Desktop UI, and new LinuxOnAndroid terminal theme.
+• Software Center: 33 1-click packages with search, filters, and uninstall across all 7 distros.
+• Desktop GUI Apps (Beta): VS Code, Blender, Kdenlive, GIMP, LibreOffice, Geany, and Firefox.
+• Stability: What's New guide, Debian 13/Fedora 45/Alpine 3.24.4 updates, and /dev/shm + Phantom Process Killer fixes.
