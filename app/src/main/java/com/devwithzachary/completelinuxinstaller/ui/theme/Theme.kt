@@ -12,6 +12,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
+enum class AppThemeMode(val storageKey: String, val label: String) {
+    SYSTEM("system", "System"),
+    LIGHT("light", "Light"),
+    DARK("dark", "Dark");
+
+    companion object {
+        fun fromStorageKey(key: String?): AppThemeMode {
+            return entries.find { it.storageKey == key } ?: SYSTEM
+        }
+    }
+}
+
 @Composable
 fun LinuxOnAndroidTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

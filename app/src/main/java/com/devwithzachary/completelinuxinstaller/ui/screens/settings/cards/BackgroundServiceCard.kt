@@ -5,29 +5,34 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.rounded.BrightnessHigh
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.NotificationsOff
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.devwithzachary.completelinuxinstaller.R
-import com.devwithzachary.completelinuxinstaller.ui.screens.settings.CollapsibleSettingsCard
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSectionHeader
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedGroup
 
 @Composable
 fun BackgroundServiceCard(
-    isExpanded: Boolean,
-    onToggleExpand: () -> Unit,
     isKeepAliveEnabled: Boolean,
     onToggleKeepAlive: () -> Unit,
     isKeepScreenOnEnabled: Boolean,
@@ -35,151 +40,86 @@ fun BackgroundServiceCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val isInspection = LocalInspectionMode.current
 
-    CollapsibleSettingsCard(
-        title = stringResource(R.string.setting_keep_alive_title),
-        subtitle = if (isKeepAliveEnabled) "Foreground Service & WakeLock Active" else "Standard Background Limits",
-        icon = Icons.Default.PlayArrow,
-        isExpanded = isExpanded,
-        onToggleExpand = onToggleExpand,
-        modifier = modifier,
-        badge = {
-            Surface(
-                color = if (isKeepAliveEnabled) Color(0xFF1E3A1E) else MaterialTheme.colorScheme.surfaceVariant,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = if (isKeepAliveEnabled) "WakeLock Active" else "Disabled",
-                    color = if (isKeepAliveEnabled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                )
-            }
-        }
-    ) {
-        Text(
-            text = "Controls whether LinuxOnAndroid keeps background processes alive when the app is minimized or the screen is turned off.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+    val keepAliveTitle = stringResource(R.string.setting_keep_alive_title)
+    val keepScreenOnTitle = stringResource(R.string.setting_keep_screen_on_title)
+    val keepScreenOnDesc = stringResource(R.string.setting_keep_screen_on_desc)
+
+    val needsNotificationPermission = !isInspection && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    var isNotifGranted by remember {
+        mutableStateOf(
+            if (!needsNotificationPermission) true
+            else ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
         )
+    }
+    val notifLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        isNotifGranted = granted
+    }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Enable Foreground Service & WakeLock", fontWeight = FontWeight.SemiBold)
-                Text(
-                    stringResource(R.string.setting_keep_alive_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = isKeepAliveEnabled,
-                onCheckedChange = { onToggleKeepAlive() }
-            )
-        }
+    val errorContainer = MaterialTheme.colorScheme.errorContainer
+    val onErrorContainer = MaterialTheme.colorScheme.onErrorContainer
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.setting_keep_screen_on_title),
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    stringResource(R.string.setting_keep_screen_on_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = isKeepScreenOnEnabled,
-                onCheckedChange = { onSetKeepScreenOn(it) }
-            )
-        }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        LoaSectionHeader(title = "Background & System")
 
-        if (isKeepAliveEnabled) {
-            Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = "🛡️ Protection Status:",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+        LoaSegmentedGroup {
+            row(
+                title = keepAliveTitle,
+                subtitle = if (isKeepAliveEnabled) {
+                    "Active: holds partial CPU WakeLock during sessions"
+                } else {
+                    "Disabled: subject to Android background limits"
+                },
+                leadingIcon = Icons.Rounded.Shield,
+                trailingContent = {
+                    Switch(
+                        checked = isKeepAliveEnabled,
+                        onCheckedChange = { onToggleKeepAlive() }
                     )
-                    Text(
-                        text = "• Partial CPU WakeLock held during active terminal & server sessions\n• Ongoing low-priority notification with quick actions\n• Resilient against Android Doze and Phantom Process Killer",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                onClick = onToggleKeepAlive
+            )
+
+            row(
+                title = keepScreenOnTitle,
+                subtitle = keepScreenOnDesc,
+                leadingIcon = Icons.Rounded.BrightnessHigh,
+                trailingContent = {
+                    Switch(
+                        checked = isKeepScreenOnEnabled,
+                        onCheckedChange = onSetKeepScreenOn
                     )
-                }
-            }
-        }
+                },
+                onClick = { onSetKeepScreenOn(!isKeepScreenOnEnabled) }
+            )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            var isNotifGranted by remember {
-                mutableStateOf(
-                    ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.POST_NOTIFICATIONS
-                    ) == PackageManager.PERMISSION_GRANTED
-                )
-            }
-            val notifLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestPermission()
-            ) { granted ->
-                isNotifGranted = granted
-            }
-
-            if (!isNotifGranted) {
-                Surface(
-                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Text(
-                                text = "Notification Permission Disabled",
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-                        Text(
-                            text = "Android 13+ requires notification permission to display the foreground service status and prevent background terminations.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+            if (needsNotificationPermission && !isNotifGranted) {
+                row(
+                    title = "Notification Permission Required",
+                    subtitle = "Tap to allow foreground service status notifications",
+                    leadingIcon = Icons.Rounded.NotificationsOff,
+                    containerColor = errorContainer,
+                    contentColor = onErrorContainer,
+                    trailingContent = {
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            tint = onErrorContainer
                         )
-                        Button(
-                            onClick = { notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                        ) {
-                            Text("Grant Notification Permission")
-                        }
+                    },
+                    onClick = {
+                        notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     }
-                }
+                )
             }
         }
     }

@@ -348,7 +348,8 @@ fun MainAppContent(viewModel: MainViewModel) {
 
                     val screenHandlesTopInsets = isTerminal ||
                         (isDesktop && isDesktopRunning) ||
-                        currentScreen == AppScreen.DASHBOARD
+                        currentScreen == AppScreen.DASHBOARD ||
+                        currentScreen == AppScreen.SETTINGS
                     val topContentPadding = if (screenHandlesTopInsets) 0.dp else innerPadding.calculateTopPadding()
                     Surface(
                         modifier = Modifier
@@ -604,6 +605,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                     }
 
                     AppScreen.SETTINGS -> {
+                        val appThemeMode by viewModel.appThemeMode.collectAsStateWithLifecycle()
+                        val useDynamicColor by viewModel.useDynamicColor.collectAsStateWithLifecycle()
                         val terminalTheme by viewModel.terminalTheme.collectAsState()
                         val fontSize by viewModel.terminalFontSize.collectAsState()
                         val fontFamily by viewModel.terminalFontFamily.collectAsState()
@@ -615,6 +618,10 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val isShowWhatsNewOnUpdateEnabled by viewModel.isShowWhatsNewOnUpdateEnabled.collectAsStateWithLifecycle()
                         SettingsScreen(
                             state = dashboardState,
+                            appThemeMode = appThemeMode,
+                            onSetAppThemeMode = { mode -> viewModel.setAppThemeMode(mode) },
+                            useDynamicColor = useDynamicColor,
+                            onSetUseDynamicColor = { enabled -> viewModel.setUseDynamicColor(enabled) },
                             terminalTheme = terminalTheme,
                             terminalFontSize = fontSize,
                             terminalFontFamily = fontFamily,

@@ -10,14 +10,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.devwithzachary.completelinuxinstaller.service.PRootForegroundService
 import com.devwithzachary.completelinuxinstaller.ui.AppScreen
 import com.devwithzachary.completelinuxinstaller.ui.MainAppContent
 import com.devwithzachary.completelinuxinstaller.ui.MainViewModel
+import com.devwithzachary.completelinuxinstaller.ui.theme.AppThemeMode
 import com.devwithzachary.completelinuxinstaller.ui.theme.LinuxOnAndroidTheme
 
 class MainActivity : ComponentActivity() {
@@ -37,7 +41,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         handleNavigationIntent(intent)
         setContent {
-            LinuxOnAndroidTheme {
+            val appThemeMode by mainViewModel.appThemeMode.collectAsStateWithLifecycle()
+            val useDynamicColor by mainViewModel.useDynamicColor.collectAsStateWithLifecycle()
+            val darkTheme = when (appThemeMode) {
+                AppThemeMode.SYSTEM -> isSystemInDarkTheme()
+                AppThemeMode.LIGHT -> false
+                AppThemeMode.DARK -> true
+            }
+            LinuxOnAndroidTheme(
+                darkTheme = darkTheme,
+                dynamicColor = useDynamicColor
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.surface

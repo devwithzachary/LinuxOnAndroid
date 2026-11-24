@@ -53,6 +53,7 @@ import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
 import com.devwithzachary.completelinuxinstaller.model.DistroCatalog
 import com.devwithzachary.completelinuxinstaller.service.PRootForegroundService
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalFonts
+import com.devwithzachary.completelinuxinstaller.ui.theme.AppThemeMode
 
 enum class InitStep(val stringResId: Int) {
     VERIFYING_BINARIES(R.string.splash_init_verifying_binaries),
@@ -261,6 +262,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _terminalFontFamily = MutableStateFlow(loadTerminalFontFamily())
     val terminalFontFamily: StateFlow<String> = _terminalFontFamily.asStateFlow()
 
+    private val _appThemeMode = MutableStateFlow(loadAppThemeMode())
+    val appThemeMode: StateFlow<AppThemeMode> = _appThemeMode.asStateFlow()
+
+    private val _useDynamicColor = MutableStateFlow(loadUseDynamicColor())
+    val useDynamicColor: StateFlow<Boolean> = _useDynamicColor.asStateFlow()
+
     private val _dashboardState = MutableStateFlow(
         DashboardUiState(
             sshPort = loadSshPort(),
@@ -442,6 +449,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val normalized = TerminalFonts.normalizeFontName(family)
         prefs.edit().putString("terminal_font_family", normalized).apply()
         _terminalFontFamily.value = normalized
+    }
+
+    private fun loadAppThemeMode(): AppThemeMode {
+        return AppThemeMode.fromStorageKey(prefs.getString("app_theme_mode", AppThemeMode.SYSTEM.storageKey))
+    }
+
+    fun setAppThemeMode(mode: AppThemeMode) {
+        prefs.edit().putString("app_theme_mode", mode.storageKey).apply()
+        _appThemeMode.value = mode
+    }
+
+    private fun loadUseDynamicColor(): Boolean {
+        return prefs.getBoolean("use_dynamic_color", true)
+    }
+
+    fun setUseDynamicColor(enabled: Boolean) {
+        prefs.edit().putBoolean("use_dynamic_color", enabled).apply()
+        _useDynamicColor.value = enabled
     }
 
     private fun loadDefaultTerminalUser(): String {

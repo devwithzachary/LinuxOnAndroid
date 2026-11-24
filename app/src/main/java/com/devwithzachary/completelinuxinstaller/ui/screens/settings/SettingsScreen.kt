@@ -1,19 +1,33 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.settings
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
@@ -21,19 +35,18 @@ import com.devwithzachary.completelinuxinstaller.ui.screens.settings.cards.AppUp
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.cards.BackgroundServiceCard
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.cards.SystemDiagnosticsCard
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.cards.TerminalAppearanceCard
+import com.devwithzachary.completelinuxinstaller.ui.theme.AppThemeMode
+import com.devwithzachary.completelinuxinstaller.ui.theme.LinuxOnAndroidTheme
 import com.devwithzachary.completelinuxinstaller.ui.util.rememberWindowSizeClass
 
-enum class SettingsCategory(val displayName: String, val icon: ImageVector) {
-    ALL("All", Icons.Default.Apps),
-    UPDATES("Updates", Icons.Default.CloudDownload),
-    TERMINAL("Terminal", Icons.Default.Palette),
-    BACKGROUND("Background", Icons.Default.PlayArrow),
-    DIAGNOSTICS("Diagnostics", Icons.Default.BugReport)
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     state: DashboardUiState,
+    appThemeMode: AppThemeMode = AppThemeMode.SYSTEM,
+    onSetAppThemeMode: (AppThemeMode) -> Unit = {},
+    useDynamicColor: Boolean = true,
+    onSetUseDynamicColor: (Boolean) -> Unit = {},
     terminalTheme: TerminalTheme = TerminalTheme.DRACULA,
     terminalFontSize: Int = 13,
     terminalFontFamily: String = "Monospace",
@@ -55,149 +68,183 @@ fun SettingsScreen(
     onSetShowWhatsNewOnUpdate: (Boolean) -> Unit = {},
     onOpenWhatsNew: () -> Unit = {}
 ) {
-    var selectedCategory by remember { mutableStateOf(SettingsCategory.ALL) }
-    var expandedCards by remember {
-        mutableStateOf(
-            mapOf(
-                "updates" to true,
-                "theme" to true,
-                "background" to false,
-                "diagnostics" to false
-            )
-        )
-    }
-
-    fun isCardExpanded(id: String) = expandedCards[id] ?: false
-    fun toggleCard(id: String) {
-        expandedCards = expandedCards.toMutableMap().apply {
-            this[id] = !(this[id] ?: false)
-        }
-    }
-
     val windowSizeClass = rememberWindowSizeClass()
-    val isWideScreen = windowSizeClass.isExpanded
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    val updatesCard = @Composable {
-        AppUpdatesCard(
-            isExpanded = isCardExpanded("updates"),
-            onToggleExpand = { toggleCard("updates") },
-            isGitHubUpdateCheckEnabled = isGitHubUpdateCheckEnabled,
-            onSetGitHubUpdateCheckEnabled = onSetGitHubUpdateCheckEnabled,
-            isCheckingForUpdates = isCheckingForUpdates,
-            updateCheckResult = updateCheckResult,
-            onCheckForUpdatesClick = onCheckForUpdatesClick,
-            isShowWhatsNewOnUpdateEnabled = isShowWhatsNewOnUpdateEnabled,
-            onSetShowWhatsNewOnUpdate = onSetShowWhatsNewOnUpdate,
-            onOpenWhatsNew = onOpenWhatsNew
-        )
-    }
-
-    val terminalCard = @Composable {
-        TerminalAppearanceCard(
-            isExpanded = isCardExpanded("theme"),
-            onToggleExpand = { toggleCard("theme") },
-            terminalTheme = terminalTheme,
-            terminalFontSize = terminalFontSize,
-            terminalFontFamily = terminalFontFamily,
-            onSelectTheme = onSelectTheme,
-            onUpdateCustomTheme = onUpdateCustomTheme,
-            onSetTerminalFontSize = onSetTerminalFontSize,
-            onSetTerminalFontFamily = onSetTerminalFontFamily
-        )
-    }
-
-    val backgroundCard = @Composable {
-        BackgroundServiceCard(
-            isExpanded = isCardExpanded("background"),
-            onToggleExpand = { toggleCard("background") },
-            isKeepAliveEnabled = isKeepAliveEnabled,
-            onToggleKeepAlive = onToggleKeepAlive,
-            isKeepScreenOnEnabled = isKeepScreenOnEnabled,
-            onSetKeepScreenOn = onSetKeepScreenOn
-        )
-    }
-
-    val diagnosticsCard = @Composable {
-        SystemDiagnosticsCard(
-            isExpanded = isCardExpanded("diagnostics"),
-            onToggleExpand = { toggleCard("diagnostics") },
-            onGenerateDebugReport = onGenerateDebugReport
-        )
-    }
-
-    Box(
+    Scaffold(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        contentAlignment = Alignment.TopCenter
-    ) {
-        Column(
-            modifier = Modifier
-                .widthIn(max = 1200.dp)
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Settings Category Filter Tabs
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surface,
+        topBar = {
+            LargeTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.nav_settings),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        }
+    ) { innerPadding ->
+        if (windowSizeClass.isExpanded) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.TopCenter
             ) {
-                items(SettingsCategory.entries) { category ->
-                    val isSelected = selectedCategory == category
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { selectedCategory = category },
-                        label = { Text(category.displayName) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = category.icon,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                Row(
+                    modifier = Modifier
+                        .widthIn(max = 1200.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(1.05f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        TerminalAppearanceCard(
+                            appThemeMode = appThemeMode,
+                            onSetAppThemeMode = onSetAppThemeMode,
+                            useDynamicColor = useDynamicColor,
+                            onSetUseDynamicColor = onSetUseDynamicColor,
+                            terminalTheme = terminalTheme,
+                            terminalFontSize = terminalFontSize,
+                            terminalFontFamily = terminalFontFamily,
+                            onSelectTheme = onSelectTheme,
+                            onUpdateCustomTheme = onUpdateCustomTheme,
+                            onSetTerminalFontSize = onSetTerminalFontSize,
+                            onSetTerminalFontFamily = onSetTerminalFontFamily
                         )
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .weight(0.95f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        BackgroundServiceCard(
+                            isKeepAliveEnabled = isKeepAliveEnabled,
+                            onToggleKeepAlive = onToggleKeepAlive,
+                            isKeepScreenOnEnabled = isKeepScreenOnEnabled,
+                            onSetKeepScreenOn = onSetKeepScreenOn
+                        )
+
+                        AppUpdatesCard(
+                            isGitHubUpdateCheckEnabled = isGitHubUpdateCheckEnabled,
+                            onSetGitHubUpdateCheckEnabled = onSetGitHubUpdateCheckEnabled,
+                            isCheckingForUpdates = isCheckingForUpdates,
+                            updateCheckResult = updateCheckResult,
+                            onCheckForUpdatesClick = onCheckForUpdatesClick,
+                            isShowWhatsNewOnUpdateEnabled = isShowWhatsNewOnUpdateEnabled,
+                            onSetShowWhatsNewOnUpdate = onSetShowWhatsNewOnUpdate,
+                            onOpenWhatsNew = onOpenWhatsNew
+                        )
+
+                        SystemDiagnosticsCard(
+                            onGenerateDebugReport = onGenerateDebugReport
+                        )
+                    }
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState()),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 640.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    TerminalAppearanceCard(
+                        appThemeMode = appThemeMode,
+                        onSetAppThemeMode = onSetAppThemeMode,
+                        useDynamicColor = useDynamicColor,
+                        onSetUseDynamicColor = onSetUseDynamicColor,
+                        terminalTheme = terminalTheme,
+                        terminalFontSize = terminalFontSize,
+                        terminalFontFamily = terminalFontFamily,
+                        onSelectTheme = onSelectTheme,
+                        onUpdateCustomTheme = onUpdateCustomTheme,
+                        onSetTerminalFontSize = onSetTerminalFontSize,
+                        onSetTerminalFontFamily = onSetTerminalFontFamily
+                    )
+
+                    BackgroundServiceCard(
+                        isKeepAliveEnabled = isKeepAliveEnabled,
+                        onToggleKeepAlive = onToggleKeepAlive,
+                        isKeepScreenOnEnabled = isKeepScreenOnEnabled,
+                        onSetKeepScreenOn = onSetKeepScreenOn
+                    )
+
+                    AppUpdatesCard(
+                        isGitHubUpdateCheckEnabled = isGitHubUpdateCheckEnabled,
+                        onSetGitHubUpdateCheckEnabled = onSetGitHubUpdateCheckEnabled,
+                        isCheckingForUpdates = isCheckingForUpdates,
+                        updateCheckResult = updateCheckResult,
+                        onCheckForUpdatesClick = onCheckForUpdatesClick,
+                        isShowWhatsNewOnUpdateEnabled = isShowWhatsNewOnUpdateEnabled,
+                        onSetShowWhatsNewOnUpdate = onSetShowWhatsNewOnUpdate,
+                        onOpenWhatsNew = onOpenWhatsNew
+                    )
+
+                    SystemDiagnosticsCard(
+                        onGenerateDebugReport = onGenerateDebugReport
                     )
                 }
             }
-
-            if (isWideScreen && selectedCategory == SettingsCategory.ALL) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        updatesCard()
-                        backgroundCard()
-                        diagnosticsCard()
-                    }
-                    Column(
-                        modifier = Modifier.weight(1.1f),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        terminalCard()
-                    }
-                }
-            } else {
-                if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.UPDATES) {
-                    updatesCard()
-                }
-                if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.TERMINAL) {
-                    terminalCard()
-                }
-                if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.BACKGROUND) {
-                    backgroundCard()
-                }
-                if (selectedCategory == SettingsCategory.ALL || selectedCategory == SettingsCategory.DIAGNOSTICS) {
-                    diagnosticsCard()
-                }
-            }
         }
+    }
+}
+
+@Preview(
+    name = "Settings - Light",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
+@Composable
+private fun SettingsScreenLightPreview() {
+    LinuxOnAndroidTheme(darkTheme = false, dynamicColor = false) {
+        SettingsScreen(
+            state = DashboardUiState(isInitializing = false, isInstalled = true),
+            appThemeMode = AppThemeMode.LIGHT,
+            useDynamicColor = false
+        )
+    }
+}
+
+@Preview(
+    name = "Settings - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun SettingsScreenDarkPreview() {
+    LinuxOnAndroidTheme(darkTheme = true, dynamicColor = false) {
+        SettingsScreen(
+            state = DashboardUiState(isInitializing = false, isInstalled = true),
+            appThemeMode = AppThemeMode.DARK,
+            useDynamicColor = true
+        )
     }
 }
