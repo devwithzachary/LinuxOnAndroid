@@ -13,8 +13,9 @@ Powered by a native PRoot user-space virtualization engine and POSIX PTY termina
 🐧 MULTI-DISTRIBUTION LINUX CATALOG
 Install, run, and switch between multiple independent Linux distributions:
 • Ubuntu 26.04 LTS: Official long-term support base for general computing and development.
-• Debian 12: Rock-solid stability with vast package repositories.
-• Alpine Linux 3.21: Minimalist musl/busybox environment (~10MB rootfs) with instant boot times and tiny memory footprint.
+• Debian 13: Rock-solid stability (Trixie) with vast package repositories.
+• Fedora 45: Modern Red Hat-family distribution powered by the DNF package manager.
+• Alpine Linux 3.24: Minimalist musl/busybox environment (~10MB rootfs) with instant boot times and tiny memory footprint.
 • Arch Linux ARM: Bleeding-edge rolling release with the pacman package manager.
 • Kali Linux CLI Tools: Security auditing and network forensics environment.
 • Void Linux: Independent general-purpose distribution with the fast XBPS package manager.
@@ -39,13 +40,12 @@ Install, run, and switch between multiple independent Linux distributions:
 • Active TCP network port listener detecting SSH, VNC, NGINX, and web ports with 1-tap browser launcher.
 • Dedicated container deletion screen with real-time progress feedback and back-gesture safety.
 
-🛠️ 1-CLICK SOFTWARE & DEVELOPER STACKS
-• Web Server & Database: NGINX HTTP server with unprivileged port 8080 binding + SQLite3.
-• Remote Access: OpenSSH Server for remote logins from your PC or laptop over LAN/Wi-Fi.
-• Python 3 Stack: Python 3, pip, virtualenv, and C/C++ GCC build-essential tools.
-• Node.js Stack: Node.js, npm, Yarn, Git, build-essential GCC, and Neovim.
-• Android Dev Tools: OpenJDK 17, Gradle, ADB, and Android platform-tools inside Linux.
-• Native multi-package manager support across apt, apk, pacman, and xbps.
+🛠️ 1-CLICK SOFTWARE CENTER (33 PACKAGES) & UNINSTALL SUPPORT
+• Searchable, filterable Software Center with full 1-click install, launch, and uninstall support.
+• Desktop & Creative: XFCE4 Desktop, Blender, Kdenlive Video Editor, GIMP, FFmpeg, LibreOffice, Geany IDE, and Mozilla Firefox.
+• Developer Stacks: VS Code (Desktop & Server), Python 3, Node.js, Android Dev Tools, C/C++ (Clang), Go, Rust & Cargo, PHP, Ruby, and Docker/udocker.
+• Databases, Remote & CLI: PostgreSQL, MariaDB, Redis, NGINX, OpenSSH Server, Web Terminal (ttyd), btop/Fastfetch, tmux, htop, Zsh, aria2, Rclone, iPerf3, Nmap, and tshark.
+• Native multi-package manager support across apt, dnf, apk, pacman, and xbps.
 
 🌐 STORAGE & MULTI-ARCHITECTURE
 • Native support for ARM64 (aarch64), x86_64 (amd64), and ARMv7 (armhf).

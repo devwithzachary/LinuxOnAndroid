@@ -109,6 +109,11 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
 
     private val prefs = context.getSharedPreferences("rootfs_manager_prefs", Context.MODE_PRIVATE)
 
+    private fun isPrimaryAbiArm(): Boolean {
+        val primaryAbi = android.os.Build.SUPPORTED_ABIS.firstOrNull()?.lowercase().orEmpty()
+        return primaryAbi.contains("arm") || primaryAbi.contains("aarch64")
+    }
+
     val rootfsDir: File get() = pRootEngine.rootfsDir
 
     fun isInstalled(): Boolean = pRootEngine.isRootfsInstalled()
@@ -478,7 +483,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             """.trimIndent()
         )
 
-        val isArm = android.os.Build.SUPPORTED_ABIS.any { it.contains("arm") || it.contains("aarch64") }
+        val isArm = isPrimaryAbiArm()
         val repoUrl = if (isArm) "http://ports.ubuntu.com/ubuntu-ports" else "http://archive.ubuntu.com/ubuntu"
         val codename = "resolute"
 
@@ -680,7 +685,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         )
         try {
             val cleanUsername = username.lowercase().replace(Regex("[^a-z0-9_-]"), "").ifEmpty { "user" }
-            val isArm = android.os.Build.SUPPORTED_ABIS.any { it.contains("arm") || it.contains("aarch64") }
+            val isArm = isPrimaryAbiArm()
             val repoUrl = if (isArm) "http://ports.ubuntu.com/ubuntu-ports" else "http://archive.ubuntu.com/ubuntu"
             val codename = "resolute"
 
@@ -1045,7 +1050,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
         } catch (_: Exception) {}
 
         try {
-            val isArm = android.os.Build.SUPPORTED_ABIS.any { it.contains("arm") || it.contains("aarch64") }
+            val isArm = isPrimaryAbiArm()
             val setupScript = distroDef.buildFirstLaunchSetupScript(
                 rootPassword = rootPassword,
                 username = cleanUsername,

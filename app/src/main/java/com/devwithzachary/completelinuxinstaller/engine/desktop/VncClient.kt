@@ -232,6 +232,11 @@ class VncClient {
             } catch (e: CancellationException) {
                 Log.d(TAG, "VNC connection cancelled")
                 _connectionState.value = VncConnectionState.Disconnected
+            } catch (e: java.io.EOFException) {
+                Log.e(TAG, "VNC connection closed unexpectedly (EOF)", e)
+                _connectionState.value = VncConnectionState.Error(
+                    "VNC server disconnected unexpectedly. On Android 12+, Android's Phantom Process Killer can terminate heavy desktop sessions if more than 32 child processes run at once. Try restarting the desktop, or enable 'Disable child process restrictions' in Android Developer Options."
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "VNC connection error", e)
                 _connectionState.value = VncConnectionState.Error(e.message ?: "Unknown VNC connection error")

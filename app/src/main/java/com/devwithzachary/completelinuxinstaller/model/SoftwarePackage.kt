@@ -1,15 +1,17 @@
 package com.devwithzachary.completelinuxinstaller.model
 
 import com.devwithzachary.completelinuxinstaller.engine.ContainerManager
+import com.devwithzachary.completelinuxinstaller.model.software.SoftwareRecipeCatalog
 import java.io.File
 
 enum class SoftwareCategory(val displayName: String) {
     DEVELOPMENT("Developer Tools"),
     WEB_SERVER("Web & Database"),
     UTILITIES("CLI & System Utilities"),
-    NETWORKING("Remote & SSH"),
+    NETWORKING("Remote & Networking"),
     DESKTOP_GUI("Desktop Environments"),
-    PRODUCTIVITY("Apps & Productivity")
+    PRODUCTIVITY("Apps & Productivity"),
+    CREATIVE("Creative & Media")
 }
 
 enum class InstallStatus {
@@ -31,6 +33,8 @@ data class SoftwarePackage(
     val launchCommand: String? = null,
     val postInstallNotes: String? = null,
     val expectedBinaries: List<String> = emptyList(),
+    val unsupportedDistros: Set<String> = emptySet(),
+    val isBeta: Boolean = false,
     val status: InstallStatus = InstallStatus.NOT_INSTALLED,
     val version: Int = 1,
     val hasUpgradeAvailable: Boolean = false,
@@ -159,6 +163,22 @@ data class SoftwarePackage(
                         }
                     }
                 }
+                "usr/bin/firefox", "usr/bin/firefox-esr" -> {
+                    val ffAliases = listOf("usr/bin/firefox", "usr/bin/firefox-esr")
+                    for (alias in ffAliases) {
+                        if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
+                            return true
+                        }
+                    }
+                }
+                "usr/bin/mariadb", "usr/bin/mysql" -> {
+                    val dbAliases = listOf("usr/bin/mariadb", "usr/bin/mysql")
+                    for (alias in dbAliases) {
+                        if (alias !in currentVisited && isBinaryPresent(rootfsDir, alias, currentVisited)) {
+                            return true
+                        }
+                    }
+                }
             }
 
             return false
@@ -253,6 +273,7 @@ data class SoftwarePackage(
             container: ContainerInstance,
             sshPort: Int = 2222
         ): List<SoftwarePackage> {
+            val resolvedDistroId = DistroCatalog.getById(container.distroId).id
             return getPresets(
                 sshPort = sshPort,
                 vncLanAccess = container.vncLanAccess,
@@ -262,7 +283,7 @@ data class SoftwarePackage(
                 ttydPassword = container.userPassword,
                 codeServerLanAccess = container.codeServerLanAccess,
                 codeServerPassword = container.codeServerPassword
-            )
+            ).filter { resolvedDistroId !in it.unsupportedDistros }
         }
 
         fun getPresets(
@@ -285,7 +306,7 @@ data class SoftwarePackage(
                     category = SoftwareCategory.DESKTOP_GUI,
                     description = "Full lightweight graphical desktop environment with XFCE4 and TigerVNC server.",
                     iconName = "DesktopWindows",
-                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS xfce4 xfce4-terminal dbus-x11 tigervnc-standalone-server tigervnc-xorg-extension synaptic curl ca-certificates perl python3 libgdk-pixbuf2.0-bin librsvg2-common adwaita-icon-theme hicolor-icon-theme && (printf '#!/bin/sh\\nexec /usr/sbin/synaptic \"\$@\"\\n' > /usr/bin/synaptic-pkexec && chmod 755 /usr/bin/synaptic-pkexec 2>/dev/null || true) && rm -f /etc/tigervnc/vncserver-config-defaults && mkdir -p /root/.vnc /etc/skel/.vnc /etc/vnc /tmp/.X11-unix /tmp/.ICE-unix && chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true && echo '$cleanVncPass' | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd && echo '$cleanVncPass' | vncpasswd -f > /etc/skel/.vnc/passwd && chmod 600 /etc/skel/.vnc/passwd && cat << 'EOF' > /usr/bin/bwrap\n#!/bin/sh\nif [ \"\$1\" = \"--version\" ] || [ \"\$1\" = \"-v\" ]; then\n    echo \"bubblewrap 0.11.0 (PRoot shim)\"\n    exit 0\nfi\nwhile [ \$# -gt 0 ]; do\n    case \"\$1\" in\n        --)\n            shift\n            [ -n \"\$1\" ] && exec \"\$@\"\n            exit 0\n            ;;\n        /*|./*)\\n            if [ -x \"\$1\" ] && [ ! -d \"\$1\" ]; then\n                exec \"\$@\"\n            fi\n            ;;\n    esac\n    shift\ndone\nexit 0\nEOF\nchmod 755 /usr/bin/bwrap && cp /usr/bin/bwrap /usr/local/bin/bwrap 2>/dev/null || true; chmod 755 /usr/local/bin/bwrap 2>/dev/null || true; cat << 'EOF' > /etc/vnc/xstartup\n#!/bin/sh\nexport PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/xfce4/xfconf:/usr/lib64/xfce4/xfconf:/usr/libexec/xfce4/xfconf:\$PATH\"\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nexport XDG_SESSION_TYPE=x11\nexport XDG_CURRENT_DESKTOP=XFCE\nexport DESKTOP_SESSION=xfce\nexport NO_AT_BRIDGE=1\nexport GDK_BACKEND=x11\nexport GTK_OVERLAY_SCROLLING=0\nexport GLYCIN_DISABLE_SANDBOX=1\nexport GLYCIN_ENABLE_SANDBOX=0\nexport LIBGL_ALWAYS_SOFTWARE=1\n[ -r \$HOME/.Xresources ] && xrdb \$HOME/.Xresources 2>/dev/null || true\nif command -v dbus-launch >/dev/null 2>&1; then\n    eval \$(dbus-launch --sh-syntax)\nfi\nif command -v xfconfd >/dev/null 2>&1; then\n    xfconfd &\nelif [ -x /usr/lib64/xfce4/xfconf/xfconfd ]; then\n    /usr/lib64/xfce4/xfconf/xfconfd &\nelif [ -x /usr/lib/xfce4/xfconf/xfconfd ]; then\n    /usr/lib/xfce4/xfconf/xfconfd &\nelif [ -x /usr/libexec/xfce4/xfconf/xfconfd ]; then\n    /usr/libexec/xfce4/xfconf/xfconfd &\nfi\nxsetroot -solid \"#1e293b\" 2>/dev/null || true\nxfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true\nif command -v startxfce4 >/dev/null 2>&1; then\n    exec startxfce4\nelif command -v xfce4-session >/dev/null 2>&1; then\n    exec xfce4-session\nelse\n    xfsettingsd --daemon 2>/dev/null || true\n    xfwm4 --compositor=off &\n    xfce4-panel &\n    Thunar --daemon 2>/dev/null &\n    if command -v xfdesktop >/dev/null 2>&1; then\n        exec xfdesktop\n    else\n        exec xterm\n    fi\nfi\nEOF\nchmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /etc/X11/Xtigervnc-session && chmod 755 /etc/X11/Xtigervnc-session && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup && printf 'securitytypes=VncAuth\\ngeometry=1280x720\\nlocalhost=%s\\nalwaysshared=1\\n' \"$vncLocalhostSetting\" > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config && for u in /home/*; do if [ -d \"\$u\" ]; then mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && cp /etc/vnc/xstartup \"\$u/.vnc/xstartup\" && cp /etc/vnc/config \"\$u/.vnc/config\" && echo '$cleanVncPass' | vncpasswd -f > \"\$u/.vnc/passwd\" && echo '$cleanVncPass' | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" && chmod 755 \"\$u/.vnc/xstartup\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; fi; done 2>/dev/null || true",
+                    installCommand = "$NONINT_EXPORT && dpkg --configure -a && apt-get update $DPKG_FLAGS && apt-get install -y $DPKG_FLAGS xfce4 xfce4-terminal dbus-x11 tigervnc-standalone-server tigervnc-xorg-extension synaptic curl ca-certificates perl python3 libgdk-pixbuf2.0-bin librsvg2-common adwaita-icon-theme hicolor-icon-theme && (printf '#!/bin/sh\\nexec /usr/sbin/synaptic \"\$@\"\\n' > /usr/bin/synaptic-pkexec && chmod 755 /usr/bin/synaptic-pkexec 2>/dev/null || true) && rm -f /etc/tigervnc/vncserver-config-defaults && mkdir -p /root/.vnc /etc/skel/.vnc /etc/vnc /tmp/.X11-unix /tmp/.ICE-unix && chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true && echo '$cleanVncPass' | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd && echo '$cleanVncPass' | vncpasswd -f > /etc/skel/.vnc/passwd && chmod 600 /etc/skel/.vnc/passwd && cat << 'EOF' > /usr/bin/bwrap\n#!/bin/sh\nif [ \"\$1\" = \"--version\" ] || [ \"\$1\" = \"-v\" ]; then\n    echo \"bubblewrap 0.11.0 (PRoot shim)\"\n    exit 0\nfi\nwhile [ \$# -gt 0 ]; do\n    case \"\$1\" in\n        --)\n            shift\n            [ -n \"\$1\" ] && exec \"\$@\"\n            exit 0\n            ;;\n        /*|./*)\n            if [ -x \"\$1\" ] && [ ! -d \"\$1\" ]; then\n                exec \"\$@\"\n            fi\n            ;;\n    esac\n    shift\ndone\nexit 0\nEOF\nchmod 755 /usr/bin/bwrap && cp /usr/bin/bwrap /usr/local/bin/bwrap 2>/dev/null || true; chmod 755 /usr/local/bin/bwrap 2>/dev/null || true; cat << 'EOF' > /etc/vnc/xstartup\n#!/bin/sh\nexport PATH=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/xfce4/xfconf:/usr/lib64/xfce4/xfconf:/usr/libexec/xfce4/xfconf:\$PATH\"\nunset SESSION_MANAGER\nunset DBUS_SESSION_BUS_ADDRESS\nexport XDG_SESSION_TYPE=x11\nexport XDG_CURRENT_DESKTOP=XFCE\nexport DESKTOP_SESSION=xfce\nexport NO_AT_BRIDGE=1\nexport GDK_BACKEND=x11\nexport GTK_OVERLAY_SCROLLING=0\nexport GLYCIN_DISABLE_SANDBOX=1\nexport GLYCIN_ENABLE_SANDBOX=0\nexport GLYCIN_SANDBOX=disable\nexport LIBGL_ALWAYS_SOFTWARE=1\n[ -r \$HOME/.Xresources ] && xrdb \$HOME/.Xresources 2>/dev/null || true\nif command -v dbus-launch >/dev/null 2>&1; then\n    eval \$(dbus-launch --sh-syntax)\nfi\nif command -v xfconfd >/dev/null 2>&1; then\n    xfconfd &\nelif [ -x /usr/lib64/xfce4/xfconf/xfconfd ]; then\n    /usr/lib64/xfce4/xfconf/xfconfd &\nelif [ -x /usr/lib/xfce4/xfconf/xfconfd ]; then\n    /usr/lib/xfce4/xfconf/xfconfd &\nelif [ -x /usr/libexec/xfce4/xfconf/xfconfd ]; then\n    /usr/libexec/xfce4/xfconf/xfconfd &\nfi\nxsetroot -solid \"#1e293b\" 2>/dev/null || true\nxfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true\nif command -v startxfce4 >/dev/null 2>&1; then\n    exec startxfce4\nelif command -v xfce4-session >/dev/null 2>&1; then\n    exec xfce4-session\nelse\n    xfsettingsd --daemon 2>/dev/null || true\n    xfwm4 --compositor=off &\n    xfce4-panel &\n    Thunar --daemon 2>/dev/null &\n    if command -v xfdesktop >/dev/null 2>&1; then\n        exec xfdesktop\n    else\n        exec xterm\n    fi\nfi\nEOF\nchmod 755 /etc/vnc/xstartup && cp /etc/vnc/xstartup /etc/X11/Xtigervnc-session && chmod 755 /etc/X11/Xtigervnc-session && cp /etc/vnc/xstartup /root/.vnc/xstartup && cp /etc/vnc/xstartup /etc/skel/.vnc/xstartup && chmod 755 /root/.vnc/xstartup /etc/skel/.vnc/xstartup && printf 'securitytypes=VncAuth\\ngeometry=1280x720\\nlocalhost=%s\\nalwaysshared=1\\n' \"$vncLocalhostSetting\" > /etc/vnc/config && chmod 644 /etc/vnc/config && cp /etc/vnc/config /root/.vnc/config && cp /etc/vnc/config /etc/skel/.vnc/config && for u in /home/*; do if [ -d \"\$u\" ]; then mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && cp /etc/vnc/xstartup \"\$u/.vnc/xstartup\" && cp /etc/vnc/config \"\$u/.vnc/config\" && echo '$cleanVncPass' | vncpasswd -f > \"\$u/.vnc/passwd\" && echo '$cleanVncPass' | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" && chmod 755 \"\$u/.vnc/xstartup\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; fi; done 2>/dev/null || true",
                     launchCommand = buildVncLaunchCommand(vncLanAccess, cleanVncPass),
                     postInstallNotes = "VNC Server starts on port 5901 (:1). Connect via RealVNC Viewer, AVNC, or bVNC at 127.0.0.1:5901 using your container password.",
                     expectedBinaries = listOf("usr/bin/startxfce4", "usr/bin/vncserver"),

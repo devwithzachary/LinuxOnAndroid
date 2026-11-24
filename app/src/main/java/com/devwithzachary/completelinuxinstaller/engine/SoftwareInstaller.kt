@@ -82,19 +82,34 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
                 } catch (_: Exception) {}
             }
 
+            // Clean up legacy systemd-sysusers stub if present: stubbing it to `exit 0` causes
+            // Debian/Ubuntu postinst scripts (e.g. polkitd) to skip their `adduser` fallback,
+            // leaving system users uncreated and failing dpkg configuration.
+            for (sysusersPath in listOf("usr/bin/systemd-sysusers", "bin/systemd-sysusers")) {
+                val sysusersFile = java.io.File(targetDir, sysusersPath)
+                try {
+                    if (sysusersFile.exists() && sysusersFile.length() <= 64 &&
+                        sysusersFile.readText().trim() == "#!/bin/sh\nexit 0"
+                    ) {
+                        sysusersFile.delete()
+                    }
+                } catch (_: Exception) {}
+            }
+
             val systemdStubs = listOf(
                 "usr/bin/systemd-tmpfiles",
-                "usr/bin/systemd-sysusers",
                 "usr/bin/systemd-detect-virt"
             )
             for (stubPath in systemdStubs) {
                 val stubFile = java.io.File(targetDir, stubPath)
-                try {
-                    stubFile.parentFile?.mkdirs()
-                    stubFile.writeText("#!/bin/sh\nexit 0\n")
-                    stubFile.setExecutable(true, false)
-                    stubFile.setReadable(true, false)
-                } catch (_: Exception) {}
+                if (!stubFile.exists()) {
+                    try {
+                        stubFile.parentFile?.mkdirs()
+                        stubFile.writeText("#!/bin/sh\nexit 0\n")
+                        stubFile.setExecutable(true, false)
+                        stubFile.setReadable(true, false)
+                    } catch (_: Exception) {}
+                }
             }
 
             val dpkgPreconfigure = java.io.File(targetDir, "usr/sbin/dpkg-preconfigure")
@@ -121,7 +136,7 @@ class SoftwareInstaller(private val pRootEngine: PRootEngine) {
                         "chmod -R 777 /var/lib/dpkg /var/cache /tmp /var/tmp /.l2s 2>/dev/null; " +
                         "rm -rf /var/lib/dpkg/*-old /var/lib/dpkg/*-new /var/lib/dpkg/lock* /usr/bin/*.dpkg-new /usr/lib/*.dpkg-new 2>/dev/null; " +
                         "mkdir -p /etc/dpkg/dpkg.cfg.d && echo force-unsafe-io > /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-overwrite >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confold >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid && echo force-confdef >> /etc/dpkg/dpkg.cfg.d/00-linuxonandroid; " +
-                        "mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; " +
+                        "mkdir -p /etc/apt/apt.conf.d && echo 'APT::Sandbox::User \"root\";' > /etc/apt/apt.conf.d/99linuxonandroid && echo 'APT::Sandbox::Seccomp \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::Pipeline-Depth \"0\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::http::No-Cache \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::PDiffs \"false\";' >> /etc/apt/apt.conf.d/99linuxonandroid && echo 'Acquire::ForceIPv4 \"true\";' >> /etc/apt/apt.conf.d/99linuxonandroid; " +
                         "chmod 666 /var/lib/dpkg/status* 2>/dev/null; " +
                         "_LOA_ERR=0; ( " + effectiveCommand + " ) || _LOA_ERR=\$?; " +
                         postSudoFix + "; " + daemonCleanup + "; exit \$_LOA_ERR;"

@@ -16,8 +16,13 @@ object DesktopConfigHelper {
             export NO_AT_BRIDGE=1
             export GDK_BACKEND=x11
             export GTK_OVERLAY_SCROLLING=0
+            export GTK_A11Y=none
+            export GIO_USE_VFS=local
+            export GVFS_DISABLE_FUSE=1
+            export GTK_USE_PORTAL=0
             export GLYCIN_DISABLE_SANDBOX=1
             export GLYCIN_ENABLE_SANDBOX=0
+            export GLYCIN_SANDBOX=disable
             export LIBGL_ALWAYS_SOFTWARE=1
             [ -r "${'$'}HOME/.Xresources" ] && xrdb "${'$'}HOME/.Xresources" 2>/dev/null || true
 
@@ -37,6 +42,15 @@ object DesktopConfigHelper {
 
             xsetroot -solid "#1e293b" 2>/dev/null || true
             xfconf-query -c xfwm4 -p /general/use_compositing -n -t bool -s false 2>/dev/null || true
+            xfconf-query -c xfce4-session -p /startup/ssh-agent/enabled -n -t bool -s false 2>/dev/null || true
+            xfconf-query -c xfce4-session -p /startup/gpg-agent/enabled -n -t bool -s false 2>/dev/null || true
+            xfconf-query -c thunar -p /misc-thumbnail-mode -n -t string -s THUMBNAIL_MODE_NEVER 2>/dev/null || true
+            mkdir -p "${'$'}HOME/.config/autostart" 2>/dev/null || true
+            for _ad in localsearch-3.desktop tracker-miner-fs-3.desktop at-spi-dbus-bus.desktop geoclue-demo-agent.desktop xfce-polkit.desktop xfce4-power-manager.desktop light-locker.desktop nm-applet.desktop blueman.desktop; do
+                if [ -f "/etc/xdg/autostart/${'$'}_ad" ] && [ ! -f "${'$'}HOME/.config/autostart/${'$'}_ad" ]; then
+                    printf '[Desktop Entry]\nHidden=true\n' > "${'$'}HOME/.config/autostart/${'$'}_ad" 2>/dev/null || true
+                fi
+            done
 
             if command -v startxfce4 >/dev/null 2>&1; then
                 exec startxfce4
@@ -203,7 +217,7 @@ object DesktopConfigHelper {
                     LPID=${d}(cat "${d}LOCK" 2>/dev/null | tr -d ' ' | tr -d '\n')
                     [ -n "${d}LPID" ] && kill "${d}LPID" 2>/dev/null || true
                 fi
-                pkill -f "Xvnc :${d}DISP_NUM" 2>/dev/null || killall -9 Xvnc 2>/dev/null || true
+                pkill -9 -x Xvnc 2>/dev/null || pkill -9 -x Xtigervnc 2>/dev/null || killall -9 Xvnc Xtigervnc 2>/dev/null || true
                 rm -f "/tmp/.X${d}{DISP_NUM}-lock" "/tmp/.X11-unix/X${d}{DISP_NUM}" 2>/dev/null || true
                 echo "Killed VNC server on display :${d}DISP_NUM"
                 exit 0
@@ -212,7 +226,7 @@ object DesktopConfigHelper {
             # ACTION = start
             mkdir -p /tmp/.X11-unix /tmp/.ICE-unix "${d}HOME/.vnc" "${d}HOME/.config/tigervnc" /root/.vnc 2>/dev/null
             chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true
-            pkill -f "Xvnc :${d}DISP_NUM" 2>/dev/null || true
+            pkill -9 -x Xvnc 2>/dev/null || pkill -9 -x Xtigervnc 2>/dev/null || killall -9 Xvnc Xtigervnc 2>/dev/null || true
             rm -f "/tmp/.X${d}{DISP_NUM}-lock" "/tmp/.X11-unix/X${d}{DISP_NUM}" 2>/dev/null || true
 
             PW=""
@@ -331,17 +345,18 @@ object DesktopConfigHelper {
             "    LPID=\$(cat \"\$LOCK\" 2>/dev/null | tr -d \" \" | tr -d \"\\n\")\\n" +
             "    [ -n \"\$LPID\" ] && kill \"\$LPID\" 2>/dev/null || true\\n" +
             "  fi\\n" +
-            "  pkill -f \"Xvnc :\$DISP_NUM\" 2>/dev/null || killall -9 Xvnc 2>/dev/null || true\\n" +
+            "  pkill -9 -x Xvnc 2>/dev/null || pkill -9 -x Xtigervnc 2>/dev/null || killall -9 Xvnc Xtigervnc 2>/dev/null || true\\n" +
             "  rm -f \"/tmp/.X\${DISP_NUM}-lock\" \"/tmp/.X11-unix/X\${DISP_NUM}\" 2>/dev/null || true\\n" +
             "  echo \"Killed VNC server on display :\$DISP_NUM\"; exit 0\\n" +
             "fi\\n" +
             "mkdir -p /tmp/.X11-unix /tmp/.ICE-unix \"\$HOME/.vnc\" \"\$HOME/.config/tigervnc\" /root/.vnc 2>/dev/null; chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true\\n" +
-            "pkill -f \"Xvnc :\$DISP_NUM\" 2>/dev/null || true; rm -f \"/tmp/.X\${DISP_NUM}-lock\" \"/tmp/.X11-unix/X\${DISP_NUM}\" 2>/dev/null || true\\n" +
+            "pkill -9 -x Xvnc 2>/dev/null || pkill -9 -x Xtigervnc 2>/dev/null || killall -9 Xvnc Xtigervnc 2>/dev/null || true; rm -f \"/tmp/.X\${DISP_NUM}-lock\" \"/tmp/.X11-unix/X\${DISP_NUM}\" 2>/dev/null || true\\n" +
             "PW=\"\"; if [ -f \"\$HOME/.vnc/passwd\" ]; then PW=\"-rfbauth \$HOME/.vnc/passwd\"; elif [ -f \"\$HOME/.config/tigervnc/passwd\" ]; then PW=\"-rfbauth \$HOME/.config/tigervnc/passwd\"; elif [ -f \"/root/.vnc/passwd\" ]; then PW=\"-rfbauth /root/.vnc/passwd\"; fi\\n" +
             "RFB_PORT=\$((5900 + DISP_NUM))\\n" +
             "LH_ARG=\"\"; [ \"\$LOCALHOST\" = \"yes\" ] && LH_ARG=\"-localhost\"\\n" +
             "echo \"Starting Xvnc on display :\$DISP_NUM (\$GEOM, depth \$DEPTH)...\"\\n" +
-            "Xvnc \":\$DISP_NUM\" -geometry \"\$GEOM\" -depth \"\$DEPTH\" \$PW -SecurityTypes \"\$SECTYPES\" -UseBlacklist=0 \$LH_ARG >/dev/null 2>&1 &\\n" +
+            "XVNC_BIN=\"Xvnc\"; command -v Xvnc >/dev/null 2>&1 || XVNC_BIN=\"Xtigervnc\"\\n" +
+            "\$XVNC_BIN \":\$DISP_NUM\" -geometry \"\$GEOM\" -depth \"\$DEPTH\" \$PW -SecurityTypes \"\$SECTYPES\" -UseBlacklist=0 \$LH_ARG >/dev/null 2>&1 &\\n" +
             "sleep 1\\n" +
             "if [ -x \"\$XSTARTUP\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$XSTARTUP\" >/dev/null 2>&1 & elif [ -x \"\$HOME/.vnc/xstartup\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$HOME/.vnc/xstartup\" >/dev/null 2>&1 & elif command -v startxfce4 >/dev/null 2>&1; then DISPLAY=\":\$DISP_NUM\" startxfce4 >/dev/null 2>&1 & fi\\n" +
             "LAN_IP=\"\"; [ -f /etc/network/proot_interfaces.conf ] && LAN_IP=\$(grep \"^PRIMARY_IP=\" /etc/network/proot_interfaces.conf 2>/dev/null | cut -d= -f2); [ -z \"\$LAN_IP\" ] && [ -f /etc/hosts ] && LAN_IP=\$(grep -v \"^#\" /etc/hosts 2>/dev/null | grep -v \"^127\\\\.\" | grep -v \"^::1\" | awk \"{print \\\$1}\" | head -n1)\\n" +
@@ -374,6 +389,65 @@ object DesktopConfigHelper {
         } catch (_: Exception) {
             false
         }
+    }
+
+    private val ORPHAN_DESKTOP_COMM_NAMES: Set<String> = setOf(
+        "Xvnc",
+        "Xtigervnc",
+        "xfce4-session",
+        "xfwm4",
+        "xfce4-panel",
+        "xfdesktop",
+        "xfsettingsd",
+        "xfconfd",
+        "Thunar",
+        "wrapper-2.0",
+        "dbus-daemon",
+        "ssh-agent",
+        "gpg-agent",
+        "gvfsd",
+        "gvfsd-metadata",
+        "gvfsd-trash",
+        "gvfs-udisks2-vo",
+        "dconf-service",
+        "localsearch-3",
+        "tumblerd",
+        "xdg-desktop-por",
+        "xdg-permission-",
+        "at-spi-bus-laun",
+        "glycin-image-rs",
+        "glycin-svg",
+        "glycin-heif",
+        "glycin-jxl"
+    )
+
+    /**
+     * Terminates lingering XFCE / VNC / D-Bus child processes belonging to this app UID so
+     * orphaned daemons from previous sessions cannot exhaust Android's Phantom Process Killer limit.
+     */
+    fun killOrphanedDesktopProcesses(): Int {
+        val myPid = android.os.Process.myPid()
+        var killedCount = 0
+        val procEntries = try {
+            File("/proc").listFiles()
+        } catch (_: Exception) {
+            null
+        } ?: return 0
+
+        for (entry in procEntries) {
+            val pid = entry.name.toIntOrNull() ?: continue
+            if (pid == myPid) continue
+            try {
+                val comm = File(entry, "comm").readText().trim()
+                if (comm in ORPHAN_DESKTOP_COMM_NAMES) {
+                    android.os.Process.sendSignal(pid, 9)
+                    killedCount++
+                }
+            } catch (_: Exception) {
+                // Process already exited or belongs to another UID
+            }
+        }
+        return killedCount
     }
 
     /**

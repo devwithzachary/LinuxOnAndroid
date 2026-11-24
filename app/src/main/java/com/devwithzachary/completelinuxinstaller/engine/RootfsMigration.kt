@@ -236,15 +236,13 @@ object RootfsMigrationManager {
         object : RootfsMigrationStep {
             override val targetVersionCode: Int = 5
             override val name: String = "Systemd Tool Stubs"
-            override val description: String = "Stubs out systemd-tmpfiles, systemd-sysusers, and dpkg-preconfigure."
+            override val description: String = "Stubs out systemd-tmpfiles, systemd-detect-virt, and dpkg-preconfigure."
 
             override fun execute(pRootEngine: PRootEngine?, rootfsDir: File, emitLog: (String) -> Unit): Boolean {
                 emitLog("Setting up systemd component stubs...")
                 val stubs = listOf(
                     "usr/bin/systemd-tmpfiles",
                     "bin/systemd-tmpfiles",
-                    "usr/bin/systemd-sysusers",
-                    "bin/systemd-sysusers",
                     "usr/bin/systemd-detect-virt",
                     "bin/systemd-detect-virt",
                     "usr/sbin/dpkg-preconfigure"
@@ -562,6 +560,7 @@ object RootfsMigrationManager {
                     export GTK_OVERLAY_SCROLLING=0
                     export GLYCIN_DISABLE_SANDBOX=1
                     export GLYCIN_ENABLE_SANDBOX=0
+                    export GLYCIN_SANDBOX=disable
                     export LIBGL_ALWAYS_SOFTWARE=1
                     [ -r ${'$'}HOME/.Xresources ] && xrdb ${'$'}HOME/.Xresources 2>/dev/null || true
                     if command -v dbus-launch >/dev/null 2>&1; then

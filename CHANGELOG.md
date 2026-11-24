@@ -5,8 +5,15 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 ## [1.9.0] - In Development
 
 ### ✨ New Features
-- **Expanded Software Center Catalog (23 1-Click Packages)**: Introduced a declarative cross-distro `SoftwareRecipeCatalog` and expanded the Software Center from 9 to 23 1-click packages across all 7 distributions (`apt`, `dnf`, `apk`, `pacman`, `xbps`), including C/C++ (Clang/CMake/GDB), Go, Rust & Cargo, PHP CLI, PostgreSQL, Redis, CLI Power Tools (`tmux`, `htop`, `jq`), Zsh, FFmpeg, Rclone, iPerf3, Geany IDE, GIMP, and LibreOffice under the new **Apps & Productivity** category.
-- **Software Center Search & Status Filters**: Added a real-time search bar, `All` / `Installed` / `Available` filter chips with live package counts, and richer category icons in the Software tab.
+- **Expanded Software Center Catalog (33 1-Click Packages)**: Refactored 1-click software recipes into modular per-package files under `model/software/` and expanded the Software Center from 9 to 33 packages across all 7 distributions (`apt`, `dnf`, `apk`, `pacman`, `xbps`):
+  - **Developer Tools**: C/C++ (Clang, CMake, GDB), Go, Rust & Cargo, PHP CLI, Ruby, and **VS Code (Desktop) (Beta)** (glibc distros, with `--no-sandbox` support).
+  - **Web & Database**: PostgreSQL, MariaDB (MySQL), and Redis.
+  - **CLI & System Utilities**: CLI Power Tools (`tmux`, `htop`, `jq`), `btop` & Fastfetch, Zsh, `aria2`, and Rclone.
+  - **Creative & Media**: **Blender (Beta)**, **Kdenlive Video Editor (Beta)**, **GIMP (Beta)**, and **FFmpeg**.
+  - **Apps & Productivity**: **LibreOffice (Beta)**, **Geany IDE (Beta)**, and **Mozilla Firefox (Beta)** (native or snap-free Mozilla release).
+  - **Remote & Networking**: iPerf3, Nmap (where packaged), and Wireshark CLI (`tshark`).
+- **Desktop GUI Apps Released as Beta**: Marked the 7 Desktop GUI applications (`VS Code`, `Blender`, `Kdenlive`, `GIMP`, `LibreOffice`, `Geany`, `Firefox`) with in-app **BETA** badges and an issue-reporting banner linking to GitHub Issues and Discord. These apps currently run using software rendering until hardware-accelerated GPU support is added, so users may encounter distribution-specific bugs or slower rendering.
+- **Software Center Search & Filters**: Added a real-time search bar, `All` / `Installed` / `Available` filter chips with live package counts, **Apps & Productivity** and **Creative & Media** categories, and richer Material icons.
 - **Full 1-Click Package Uninstall Support**: Added uninstall support for all 1-click Software Center packages across all 7 supported distributions (`apt`, `dnf`, `apk`, `pacman`, `xbps`). Running services (VNC, `ttyd`, `code-server`, NGINX, OpenSSH, Redis) are stopped cleanly before removing packages and generated wrapper scripts, with a confirmation dialog and live uninstall logs on every `SoftwareCard`.
 
 ### 📦 Distribution & Package Updates
@@ -15,6 +22,12 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
   - Updated `android_dev` recipes for Debian 13 and Kali (`default-jdk-headless`), Fedora 45 (`java-latest-openjdk-headless`, `android-tools`, and `gradle`), and Alpine 3.24 (`openjdk17-jdk`, `android-tools`, `gradle`).
   - Fixed Void Linux `node_dev` (removed nonexistent `npm` package, bundled in `nodejs`) and `nginx_web` (added `xbps-install -Suy` before install).
   - Fixed Arch Linux `x86_64` mirror/keyring initialization and switched `pacman -Syy` to `pacman -Syyu` to prevent `openssl` partial-upgrade conflicts.
+
+### 🐛 Desktop & Container Compatibility
+- **PRoot `/dev/shm` Support**: Bind-mounted a host `dev_shm` directory to `/dev/shm` in `PRootEngine` so Chromium/Electron applications do not crash on missing shared memory.
+- **Debian/Ubuntu `systemd-sysusers` Account Creation Fix**: Removed the legacy `/usr/bin/systemd-sysusers` no-op stub (and auto-cleaned it on existing containers) so Debian/Ubuntu `postinst` scripts such as `polkitd` and `synaptic` fall back to `adduser`/`addgroup` and configure cleanly.
+- **Android 12+ Phantom Process Killer Mitigation**: Trimmed unneeded XFCE/D-Bus background daemons (`gvfs*`, `localsearch-3`, `tumblerd`, `xdg-desktop-portal*`, `at-spi-bus-launcher`, `ssh-agent`, `gpg-agent`), added orphaned desktop process cleanup between sessions, and replaced `"Unknown VNC connection error"` on `EOFException` with an actionable explanation.
+- **TigerVNC Binary Fallback**: Added `Xtigervnc` fallback detection in `vncserver` and desktop installation checks for Debian, Ubuntu, and Kali.
 
 ## [1.8.2] - 2026-11-12
 

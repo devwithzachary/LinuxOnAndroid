@@ -69,13 +69,34 @@ fun SoftwareCard(
                         modifier = Modifier.size(28.dp)
                     )
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = pkg.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = pkg.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            if (pkg.isBeta) {
+                                Surface(
+                                    color = Color(0xFFF59E0B).copy(alpha = 0.18f),
+                                    shape = RoundedCornerShape(6.dp)
+                                ) {
+                                    Text(
+                                        text = "BETA",
+                                        color = Color(0xFFD97706),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
                         Text(
                             text = pkg.category.displayName,
                             style = MaterialTheme.typography.bodySmall,
@@ -145,6 +166,14 @@ fun SoftwareCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (pkg.isBeta) {
+                Text(
+                    text = "Beta GUI app - uses software rendering; report bugs on GitHub or Discord.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFD97706)
+                )
+            }
 
             if (pkg.postInstallNotes != null && pkg.status == InstallStatus.INSTALLED) {
                 Surface(

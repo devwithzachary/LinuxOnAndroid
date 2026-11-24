@@ -28,12 +28,17 @@ class PackageMatrixExporterTest {
 
             val pkgsJson = JSONArray()
             for (pkg in presets) {
+                if (distro.id in pkg.unsupportedDistros) continue
                 val pkgObj = JSONObject()
                 pkgObj.put("id", pkg.id)
                 pkgObj.put("name", pkg.name)
                 pkgObj.put(
                     "installCommand",
                     distro.getSoftwarePackageInstallCommand(pkg.id, 2222) ?: pkg.installCommand
+                )
+                pkgObj.put(
+                    "uninstallCommand",
+                    distro.getSoftwarePackageUninstallCommand(pkg.id)
                 )
                 val binsJson = JSONArray()
                 for (bin in pkg.expectedBinaries) {

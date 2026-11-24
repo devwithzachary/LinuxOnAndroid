@@ -104,6 +104,7 @@ val FedoraDistro = DistroDefinition(
                     "export GTK_OVERLAY_SCROLLING=0\n" +
                     "export GLYCIN_DISABLE_SANDBOX=1\n" +
                     "export GLYCIN_ENABLE_SANDBOX=0\n" +
+                    "export GLYCIN_SANDBOX=disable\n" +
                     "export LIBGL_ALWAYS_SOFTWARE=1\n" +
                     "[ -r \$HOME/.Xresources ] && xrdb \$HOME/.Xresources 2>/dev/null || true\n" +
                     "if command -v dbus-launch >/dev/null 2>&1; then\n" +

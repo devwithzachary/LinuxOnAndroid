@@ -79,4 +79,44 @@ class DesktopSessionManagerTest {
         assertEquals(150, state.uiScalePercent)
         assertEquals(DesktopResolution.AUTO, state.resolution)
     }
+
+    @Test
+    fun testStandardXstartupAndVncWrapper_trimDaemonsAndAvoidPkillF() {
+        val xstartup = DesktopConfigHelper.buildStandardXstartupScript()
+        assertTrue(xstartup.contains("export GIO_USE_VFS=local"))
+        assertTrue(xstartup.contains("export GTK_A11Y=none"))
+        assertTrue(xstartup.contains("export GTK_USE_PORTAL=0"))
+        assertTrue(xstartup.contains("/startup/ssh-agent/enabled"))
+        assertTrue(xstartup.contains("/startup/gpg-agent/enabled"))
+        assertTrue(xstartup.contains("Hidden=true"))
+
+        assertFalse(DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER.contains("pkill -f"))
+        assertFalse(DesktopConfigHelper.buildVncServerScript().contains("pkill -f"))
+    }
+
+    @Test
+    fun testBetaGuiAppsFlagAndBlenderWrapper() {
+        val expectedBetaIds = setOf(
+            "vscode_desktop",
+            "blender_3d",
+            "kdenlive_video",
+            "gimp_editor",
+            "libreoffice_suite",
+            "geany_ide",
+            "firefox_browser"
+        )
+        val actualBetaIds = com.devwithzachary.completelinuxinstaller.model.software.SoftwareRecipeCatalog.recipes
+            .filter { it.isBeta }
+            .map { it.id }
+            .toSet()
+        assertEquals(expectedBetaIds, actualBetaIds)
+
+        val blenderCmd = com.devwithzachary.completelinuxinstaller.model.software.SoftwareRecipeCatalog.buildInstallCommand(
+            "blender_3d",
+            com.devwithzachary.completelinuxinstaller.model.PackageManagerType.DNF
+        )
+        assertNotNull(blenderCmd)
+        assertTrue(blenderCmd!!.contains("--gpu-backend opengl"))
+        assertTrue(blenderCmd.contains("LIBGL_ALWAYS_SOFTWARE=1"))
+    }
 }

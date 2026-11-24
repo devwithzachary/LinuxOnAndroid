@@ -1,5 +1,6 @@
 package com.devwithzachary.completelinuxinstaller.model
 
+import com.devwithzachary.completelinuxinstaller.model.software.SoftwareRecipeCatalog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -12,7 +13,7 @@ class SoftwarePackageTest {
     fun testGetPresets_returnsNonEmptyList() {
         val presets = SoftwarePackage.getPresets()
         assertTrue("Preset package list should not be empty", presets.isNotEmpty())
-        assertEquals(23, presets.size)
+        assertEquals(33, presets.size)
     }
 
     @Test

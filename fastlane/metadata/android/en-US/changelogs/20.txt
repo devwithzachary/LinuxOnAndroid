@@ -1,3 +1,3 @@
-• Software Center: Expanded from 9 to 23 1-click packages (C/C++, Go, Rust, PHP, PostgreSQL, Redis, FFmpeg, Rclone, Geany, GIMP, LibreOffice) with search and Installed/Available filters.
-• 1-Click Uninstall: Full uninstall support with service shutdown and confirmation across all 7 distros.
-• Base Images & Fixes: Updated Debian 13, Fedora 45, and Alpine 3.24.4, plus multi-distro package fixes.
+• Software Center: Expanded to 33 1-click packages (Clang/C++, Go, Rust, PHP, Ruby, Postgres, MariaDB, Redis, FFmpeg, Nmap, tshark) with search, filters, and 1-click uninstall.
+• Desktop GUI Apps (Beta): VS Code, Blender, Kdenlive, GIMP, LibreOffice, Geany, and Firefox marked Beta (software rendering until GPU acceleration arrives).
+• Distros & Stability: Updated Debian 13, Fedora 45, Alpine 3.24.4, plus /dev/shm and Android Phantom Process Killer fixes.

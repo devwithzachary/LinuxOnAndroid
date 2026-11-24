@@ -728,6 +728,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     launchCommand = effectiveLaunchCommand,
                     postInstallNotes = basePkg.postInstallNotes,
                     expectedBinaries = effectiveBinaries,
+                    isBeta = basePkg.isBeta,
                     version = effectiveVersion
                 )
             } else if (!installed) {
@@ -737,6 +738,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     launchCommand = effectiveLaunchCommand,
                     postInstallNotes = basePkg.postInstallNotes,
                     expectedBinaries = effectiveBinaries,
+                    isBeta = basePkg.isBeta,
                     version = effectiveVersion
                 )
             } else {
@@ -767,6 +769,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     launchCommand = effectiveLaunchCommand,
                     postInstallNotes = basePkg.postInstallNotes,
                     expectedBinaries = effectiveBinaries,
+                    isBeta = basePkg.isBeta,
                     version = effectiveVersion
                 )
             }

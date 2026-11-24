@@ -78,8 +78,18 @@ class DesktopSessionManager(
                     }
                     is VncConnectionState.Error -> {
                         if (_desktopState.value.sessionStatus == DesktopStatus.RUNNING || _desktopState.value.sessionStatus == DesktopStatus.STARTING_SERVER) {
+                            val wasRunning = _desktopState.value.sessionStatus == DesktopStatus.RUNNING
                             _desktopState.update { it.copy(sessionStatus = DesktopStatus.ERROR, errorMessage = vncState.message) }
                             _isDesktopRunning.value = false
+                            if (wasRunning) {
+                                vncServerProcess?.let { proc ->
+                                    if (proc.isAlive) proc.destroyForcibly()
+                                }
+                                vncServerProcess = null
+                                managerScope.launch(Dispatchers.IO) {
+                                    DesktopConfigHelper.killOrphanedDesktopProcesses()
+                                }
+                            }
                         }
                     }
                     is VncConnectionState.Connecting -> {
@@ -136,7 +146,8 @@ class DesktopSessionManager(
 
         val hasVnc = SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/vncserver") ||
                 SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/tigervncserver") ||
-                SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/Xvnc")
+                SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/Xvnc") ||
+                SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/Xtigervnc")
         val hasXfce = SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/startxfce4") ||
                 SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/xfce4-session") ||
                 SoftwarePackage.isBinaryPresent(rootfsDir, "usr/bin/xfwm4")
@@ -435,13 +446,17 @@ class DesktopSessionManager(
     }
 
     private suspend fun prepareVncEnvironment(container: ContainerInstance, cleanPass: String, targetUser: String) {
+        withContext(Dispatchers.IO) {
+            DesktopConfigHelper.killOrphanedDesktopProcesses()
+        }
         val userHome = if (targetUser == "root") "/root" else "/home/$targetUser"
         val prepScript = buildString {
+            append("([ -f /usr/bin/vncserver ] && grep -q 'LinuxOnAndroid' /usr/bin/vncserver 2>/dev/null || (${DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER})); ")
             append("rm -f /etc/tigervnc/vncserver-config-defaults 2>/dev/null || true; ")
             append("mkdir -p /tmp/.X11-unix /tmp/.ICE-unix /root/.vnc /etc/skel/.vnc 2>/dev/null || true; ")
             append("chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true; ")
             append("vncserver -kill :1 2>/dev/null || true; ")
-            append("pkill -9 -f Xvnc 2>/dev/null || true; ")
+            append("pkill -9 -x Xvnc 2>/dev/null || pkill -9 -x Xtigervnc 2>/dev/null || true; ")
             append("rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 /tmp/.X11-unix/X* /root/.vnc/*.pid /home/*/.vnc/*.pid 2>/dev/null || true; ")
             append("for u in /home/*; do if [ -d \"\$u\" ]; then mkdir -p \"\$u/.vnc\" \"\$u/.config/tigervnc\" && chmod -R 777 \"\$u/.vnc\" \"\$u/.config\" 2>/dev/null || true; (echo '$cleanPass' | vncpasswd -f > \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true); (echo '$cleanPass' | vncpasswd -f > \"\$u/.vnc/passwd\" 2>/dev/null || true); chmod 600 \"\$u/.vnc/passwd\" \"\$u/.config/tigervnc/passwd\" 2>/dev/null || true; fi; done; ")
             append("(echo '$cleanPass' | vncpasswd -f > /root/.vnc/passwd 2>/dev/null || echo '$cleanPass' | tigervncpasswd -f > /root/.vnc/passwd 2>/dev/null || true); ")
@@ -577,15 +592,18 @@ class DesktopSessionManager(
         managerScope.launch {
             _desktopState.update { it.copy(sessionStatus = DesktopStatus.STOPPING) }
             if (container != null) {
-                val stopScript = "vncserver -kill :1 2>/dev/null || true; pkill -9 -f Xvnc 2>/dev/null || true; rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 /tmp/.X11-unix/X* /root/.vnc/*.pid /home/*/.vnc/*.pid 2>/dev/null || true"
+                val stopScript = "vncserver -kill :1 2>/dev/null || true; pkill -9 -x Xvnc 2>/dev/null || pkill -9 -x Xtigervnc 2>/dev/null || true; rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 /tmp/.X11-unix/X* /root/.vnc/*.pid /home/*/.vnc/*.pid 2>/dev/null || true"
                 executeOneShotCommand(container, stopScript, timeoutMs = 5000L)
             }
             vncServerProcess?.let { proc ->
                 if (proc.isAlive) {
-                    proc.destroy()
+                    proc.destroyForcibly()
                 }
             }
             vncServerProcess = null
+            withContext(Dispatchers.IO) {
+                DesktopConfigHelper.killOrphanedDesktopProcesses()
+            }
             _isDesktopRunning.value = false
             _desktopState.update { it.copy(sessionStatus = DesktopStatus.IDLE, errorMessage = null) }
         }

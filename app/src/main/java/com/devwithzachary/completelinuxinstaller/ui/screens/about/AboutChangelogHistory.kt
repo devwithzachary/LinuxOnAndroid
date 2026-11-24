@@ -27,11 +27,12 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         date = "In Development",
         initialExpanded = true,
         highlights = listOf(
-            "Expanded Software Center (23 Packages): Added 14 new 1-click packages across all 7 distros including Clang/C++, Go, Rust, PHP, PostgreSQL, Redis, tmux/htop/jq, Zsh, FFmpeg, Rclone, iPerf3, Geany, GIMP, and LibreOffice.",
-            "Software Center Search & Filters: Added instant search, All/Installed/Available filter chips, and an Apps & Productivity category.",
+            "Expanded Software Center (33 Packages): Added 24 new 1-click packages including CLI/Dev tools (Clang/C++, Go, Rust, Ruby, PHP, PostgreSQL, MariaDB, Redis, btop/Fastfetch, tmux/htop/jq, Zsh, aria2, Rclone, FFmpeg, iPerf3, Nmap, tshark) plus 7 Desktop GUI apps marked as Beta (VS Code Desktop, Blender, Kdenlive, GIMP, LibreOffice, Geany, Firefox).",
+            "Desktop GUI Apps (Beta): Added BETA badges and GitHub/Discord issue-reporting links for Desktop GUI apps while they run on software rendering ahead of future hardware-accelerated GPU support.",
+            "Software Center Search & Filters: Added instant search, All/Installed/Available filter chips, plus Apps & Productivity and Creative & Media categories.",
             "1-Click Package Uninstall: Added full uninstall support with service shutdown, confirmation dialog, and live logs for all 1-click packages across all 7 distributions.",
             "Updated Base Images: Upgraded Debian to Debian 13 (Trixie), Fedora to Fedora 45, and Alpine Linux to 3.24.4.",
-            "Multi-Distro Package Fixes: Updated Java/Android Dev Tools recipes across Debian 13, Kali, Fedora 45, and Alpine 3.24, and fixed Void Linux and Arch Linux rolling-release package installs."
+            "Desktop & PRoot Stability: Added /dev/shm bind mount for Electron/Chromium apps, fixed Debian/Ubuntu systemd-sysusers account creation for polkitd/synaptic, added Xtigervnc detection, and reduced background XFCE daemons to prevent Android Phantom Process Killer disconnects."
         )
     ),
     ReleaseChangelog(

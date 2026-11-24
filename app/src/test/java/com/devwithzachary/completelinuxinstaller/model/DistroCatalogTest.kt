@@ -472,10 +472,17 @@ class DistroCatalogTest {
     @Test
     fun testAllDistros_supportAllPresetSoftwarePackages() {
         val presets = SoftwarePackage.getPresets()
-        assertEquals(23, presets.size)
+        assertEquals(33, presets.size)
 
         for (distro in DistroCatalog.ALL_DISTROS) {
             for (pkg in presets) {
+                if (distro.id in pkg.unsupportedDistros) {
+                    assertNull(
+                        "Unsupported distro ${distro.id} must not expose install command for ${pkg.id}",
+                        distro.getSoftwarePackageInstallCommand(pkg.id)
+                    )
+                    continue
+                }
                 val cmd = distro.getSoftwarePackageInstallCommand(pkg.id)
                 assertNotNull("Distro ${distro.id} must define install command for ${pkg.id}", cmd)
                 assertTrue("Distro ${distro.id} install command for ${pkg.id} must not be blank", cmd!!.isNotBlank())

@@ -392,6 +392,13 @@ class PRootEngine(val context: Context) {
             if (File("/sys/fs/selinux").exists()) {
                 mounts.add("${emptySelinuxDir.absolutePath}:/sys/fs/selinux")
             }
+            val devShmDir = File(filesDir, "dev_shm").apply {
+                if (!exists()) mkdirs()
+                setReadable(true, false)
+                setWritable(true, false)
+                setExecutable(true, false)
+            }
+            mounts.add("${devShmDir.absolutePath}:/dev/shm")
             if (config.bindSdCard) {
                 val appExternalFilesDir = context.getExternalFilesDir(null)
                 val appSdcard = if (appExternalFilesDir != null) {
@@ -629,6 +636,7 @@ class PRootEngine(val context: Context) {
             "VERSION_CODENAME" to codename,
             "GLYCIN_DISABLE_SANDBOX" to "1",
             "GLYCIN_ENABLE_SANDBOX" to "0",
+            "GLYCIN_SANDBOX" to "disable",
             "LIBGL_ALWAYS_SOFTWARE" to "1"
         )
 
@@ -734,14 +742,14 @@ class PRootEngine(val context: Context) {
                 exit 0
             """.trimIndent() + "\n"
 
-            if (!bwrapLocalFile.exists() || !bwrapLocalFile.readText().contains("PRoot shim")) {
+            if (!bwrapLocalFile.exists() || !bwrapLocalFile.readText().contains("Bubblewrap bypass shim")) {
                 try {
                     bwrapLocalFile.writeText(bwrapShimScript)
                     bwrapLocalFile.setExecutable(true, false)
                 } catch (_: Exception) {}
             }
 
-            if (usrBin.exists() && (!bwrapFile.exists() || !bwrapFile.readText().contains("PRoot shim"))) {
+            if (usrBin.exists() && (!bwrapFile.exists() || !bwrapFile.readText().contains("Bubblewrap bypass shim"))) {
                 try {
                     bwrapFile.writeText(bwrapShimScript)
                     bwrapFile.setExecutable(true, false)
@@ -763,7 +771,7 @@ class PRootEngine(val context: Context) {
             val hasVnc = vncXstartup.exists() || usrBinVnc.exists() || usrLocalBinVnc.exists()
             if (hasVnc) {
                 val content = try { vncXstartup.readText() } catch (_: Exception) { "" }
-                if (!content.contains("GLYCIN_DISABLE_SANDBOX") || content.contains("--exit-with-session") || content.contains("exec xfdesktop") || !content.contains("export PATH=") || !content.contains("command -v startxfce4") || !content.contains("xfconfd")) {
+                if (!content.contains("GLYCIN_DISABLE_SANDBOX") || !content.contains("GLYCIN_SANDBOX=disable") || !content.contains("GIO_USE_VFS=local") || !content.contains("GTK_A11Y=none") || !content.contains("/startup/gpg-agent/enabled") || content.contains("--exit-with-session") || content.contains("exec xfdesktop") || !content.contains("export PATH=") || !content.contains("command -v startxfce4") || !content.contains("xfconfd")) {
                     val standardXstartup = DesktopConfigHelper.buildStandardXstartupScript()
 
                     try {

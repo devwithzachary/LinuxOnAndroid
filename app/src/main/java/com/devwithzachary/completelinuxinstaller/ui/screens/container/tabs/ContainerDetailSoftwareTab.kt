@@ -9,17 +9,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
 import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.SoftwareCategory
@@ -48,6 +54,9 @@ fun SoftwareTabContent(
     var customPackageInput by remember { mutableStateOf("") }
     var pendingUninstallPackage by remember { mutableStateOf<SoftwarePackage?>(null) }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val uriHandler = LocalUriHandler.current
+    val githubIssuesUrl = stringResource(R.string.github_issues_url)
+    val discordUrl = stringResource(R.string.discord_url)
 
     pendingUninstallPackage?.let { pkgToUninstall ->
         AlertDialog(
@@ -239,6 +248,69 @@ fun SoftwareTabContent(
                         onClick = { selectedSoftwareCategory = cat },
                         text = { Text(cat.displayName) }
                     )
+                }
+            }
+        }
+
+        // 3b. Beta GUI Apps Notice Banner (Full Width Span when Beta apps are shown)
+        if (filteredPackages.any { it.isBeta }) {
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFF59E0B).copy(alpha = 0.12f)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BugReport,
+                                contentDescription = null,
+                                tint = Color(0xFFD97706),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Desktop GUI Applications (Beta)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text(
+                            text = "Desktop GUI apps currently run using software rendering until hardware-accelerated GPU support is added. Some apps may have bugs, glitches, or slower performance depending on the distribution. Please report any issues you encounter!",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedButton(
+                                onClick = { uriHandler.openUri(githubIssuesUrl) },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.OpenInNew,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Report Issue (GitHub)", fontSize = 12.sp)
+                            }
+                            TextButton(
+                                onClick = { uriHandler.openUri(discordUrl) },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("Join Discord", fontSize = 12.sp)
+                            }
+                        }
+                    }
                 }
             }
         }

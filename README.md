@@ -18,7 +18,7 @@
   </p>
 </div>
 
-**Complete Linux Installer** is an open-source Android application designed to download, provision, and run full-featured Linux distributions (including Ubuntu 26.04 LTS, Debian 12, Fedora 44, Alpine Linux, Arch Linux ARM, Kali Linux, and Void Linux) natively on Android devices **without requiring root permissions**.
+**Complete Linux Installer** is an open-source Android application designed to download, provision, and run full-featured Linux distributions (including Ubuntu 26.04 LTS, Debian 13, Fedora 45, Alpine Linux 3.24, Arch Linux ARM, Kali Linux, and Void Linux) natively on Android devices **without requiring root permissions**.
 
 > [!TIP]
 > 📲 **Now Live on F-Droid & Google Play!**  
@@ -73,9 +73,9 @@ Powered by a native **PRoot** user-space engine, a multi-session **POSIX PTY ter
 * **🔒 100% Rootless & Completely Isolated**: Runs entirely in Android user-space using PRoot ptrace system call interception. Zero root access, unlocked bootloaders, or Android system partition modifications required. Safe and sandboxed without touching your personal files or host OS.
 * **🐧 Multi-Distribution Linux Catalog**: Install and switch between 7 distinct Linux distributions tailored for different performance profiles and use cases:
   * **Ubuntu 26.04 LTS**: Official base LTS environment with APT package management.
-  * **Debian 12**: Ultra-stable lightweight alternative with vast software repositories.
-  * **Fedora 44**: Modern Red Hat-family distribution powered by the `dnf` package manager.
-  * **Alpine Linux 3.21**: Minimalist musl/busybox environment (~10MB rootfs) with instant boot times and tiny memory footprint.
+  * **Debian 13**: Ultra-stable lightweight alternative (Trixie) with vast software repositories.
+  * **Fedora 45**: Modern Red Hat-family distribution powered by the `dnf` package manager.
+  * **Alpine Linux 3.24**: Minimalist musl/busybox environment (~10MB rootfs) with instant boot times and tiny memory footprint.
   * **Arch Linux ARM**: Bleeding-edge rolling release environment powered by the `pacman` package manager.
   * **Kali Linux CLI Tools**: Specialized security auditing and penetration testing tools environment.
   * **Void Linux**: Independent general-purpose distribution with the blazing-fast `xbps` package manager.
@@ -87,12 +87,13 @@ Powered by a native **PRoot** user-space engine, a multi-session **POSIX PTY ter
   * **Browser Web Terminal (ttyd)**: Access full interactive shells from any local browser over Wi-Fi without SSH clients.
   * **VS Code Server (code-server)**: Run full Visual Studio Code in your browser with extensions and syntax highlighting.
 * **🐳 1-Click Docker & Container Tools**: Pull and run containers from Docker Hub in user space without root or cgroup requirements via `udocker`, with official Docker CLI and Docker Compose wrappers.
-* **🛠️ 1-Click Software Hub & Multi-Package Managers**: Tailored software presets and native package manager integration (`apt`, `dnf`, `apk`, `pacman`, `xbps`):
+* **🛠️ 1-Click Software Center (33 Packages) & Full Uninstall Support**: Searchable, filterable Software Center with native package manager integration (`apt`, `dnf`, `apk`, `pacman`, `xbps`) and full 1-click install, launch, upgrade, and uninstall lifecycle support:
   * **Desktop Environments**: XFCE4 Desktop, XFCE Terminal, TigerVNC Server.
-  * **Containers & Tools**: Docker CLI, Docker Compose, and udocker engine.
-  * **Web & Database**: NGINX HTTP web server + SQLite3.
-  * **Remote & Cloud IDE**: OpenSSH Server daemon, Web Terminal (`ttyd`), and Visual Studio Code Server (`code-server`).
-  * **Development Stacks**: Python 3 (pip, venv, GCC), Node.js (npm, Yarn, Neovim), and Android Developer Tools (OpenJDK 17, ADB, Gradle).
+  * **Developer Tools**: VS Code (Desktop), VS Code Server (`code-server`), Python 3, Node.js, Android Dev Tools (OpenJDK, ADB, Gradle), C/C++ (Clang, CMake, GDB), Go, Rust & Cargo, PHP CLI, Ruby, and Docker/udocker.
+  * **Creative & Media**: Blender, Kdenlive Video Editor, GIMP, and FFmpeg.
+  * **Apps & Productivity**: LibreOffice, Geany IDE, and Mozilla Firefox.
+  * **Web & Database**: NGINX HTTP server + SQLite3, PostgreSQL, MariaDB (MySQL), and Redis.
+  * **CLI, Remote & Networking**: OpenSSH Server, Web Terminal (`ttyd`), CLI Power Tools (`tmux`, `htop`, `jq`), `btop` & Fastfetch, Zsh, `aria2`, Rclone, iPerf3, Nmap, and Wireshark CLI (`tshark`).
 * **👋 First-Launch Onboarding & Welcome Guide**: Integrated introduction screen detailing container architecture, sandboxing safety, and multi-container capabilities before entering the setup wizard.
 * **🗑️ Safe Container Deletion Feedback**: Dedicated full-screen deletion view with animated feedback, real-time step progress, and back-gesture protection during storage purging.
 * **🛡️ Background Execution & WakeLock**: Android Foreground Service with CPU WakeLock keeping long compilation tasks, downloads, SSH sessions, and background web servers alive when the app is minimized.
@@ -242,7 +243,7 @@ To verify that download mirrors, archive hashes, and PRoot runtime execution rem
 ### 1. First-Launch Welcome & Distro Setup Wizard
 1. On first launch, the **Welcome Screen** introduces the container architecture, rootless virtualization, and multi-container capabilities.
 2. Tap **Get Started** to enter the **Setup Wizard**.
-3. Choose your distribution from the catalog (Ubuntu 26.04 LTS, Debian 12, Fedora 44, Alpine Linux 3.21, Arch Linux ARM, Kali Linux CLI, or Void Linux) and select your target architecture.
+3. Choose your distribution from the catalog (Ubuntu 26.04 LTS, Debian 13, Fedora 45, Alpine Linux 3.24, Arch Linux ARM, Kali Linux CLI, or Void Linux) and select your target architecture.
 4. Tap **Download & Install RootFS** to automatically stream, verify, unpack, and provision your initial container.
 
 ### 2. Concurrent Multi-Tab Terminal Workflows

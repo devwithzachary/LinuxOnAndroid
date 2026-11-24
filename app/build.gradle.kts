@@ -16,6 +16,7 @@ android {
         targetSdk = 36
         versionCode = 20
         versionName = "1.9.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
@@ -132,6 +133,14 @@ dependencies {
 
   // Tooling
   debugImplementation(libs.androidx.compose.ui.tooling)
+  debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+  // Android Instrumentation & Compose UI Tests
+  androidTestImplementation("androidx.test.ext:junit:1.2.1")
+  androidTestImplementation("androidx.test:runner:1.6.2")
+  androidTestImplementation("androidx.test:rules:1.6.1")
+  androidTestImplementation("androidx.test:core-ktx:1.6.1")
+  androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
 
   // Local tests
   testImplementation(libs.junit)

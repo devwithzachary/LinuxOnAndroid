@@ -8,6 +8,7 @@ import com.devwithzachary.completelinuxinstaller.model.distros.FedoraDistro
 import com.devwithzachary.completelinuxinstaller.model.distros.KaliDistro
 import com.devwithzachary.completelinuxinstaller.model.distros.UbuntuDistro
 import com.devwithzachary.completelinuxinstaller.model.distros.VoidDistro
+import com.devwithzachary.completelinuxinstaller.model.software.SoftwareRecipeCatalog
 
 enum class PackageManagerType(
     val displayName: String,
@@ -71,12 +72,12 @@ data class DistroDefinition(
 
     fun getSoftwarePackageInstallCommand(packageId: String, sshPort: Int = 2222): String? {
         return softwarePackageCommands[packageId]?.invoke(sshPort)
-            ?: SoftwareRecipeCatalog.buildInstallCommand(packageId, packageManager)
+            ?: SoftwareRecipeCatalog.buildInstallCommand(packageId, packageManager, id)
     }
 
     fun getSoftwarePackageUninstallCommand(packageId: String): String {
         return softwarePackageUninstallCommands[packageId]?.invoke()
-            ?: SoftwareRecipeCatalog.buildUninstallCommand(packageId, packageManager)
+            ?: SoftwareRecipeCatalog.buildUninstallCommand(packageId, packageManager, id)
             ?: DistroCatalog.buildDefaultUninstallCommand(packageId, packageManager)
     }
 
@@ -140,8 +141,8 @@ object DistroCatalog {
             "(udocker --allow-root install --force 2>/dev/null || udocker install --force 2>/dev/null || true) && " +
             "mkdir -p /usr/local/bin && " +
             "printf '%s\\n' '#!/bin/sh\n" +
-            "if [ -x /usr/bin/docker ] && ([ -n \"\\\$DOCKER_HOST\" ] || [ -S /var/run/docker.sock ]) && /usr/bin/docker info >/dev/null 2>&1; then\n" +
-            "  exec /usr/bin/docker \"\\\$@\"\n" +
+            "if [ -x /usr/bin/docker ] && ([ -n \"\$DOCKER_HOST\" ] || [ -S /var/run/docker.sock ]) && /usr/bin/docker info >/dev/null 2>&1; then\n" +
+            "  exec /usr/bin/docker \"\$@\"\n" +
             "fi\n" +
             "if command -v udocker >/dev/null 2>&1; then\n" +
             "  export PROOT_NO_SECCOMP=1\n" +
@@ -150,14 +151,14 @@ object DistroCatalog {
             "  elif [ -f /usr/lib/libproot_loader.so ]; then\n" +
             "    export PROOT_LOADER=/usr/lib/libproot_loader.so\n" +
             "  fi\n" +
-            "  if [ \"\\\$(id -u)\" = \"0\" ]; then\n" +
-            "    exec udocker --allow-root \"\\\$@\"\n" +
+            "  if [ \"\$(id -u)\" = \"0\" ]; then\n" +
+            "    exec udocker --allow-root \"\$@\"\n" +
             "  else\n" +
-            "    exec udocker \"\\\$@\"\n" +
+            "    exec udocker \"\$@\"\n" +
             "  fi\n" +
             "fi\n" +
             "if [ -x /usr/bin/docker ]; then\n" +
-            "  exec /usr/bin/docker \"\\\$@\"\n" +
+            "  exec /usr/bin/docker \"\$@\"\n" +
             "fi\n" +
             "echo \"Error: Neither docker nor udocker could be executed.\" >&2\n" +
             "exit 1' > /usr/local/bin/docker && chmod 755 /usr/local/bin/docker"
@@ -202,11 +203,11 @@ object DistroCatalog {
         fun removePkgs(vararg pkgs: String): String {
             val joined = pkgs.joinToString(" ")
             return when (pm) {
-                PackageManagerType.APT -> "DEBIAN_FRONTEND=noninteractive apt-get remove -y --purge $joined 2>/dev/null || true; DEBIAN_FRONTEND=noninteractive apt-get autoremove -y 2>/dev/null || true"
+                PackageManagerType.APT -> "_pkgs=\$(dpkg-query -W -f='\${Package} \${Status}\\n' $joined 2>/dev/null | awk '/install ok installed/{print \$1}'); [ -n \"\$_pkgs\" ] && DEBIAN_FRONTEND=noninteractive apt-get remove -y --purge \$_pkgs 2>/dev/null || true; DEBIAN_FRONTEND=noninteractive apt-get autoremove -y 2>/dev/null || true"
                 PackageManagerType.DNF -> "dnf remove -y $joined 2>/dev/null || true"
                 PackageManagerType.APK -> "apk del $joined 2>/dev/null || true"
-                PackageManagerType.PACMAN -> "pacman -Rns --noconfirm $joined 2>/dev/null || pacman -R --noconfirm $joined 2>/dev/null || true"
-                PackageManagerType.XBPS -> "xbps-remove -Ry $joined 2>/dev/null || xbps-remove -y $joined 2>/dev/null || true"
+                PackageManagerType.PACMAN -> "for p in $joined; do pacman -Qq \"\$p\" >/dev/null 2>&1 && (pacman -Rns --noconfirm \"\$p\" 2>/dev/null || pacman -R --noconfirm \"\$p\" 2>/dev/null || true); done; true"
+                PackageManagerType.XBPS -> "for p in $joined; do xbps-remove -Ry \"\$p\" 2>/dev/null || xbps-remove -y \"\$p\" 2>/dev/null || true; done; true"
             }
         }
 
@@ -223,32 +224,32 @@ object DistroCatalog {
                 "$stop; $pkgCmd; rm -f /usr/bin/vncserver /usr/bin/startxfce4 /usr/bin/synaptic-pkexec /etc/vnc/xstartup /etc/vnc/config /etc/X11/Xtigervnc-session 2>/dev/null || true"
             }
             "python_dev" -> when (pm) {
-                PackageManagerType.APT -> removePkgs("python3-pip", "python3-venv", "build-essential", "neovim")
+                PackageManagerType.APT -> removePkgs("python3-pip", "python3-venv", "build-essential", "gcc", "g++", "neovim")
                 PackageManagerType.DNF -> removePkgs("python3-pip", "gcc", "gcc-c++", "neovim")
                 PackageManagerType.APK -> removePkgs("py3-pip", "build-base", "neovim")
                 PackageManagerType.PACMAN -> removePkgs("python-pip", "base-devel", "neovim")
                 PackageManagerType.XBPS -> removePkgs("python3-pip", "base-devel", "neovim")
             }
             "node_dev" -> when (pm) {
-                PackageManagerType.APT -> removePkgs("nodejs", "npm", "yarnpkg", "neovim")
-                PackageManagerType.DNF -> removePkgs("nodejs", "npm", "neovim")
-                PackageManagerType.APK -> removePkgs("nodejs", "npm", "yarn", "neovim")
-                PackageManagerType.PACMAN -> removePkgs("nodejs", "npm", "yarn", "neovim")
-                PackageManagerType.XBPS -> removePkgs("nodejs", "yarn", "neovim")
+                PackageManagerType.APT -> removePkgs("nodejs", "npm", "yarnpkg", "build-essential", "gcc", "g++", "neovim")
+                PackageManagerType.DNF -> removePkgs("nodejs", "npm", "gcc", "gcc-c++", "make", "neovim")
+                PackageManagerType.APK -> removePkgs("nodejs", "npm", "yarn", "build-base", "neovim")
+                PackageManagerType.PACMAN -> removePkgs("nodejs", "npm", "yarn", "base-devel", "neovim")
+                PackageManagerType.XBPS -> removePkgs("nodejs", "yarn", "base-devel", "neovim")
             }
             "android_dev" -> when (pm) {
-                PackageManagerType.APT -> removePkgs("default-jdk-headless", "openjdk-17-jdk-headless", "android-sdk-platform-tools", "gradle")
+                PackageManagerType.APT -> removePkgs("default-jdk-headless", "default-jre-headless", "'openjdk-*-jdk-headless'", "'openjdk-*-jre-headless'", "android-sdk-platform-tools", "gradle")
                 PackageManagerType.DNF -> "${removePkgs("java-latest-openjdk-headless", "java-25-openjdk-headless", "java-17-openjdk-headless", "android-tools")}; rm -rf /opt/gradle-* /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true"
-                PackageManagerType.APK -> removePkgs("openjdk17-jdk", "openjdk17-jre", "android-tools", "gradle")
-                PackageManagerType.PACMAN -> removePkgs("jdk-openjdk", "jdk17-openjdk", "android-tools", "gradle")
-                PackageManagerType.XBPS -> removePkgs("openjdk17-jre", "android-tools", "gradle")
+                PackageManagerType.APK -> "${removePkgs("openjdk17-jdk", "openjdk17-jre", "android-tools", "gradle")}; rm -rf /opt/gradle-* /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true"
+                PackageManagerType.PACMAN -> "${removePkgs("jdk-openjdk", "jdk17-openjdk", "jre-openjdk", "jre-openjdk-headless", "java-runtime-common", "android-tools")}; rm -rf /opt/gradle-* /usr/bin/gradle /usr/local/bin/gradle 2>/dev/null || true"
+                PackageManagerType.XBPS -> removePkgs("openjdk17-jre", "openjdk-common", "openjdk11-jre", "openjdk11", "android-tools", "gradle")
             }
             "code_server" -> "(pkill -x code-server 2>/dev/null || killall -9 code-server 2>/dev/null || true); (npm uninstall -g code-server 2>/dev/null || true); ${removePkgs("code-server")}; rm -rf /usr/local/bin/code-server /usr/bin/code-server /usr/lib/code-server /usr/local/lib/code-server* 2>/dev/null || true"
             "nginx_web" -> {
                 val stop = "(nginx -s quit 2>/dev/null || pkill -x nginx 2>/dev/null || killall -9 nginx 2>/dev/null || true)"
                 val pkgCmd = when (pm) {
-                    PackageManagerType.APT -> removePkgs("nginx", "nginx-common", "nginx-core", "sqlite3")
-                    else -> removePkgs("nginx", "sqlite")
+                    PackageManagerType.APT -> removePkgs("nginx", "nginx-common", "nginx-core")
+                    else -> removePkgs("nginx")
                 }
                 "$stop; $pkgCmd"
             }
