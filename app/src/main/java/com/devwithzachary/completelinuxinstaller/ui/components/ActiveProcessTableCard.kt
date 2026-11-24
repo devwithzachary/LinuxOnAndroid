@@ -1,26 +1,45 @@
 package com.devwithzachary.completelinuxinstaller.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.engine.ContainerProcessInfo
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSectionHeader
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusBadge
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusTone
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaMonoTextStyle
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaSegmentedSingleShape
 
 @Composable
 fun ActiveProcessTableCard(
@@ -37,190 +56,180 @@ fun ActiveProcessTableCard(
         } else {
             processes.filter {
                 it.name.contains(searchQuery, ignoreCase = true) ||
-                it.pid.toString().contains(searchQuery) ||
-                it.cmdline.contains(searchQuery, ignoreCase = true) ||
-                it.user.contains(searchQuery, ignoreCase = true)
+                    it.pid.toString().contains(searchQuery) ||
+                    it.cmdline.contains(searchQuery, ignoreCase = true) ||
+                    it.user.contains(searchQuery, ignoreCase = true)
             }
         }
     }
 
-    Card(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FormatListNumbered,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Text(
-                        text = "Active Processes (ps aux)",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                ) {
-                    Text(
-                        text = "${processes.size} Running",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-            }
-
-            // Process Search / Filter Field
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = {
-                    Text(
-                        text = "Filter processes (e.g. sshd, vnc, nginx)...",
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Search,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search", modifier = Modifier.size(16.dp))
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                maxLines = 1,
-                minLines = 1,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
+            LoaSectionHeader(
+                title = "Active Processes",
+                modifier = Modifier.weight(1f)
             )
+            LoaStatusBadge(
+                label = "${processes.size} active",
+                tone = if (processes.isNotEmpty()) LoaStatusTone.Running else LoaStatusTone.Stopped
+            )
+        }
 
-            // Process Table Header
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = LoaSegmentedSingleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = {
+                        Text(
+                            text = "Filter processes (sshd, vnc, nginx)...",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Rounded.Search,
+                            contentDescription = null
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Clear process filter"
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.medium
+                )
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("PID", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                    Text("PROCESS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(2.2f))
                     Text(
-                        "RAM",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = "PID",
+                        style = LoaMonoTextStyle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                        modifier = Modifier.weight(1.2f).padding(end = 12.dp)
+                        modifier = Modifier.weight(1f)
                     )
-                    Box(modifier = Modifier.width(48.dp), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "PROCESS",
+                        style = LoaMonoTextStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(2.2f)
+                    )
+                    Text(
+                        text = "RAM",
+                        style = LoaMonoTextStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier
+                            .weight(1.1f)
+                            .padding(end = 8.dp)
+                    )
+                    Box(
+                        modifier = Modifier.width(48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            "ACTION",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
+                            text = "KILL",
+                            style = LoaMonoTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
-            }
 
-            if (filteredProcesses.isEmpty()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surface
-                ) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                if (filteredProcesses.isEmpty()) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(24.dp),
+                            .padding(vertical = 24.dp, horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            Icons.Default.CheckCircleOutline,
+                            imageVector = Icons.Rounded.CheckCircle,
                             contentDescription = null,
-                            tint = Color(0xFF4CAF50),
-                            modifier = Modifier.size(32.dp)
+                            tint = MaterialTheme.colorScheme.secondary,
+                            modifier = Modifier.size(28.dp)
                         )
                         Text(
-                            text = if (searchQuery.isNotEmpty()) "No processes match '$searchQuery'" else "No container child processes active",
+                            text = if (searchQuery.isNotEmpty()) {
+                                "No processes match '$searchQuery'"
+                            } else {
+                                "No container child processes active"
+                            },
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    filteredProcesses.take(15).forEach { proc ->
-                        ProcessRowItem(
-                            proc = proc,
-                            onKillClick = { processToKill = proc }
-                        )
-                    }
-                    if (filteredProcesses.size > 15) {
-                        Text(
-                            text = "+ ${filteredProcesses.size - 15} more processes...",
-                            fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 8.dp)
+                            textAlign = TextAlign.Center
                         )
+                    }
+                } else {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        val visibleProcesses = filteredProcesses.take(15)
+                        visibleProcesses.forEachIndexed { index, proc ->
+                            ProcessRowItem(
+                                proc = proc,
+                                onKillClick = { processToKill = proc }
+                            )
+                            if (index < visibleProcesses.lastIndex) {
+                                HorizontalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
+                            }
+                        }
+                        if (filteredProcesses.size > 15) {
+                            Text(
+                                text = "+ ${filteredProcesses.size - 15} more processes",
+                                style = LoaMonoTextStyle,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 8.dp, start = 4.dp)
+                            )
+                        }
                     }
                 }
             }
         }
     }
 
-    // Kill Process Confirmation Alert Dialog
-    if (processToKill != null) {
-        val proc = processToKill!!
+    processToKill?.let { proc ->
         AlertDialog(
             onDismissRequest = { processToKill = null },
             icon = {
                 Icon(
-                    Icons.Default.Warning,
+                    imageVector = Icons.Rounded.Warning,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(28.dp)
+                    tint = MaterialTheme.colorScheme.error
                 )
             },
             title = {
@@ -228,18 +237,15 @@ fun ActiveProcessTableCard(
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Are you sure you want to terminate:")
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Process: ${proc.name}", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text("PID: ${proc.pid} • User: ${proc.user} • RAM: ${proc.rssMb} MB", fontSize = 12.sp, fontFamily = FontFamily.Monospace)
-                        }
-                    }
-                    Text("This sends SIGKILL (kill -9) directly to the process.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = "Terminate ${proc.name} with SIGKILL (kill -9)?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "PID ${proc.pid} | ${proc.user} | ${proc.rssMb} MB",
+                        style = LoaMonoTextStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             },
             confirmButton = {
@@ -248,7 +254,10 @@ fun ActiveProcessTableCard(
                         onKillProcess(proc.pid)
                         processToKill = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    )
                 ) {
                     Text("Kill Process")
                 }
@@ -267,84 +276,78 @@ private fun ProcessRowItem(
     proc: ContainerProcessInfo,
     onKillClick: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 1.dp
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // 1. PID & User
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = "${proc.pid}",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
-                )
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = if (proc.user == "root") Color(0xFFEF5350).copy(alpha = 0.15f) else Color(0xFF42A5F5).copy(alpha = 0.15f)
-                ) {
-                    Text(
-                        text = proc.user,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (proc.user == "root") Color(0xFFD32F2F) else Color(0xFF1976D2),
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                    )
-                }
-            }
-
-            // 2. Process Name & Cmdline
-            Column(modifier = Modifier.weight(2.2f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = proc.name,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1
-                )
-                Text(
-                    text = proc.cmdline.take(35),
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontFamily = FontFamily.Monospace,
-                    maxLines = 1
-                )
-            }
-
-            // 3. RAM (MB) - End aligned with header
             Text(
-                text = "${proc.rssMb} MB",
-                fontSize = 11.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                textAlign = androidx.compose.ui.text.style.TextAlign.End,
-                modifier = Modifier.weight(1.2f).padding(end = 12.dp)
+                text = "${proc.pid}",
+                style = LoaMonoTextStyle,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
+            Text(
+                text = proc.user,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (proc.user == "root") {
+                    MaterialTheme.colorScheme.tertiary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
 
-            // 4. 1-Tap Kill Button centered in 48.dp action column
-            Box(modifier = Modifier.width(48.dp), contentAlignment = Alignment.Center) {
-                FilledIconButton(
-                    onClick = onKillClick,
-                    modifier = Modifier.size(28.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Kill process ${proc.name}",
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
+        Column(
+            modifier = Modifier.weight(2.2f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = proc.name,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = proc.cmdline,
+                style = LoaMonoTextStyle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Text(
+            text = "${proc.rssMb} MB",
+            style = LoaMonoTextStyle,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1.1f)
+                .padding(end = 8.dp)
+        )
+
+        Box(
+            modifier = Modifier.width(48.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            IconButton(onClick = onKillClick) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = "Kill ${proc.name} PID ${proc.pid}",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     }

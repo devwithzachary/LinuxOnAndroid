@@ -348,7 +348,7 @@ fun MainAppContent(viewModel: MainViewModel) {
 
                     val screenHandlesTopInsets = isTerminal ||
                         (isDesktop && isDesktopRunning) ||
-                        (currentScreen == AppScreen.DASHBOARD && selectedContainerTarget == null)
+                        currentScreen == AppScreen.DASHBOARD
                     val topContentPadding = if (screenHandlesTopInsets) 0.dp else innerPadding.calculateTopPadding()
                     Surface(
                         modifier = Modifier

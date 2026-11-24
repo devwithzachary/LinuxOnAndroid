@@ -1,27 +1,62 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.container.tabs
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.DesktopWindows
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Terminal
+import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
 import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
 import com.devwithzachary.completelinuxinstaller.ui.components.ActiveProcessTableCard
 import com.devwithzachary.completelinuxinstaller.ui.components.DashboardGaugesCard
 import com.devwithzachary.completelinuxinstaller.ui.components.NetworkListenerCard
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaHeroContainer
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaMonospaceChip
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSectionHeader
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedGroup
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedRow
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusBadge
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusTone
 import com.devwithzachary.completelinuxinstaller.ui.util.handHover
 import com.devwithzachary.completelinuxinstaller.ui.util.rememberWindowSizeClass
+import java.util.Locale
 
 @Composable
 fun OverviewTabContent(
@@ -33,38 +68,101 @@ fun OverviewTabContent(
     isSshInstalled: Boolean,
     isCodeServerInstalled: Boolean,
     isWebTerminalInstalled: Boolean,
+    onOpenTerminal: () -> Unit = {},
     onKillProcess: (pid: Int) -> Unit,
     onRunPresetCommand: (command: String) -> Unit,
     onNavigateToSoftwareTab: () -> Unit,
     onRefreshMetrics: () -> Unit = {}
 ) {
-    val scrollState = rememberScrollState()
     val windowSizeClass = rememberWindowSizeClass()
     var servicePrompt by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     if (windowSizeClass.isExpanded) {
-        // 2-Column Responsive Overview for Tablets & Desktop Mode
-        Row(
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Row(
+                modifier = Modifier
+                    .widthIn(max = 1200.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OverviewHeroSection(
+                        container = container,
+                        metrics = metrics,
+                        onOpenTerminal = onOpenTerminal
+                    )
+
+                    DashboardGaugesCard(
+                        metrics = metrics.copy(storageUsedMb = container.storageUsedMb)
+                    )
+
+                    ServicesSegmentedSection(
+                        container = container,
+                        isVncInstalled = isVncInstalled,
+                        isNginxInstalled = isNginxInstalled,
+                        isSshInstalled = isSshInstalled,
+                        isCodeServerInstalled = isCodeServerInstalled,
+                        isWebTerminalInstalled = isWebTerminalInstalled,
+                        sshPort = sshPort,
+                        onRunPresetCommand = onRunPresetCommand,
+                        onPromptService = { title, pkgId -> servicePrompt = Pair(title, pkgId) }
+                    )
+                }
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    ActiveProcessTableCard(
+                        processes = metrics.processes,
+                        onKillProcess = onKillProcess
+                    )
+
+                    NetworkListenerCard(
+                        ports = metrics.listeningPorts,
+                        onRefresh = onRefreshMetrics
+                    )
+                }
+            }
+        }
+    } else {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .verticalScroll(rememberScrollState()),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // Left Column: Gauges, Services Launcher, Listening Ports
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
+                    .widthIn(max = 640.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Live System Resources & Gauges Card
+                OverviewHeroSection(
+                    container = container,
+                    metrics = metrics,
+                    onOpenTerminal = onOpenTerminal
+                )
+
                 DashboardGaugesCard(
                     metrics = metrics.copy(storageUsedMb = container.storageUsedMb)
                 )
 
-                // 2. One-Touch Container Services
-                ServicesCard(
+                ServicesSegmentedSection(
                     container = container,
                     isVncInstalled = isVncInstalled,
                     isNginxInstalled = isNginxInstalled,
@@ -76,76 +174,31 @@ fun OverviewTabContent(
                     onPromptService = { title, pkgId -> servicePrompt = Pair(title, pkgId) }
                 )
 
-                // 3. Open Listening Ports Card
+                ActiveProcessTableCard(
+                    processes = metrics.processes,
+                    onKillProcess = onKillProcess
+                )
+
                 NetworkListenerCard(
                     ports = metrics.listeningPorts,
                     onRefresh = onRefreshMetrics
                 )
             }
-
-            // Right Column: Live Active Container Processes Table
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                ActiveProcessTableCard(
-                    processes = metrics.processes,
-                    onKillProcess = onKillProcess
-                )
-            }
-        }
-    } else {
-        // Compact Single Column for Phones
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // 1. Live System Resources & Gauges Card
-            DashboardGaugesCard(
-                metrics = metrics.copy(storageUsedMb = container.storageUsedMb)
-            )
-
-            // 2. One-Touch Container Services
-            ServicesCard(
-                container = container,
-                isVncInstalled = isVncInstalled,
-                isNginxInstalled = isNginxInstalled,
-                isSshInstalled = isSshInstalled,
-                isCodeServerInstalled = isCodeServerInstalled,
-                isWebTerminalInstalled = isWebTerminalInstalled,
-                sshPort = sshPort,
-                onRunPresetCommand = onRunPresetCommand,
-                onPromptService = { title, pkgId -> servicePrompt = Pair(title, pkgId) }
-            )
-
-            // 3. Live Active Container Processes Table (`ps aux`)
-            ActiveProcessTableCard(
-                processes = metrics.processes,
-                onKillProcess = onKillProcess
-            )
-
-            // 4. Open Listening Ports Card
-            NetworkListenerCard(
-                ports = metrics.listeningPorts,
-                onRefresh = onRefreshMetrics
-            )
         }
     }
 
-    if (servicePrompt != null) {
-        val (serviceTitle, _) = servicePrompt!!
+    servicePrompt?.let { (serviceTitle, _) ->
         AlertDialog(
             onDismissRequest = { servicePrompt = null },
-            icon = { Icon(Icons.Default.Download, contentDescription = null) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Download,
+                    contentDescription = null
+                )
+            },
             title = { Text("Service Not Installed") },
             text = {
-                Text("$serviceTitle is not installed in ${container.name}.\n\nWould you like to open the Software tab to install it?")
+                Text("$serviceTitle is not installed in ${container.name}. Open the Software tab to install it?")
             },
             confirmButton = {
                 Button(
@@ -166,8 +219,90 @@ fun OverviewTabContent(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ServicesCard(
+private fun OverviewHeroSection(
+    container: ContainerInstance,
+    metrics: SystemResourceMetrics,
+    onOpenTerminal: () -> Unit
+) {
+    val isRunning = metrics.isSessionRunning || metrics.processes.isNotEmpty()
+
+    LoaHeroContainer {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = container.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = container.distroName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            LoaStatusBadge(
+                label = if (isRunning) "Running" else "Stopped",
+                tone = if (isRunning) LoaStatusTone.Running else LoaStatusTone.Stopped
+            )
+        }
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            LoaMonospaceChip(text = "${metrics.containerMemoryUsedMb} MB RAM")
+            LoaMonospaceChip(text = "${formatStorageSize(container.storageUsedMb)} disk")
+            LoaMonospaceChip(text = if (metrics.processes.isNotEmpty()) "${metrics.processes.size} proc" else "idle")
+            LoaMonospaceChip(text = container.defaultUser)
+        }
+
+        Button(
+            onClick = onOpenTerminal,
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .fillMaxWidth()
+                .handHover(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Terminal,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Open Terminal",
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+private data class ContainerServiceEntry(
+    val id: String,
+    val title: String,
+    val promptTitle: String,
+    val endpoint: String,
+    val icon: ImageVector,
+    val isInstalled: Boolean
+)
+
+@Composable
+private fun ServicesSegmentedSection(
     container: ContainerInstance,
     isVncInstalled: Boolean,
     isNginxInstalled: Boolean,
@@ -178,190 +313,112 @@ fun ServicesCard(
     onRunPresetCommand: (command: String) -> Unit,
     onPromptService: (title: String, pkgId: String) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+    val services = remember(
+        isVncInstalled,
+        isNginxInstalled,
+        isSshInstalled,
+        isCodeServerInstalled,
+        isWebTerminalInstalled,
+        sshPort
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.RocketLaunch,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Container Services & Launchers",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Text(
-                text = "Launch background servers and graphical desktop sessions inside this rootfs container.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        listOf(
+            ContainerServiceEntry(
+                id = "xfce_desktop",
+                title = "VNC Desktop",
+                promptTitle = "TigerVNC & XFCE Desktop",
+                endpoint = ":5901",
+                icon = Icons.Rounded.DesktopWindows,
+                isInstalled = isVncInstalled
+            ),
+            ContainerServiceEntry(
+                id = "nginx_web",
+                title = "NGINX Web Server",
+                promptTitle = "NGINX Web Server",
+                endpoint = ":80",
+                icon = Icons.Rounded.Public,
+                isInstalled = isNginxInstalled
+            ),
+            ContainerServiceEntry(
+                id = "openssh_server",
+                title = "OpenSSH Server",
+                promptTitle = "OpenSSH Server",
+                endpoint = ":$sshPort",
+                icon = Icons.Rounded.VpnKey,
+                isInstalled = isSshInstalled
+            ),
+            ContainerServiceEntry(
+                id = "code_server",
+                title = "VS Code Server",
+                promptTitle = "VS Code Server (code-server)",
+                endpoint = ":8080",
+                icon = Icons.Rounded.Code,
+                isInstalled = isCodeServerInstalled
+            ),
+            ContainerServiceEntry(
+                id = "web_terminal",
+                title = "Web Terminal",
+                promptTitle = "Browser Web Terminal (ttyd)",
+                endpoint = ":7681",
+                icon = Icons.Rounded.Terminal,
+                isInstalled = isWebTerminalInstalled
             )
+        )
+    }
 
-            // Row 1: Classic Daemons & Desktop GUI
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // VNC Launcher
-                ServiceLauncherButton(
-                    icon = Icons.Default.DesktopWindows,
-                    label = "VNC",
-                    isInstalled = isVncInstalled,
-                    modifier = Modifier.weight(1f).handHover(),
-                    onClick = {
-                        if (isVncInstalled) {
-                            val vncPkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "xfce_desktop" }
-                            vncPkg?.launchCommand?.let { onRunPresetCommand(it) }
-                        } else {
-                            onPromptService("TigerVNC & XFCE Desktop", "xfce_desktop")
-                        }
-                    }
-                )
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        LoaSectionHeader(title = "Services")
 
-                // NGINX Launcher
-                ServiceLauncherButton(
-                    icon = Icons.Default.Public,
-                    label = "NGINX",
-                    isInstalled = isNginxInstalled,
-                    modifier = Modifier.weight(1f).handHover(),
-                    onClick = {
-                        if (isNginxInstalled) {
-                            val nginxPkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "nginx_web" }
-                            nginxPkg?.launchCommand?.let { onRunPresetCommand(it) }
-                        } else {
-                            onPromptService("NGINX Web Server", "nginx_web")
-                        }
+        LoaSegmentedGroup {
+            services.forEach { service ->
+                val triggerLaunch: () -> Unit = {
+                    if (service.isInstalled) {
+                        val pkg = SoftwarePackage.getPresetsForContainer(container, sshPort)
+                            .find { it.id == service.id }
+                        pkg?.launchCommand?.let { onRunPresetCommand(it) }
+                    } else {
+                        onPromptService(service.promptTitle, service.id)
                     }
-                )
+                }
 
-                // SSH Launcher
-                ServiceLauncherButton(
-                    icon = Icons.Default.VpnKey,
-                    label = "SSH",
-                    isInstalled = isSshInstalled,
-                    modifier = Modifier.weight(1f).handHover(),
-                    onClick = {
-                        if (isSshInstalled) {
-                            val sshPkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "openssh_server" }
-                            sshPkg?.launchCommand?.let { onRunPresetCommand(it) }
-                        } else {
-                            onPromptService("OpenSSH Server", "openssh_server")
+                item { shape ->
+                    LoaSegmentedRow(
+                        title = service.title,
+                        subtitle = service.endpoint,
+                        leadingIcon = service.icon,
+                        shape = shape,
+                        onClick = triggerLaunch,
+                        trailingContent = {
+                            if (service.isInstalled) {
+                                FilledTonalButton(
+                                    onClick = triggerLaunch,
+                                    modifier = Modifier.handHover()
+                                ) {
+                                    Text("Start")
+                                }
+                            } else {
+                                TextButton(
+                                    onClick = triggerLaunch,
+                                    modifier = Modifier.handHover()
+                                ) {
+                                    Text("Install")
+                                }
+                            }
                         }
-                    }
-                )
-            }
-
-            // Row 2: Browser Workspaces
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // VS Code Launcher
-                ServiceLauncherButton(
-                    icon = Icons.Default.Code,
-                    label = "VS Code",
-                    isInstalled = isCodeServerInstalled,
-                    modifier = Modifier.weight(1f).handHover(),
-                    onClick = {
-                        if (isCodeServerInstalled) {
-                            val codePkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "code_server" }
-                            codePkg?.launchCommand?.let { onRunPresetCommand(it) }
-                        } else {
-                            onPromptService("VS Code Server (code-server)", "code_server")
-                        }
-                    }
-                )
-
-                // Web Terminal Launcher
-                ServiceLauncherButton(
-                    icon = Icons.Default.Terminal,
-                    label = "Web Terminal",
-                    isInstalled = isWebTerminalInstalled,
-                    modifier = Modifier.weight(1f).handHover(),
-                    onClick = {
-                        if (isWebTerminalInstalled) {
-                            val ttydPkg = SoftwarePackage.getPresetsForContainer(container, sshPort).find { it.id == "web_terminal" }
-                            ttydPkg?.launchCommand?.let { onRunPresetCommand(it) }
-                        } else {
-                            onPromptService("Browser Web Terminal (ttyd)", "web_terminal")
-                        }
-                    }
-                )
+                    )
+                }
             }
         }
     }
 }
 
-@Composable
-fun ServiceLauncherButton(
-    icon: ImageVector,
-    label: String,
-    isInstalled: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    if (isInstalled) {
-        FilledTonalButton(
-            onClick = onClick,
-            modifier = modifier,
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(10.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = label,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    softWrap = false
-                )
-            }
-        }
+private fun formatStorageSize(mb: Long): String {
+    return if (mb >= 1024L) {
+        String.format(Locale.US, "%.1f GB", mb / 1024.0)
     } else {
-        OutlinedButton(
-            onClick = onClick,
-            modifier = modifier,
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-            shape = RoundedCornerShape(10.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = label,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    softWrap = false,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
-            }
-        }
+        "$mb MB"
     }
 }
 
@@ -393,4 +450,3 @@ fun ContainerDetailOverviewTab(
     onNavigateToSoftwareTab = onNavigateToSoftwareTab,
     onRefreshMetrics = onRefreshMetrics
 )
-
