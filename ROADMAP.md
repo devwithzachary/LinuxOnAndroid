@@ -35,7 +35,6 @@ The primary goal of **v1.9.0** is transforming the current 1-Click Software tab 
   3. Run `launchCommand` smoke check (for service packages)
   4. Run `uninstallCommand` -> assert exit code `0` and verify target binaries are removed
 - Add unit tests verifying every `DistroDefinition` provides valid install, uninstall, and verification metadata for every catalog package (no silent missing mappings).
-- Add a GitHub Actions CI workflow (`.github/workflows/ci.yml`) to run unit tests and lint checks on every PR and release branch.
 
 ---
 
@@ -89,4 +88,5 @@ Focused on unlocking hardware-accelerated graphics and x86_64/Windows gaming wor
 - **Android 15/16+ Compatibility**: Keep PRoot (`libproot.so`), SELinux shims, and 16 KB page-size native library support up to date with new Android releases.
 - **Distro Base Updates**: Keep upstream rootfs URLs, GPG keys, and package recipes current as Ubuntu, Fedora, Alpine, Debian, Arch, Kali, and Void publish new releases.
 - **Community & Localization**: Expand translations (building on existing community locales) and keep automated distro/package verification green before every release.
+- **CI Automation**: Add a GitHub Actions CI workflow (`.github/workflows/ci.yml`) to run unit tests and lint checks on every PR and release branch.
 

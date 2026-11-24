@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.engine.DownloadState
 import com.devwithzachary.completelinuxinstaller.engine.DiagnosticsManager
 import com.devwithzachary.completelinuxinstaller.engine.GitHubRelease
@@ -145,6 +146,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun checkForGitHubUpdates(manual: Boolean = false) {
+        if (BuildConfig.IS_PLAY_STORE) return
         viewModelScope.launch {
             _isCheckingForUpdates.value = true
             try {
@@ -542,10 +544,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     )
 
                     // Check for GitHub updates in background (throttled to once every 24h)
-                    viewModelScope.launch {
-                        kotlinx.coroutines.delay(1500)
-                        if (gitHubReleaseManager.isUpdateCheckEnabled()) {
-                            checkForGitHubUpdates(manual = false)
+                    if (!BuildConfig.IS_PLAY_STORE) {
+                        viewModelScope.launch {
+                            kotlinx.coroutines.delay(1500)
+                            if (gitHubReleaseManager.isUpdateCheckEnabled()) {
+                                checkForGitHubUpdates(manual = false)
+                            }
                         }
                     }
                 }

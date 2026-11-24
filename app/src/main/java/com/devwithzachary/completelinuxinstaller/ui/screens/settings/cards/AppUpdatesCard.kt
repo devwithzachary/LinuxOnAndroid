@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
 import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaProgressRing
@@ -62,66 +63,68 @@ fun AppUpdatesCard(
         LoaSectionHeader(title = "Updates")
 
         LoaSegmentedGroup {
-            row(
-                title = updatesTitle,
-                subtitle = if (isGitHubUpdateCheckEnabled) {
-                    "Automatic startup & background release checks active"
-                } else {
-                    "Automatic release checks disabled"
-                },
-                leadingIcon = Icons.Rounded.NotificationsActive,
-                trailingContent = {
-                    Switch(
-                        checked = isGitHubUpdateCheckEnabled,
-                        onCheckedChange = onSetGitHubUpdateCheckEnabled
-                    )
-                },
-                onClick = { onSetGitHubUpdateCheckEnabled(!isGitHubUpdateCheckEnabled) }
-            )
+            if (!BuildConfig.IS_PLAY_STORE) {
+                row(
+                    title = updatesTitle,
+                    subtitle = if (isGitHubUpdateCheckEnabled) {
+                        "Automatic startup & background release checks active"
+                    } else {
+                        "Automatic release checks disabled"
+                    },
+                    leadingIcon = Icons.Rounded.NotificationsActive,
+                    trailingContent = {
+                        Switch(
+                            checked = isGitHubUpdateCheckEnabled,
+                            onCheckedChange = onSetGitHubUpdateCheckEnabled
+                        )
+                    },
+                    onClick = { onSetGitHubUpdateCheckEnabled(!isGitHubUpdateCheckEnabled) }
+                )
 
-            row(
-                title = checkUpdatesTitle,
-                subtitle = checkSubtitle,
-                leadingIcon = Icons.Rounded.SystemUpdate,
-                enabled = !isCheckingForUpdates,
-                trailingContent = {
-                    when {
-                        isCheckingForUpdates -> {
-                            LoaProgressRing(
-                                progress = null,
-                                size = 24.dp,
-                                strokeWidth = 3.dp
-                            )
+                row(
+                    title = checkUpdatesTitle,
+                    subtitle = checkSubtitle,
+                    leadingIcon = Icons.Rounded.SystemUpdate,
+                    enabled = !isCheckingForUpdates,
+                    trailingContent = {
+                        when {
+                            isCheckingForUpdates -> {
+                                LoaProgressRing(
+                                    progress = null,
+                                    size = 24.dp,
+                                    strokeWidth = 3.dp
+                                )
+                            }
+                            updateCheckResult is UpdateCheckResult.UpdateAvailable -> {
+                                LoaStatusBadge(
+                                    label = updateCheckResult.release.tagName,
+                                    tone = LoaStatusTone.Downloading
+                                )
+                            }
+                            updateCheckResult is UpdateCheckResult.UpToDate -> {
+                                LoaStatusBadge(
+                                    label = "Up to Date",
+                                    tone = LoaStatusTone.Running
+                                )
+                            }
+                            updateCheckResult is UpdateCheckResult.Error -> {
+                                LoaStatusBadge(
+                                    label = "Error",
+                                    tone = LoaStatusTone.Error
+                                )
+                            }
+                            else -> {
+                                Icon(
+                                    imageVector = Icons.Rounded.ChevronRight,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                        updateCheckResult is UpdateCheckResult.UpdateAvailable -> {
-                            LoaStatusBadge(
-                                label = updateCheckResult.release.tagName,
-                                tone = LoaStatusTone.Downloading
-                            )
-                        }
-                        updateCheckResult is UpdateCheckResult.UpToDate -> {
-                            LoaStatusBadge(
-                                label = "Up to Date",
-                                tone = LoaStatusTone.Running
-                            )
-                        }
-                        updateCheckResult is UpdateCheckResult.Error -> {
-                            LoaStatusBadge(
-                                label = "Error",
-                                tone = LoaStatusTone.Error
-                            )
-                        }
-                        else -> {
-                            Icon(
-                                imageVector = Icons.Rounded.ChevronRight,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                onClick = onCheckForUpdatesClick
-            )
+                    },
+                    onClick = onCheckForUpdatesClick
+                )
+            }
 
             row(
                 title = "Show What's New on Update",

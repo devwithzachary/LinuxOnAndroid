@@ -28,10 +28,10 @@ Install, run, and switch between multiple independent Linux distributions:
 • Viewport resizing preserving cursor and prompt on software keyboard resize.
 • Custom font families (JetBrains Mono, Ubuntu Mono) and 16-color ANSI themes.
 
-🖥️ FULL GRAPHICAL DESKTOP (XFCE4 & VNC)
+🖥️ FULL GRAPHICAL DESKTOP (XFCE4 & BUILT-IN VNC)
 • Install a complete XFCE 4 Desktop Environment in one tap.
-• Built-in TigerVNC server with 1-touch launch guidance.
-• Connect via any Android VNC viewer app or external monitor for a windowed desktop PC experience on mobile.
+• Built-in native VNC viewer with touch & trackpad modes, pinch-to-zoom, Linux hotkeys ribbon, and automatic screen-space resolution.
+• Also supports connecting from external Android VNC viewer apps or external monitors for a windowed desktop PC experience.
 
 🎛️ MULTI-CONTAINER DASHBOARD & SYSTEM MONITOR
 • Manage multiple containers side-by-side with per-container storage tracking.

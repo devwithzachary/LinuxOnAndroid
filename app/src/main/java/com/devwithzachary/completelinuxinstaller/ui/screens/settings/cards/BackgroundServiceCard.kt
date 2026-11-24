@@ -49,11 +49,14 @@ fun BackgroundServiceCard(
     val needsNotificationPermission = !isInspection && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     var isNotifGranted by remember {
         mutableStateOf(
-            if (!needsNotificationPermission) true
-            else ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
+            if (isInspection || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                true
+            } else {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            }
         )
     }
     val notifLauncher = rememberLauncherForActivityResult(

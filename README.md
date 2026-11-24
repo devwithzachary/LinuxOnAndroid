@@ -10,7 +10,7 @@
     <a href="https://play.google.com/store/apps/details?id=com.devwithzachary.completelinuxinstaller"><img src="https://img.shields.io/badge/Google%20Play-Download-brightgreen.svg?logo=googleplay" alt="Google Play Store" /></a>
     <a href="https://play.google.com/apps/testing/com.devwithzachary.completelinuxinstaller"><img src="https://img.shields.io/badge/Google%20Play-Open%20Beta-blue.svg?logo=googleplay" alt="Google Play Open Testing" /></a>
     <a href="https://discord.gg/QdT9yCrKmV"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2.svg?logo=discord&logoColor=white" alt="Discord Community" /></a>
-    <a href="https://developer.android.com/about/versions/marshmallow"><img src="https://img.shields.io/badge/Min%20SDK-23%20%28Android%206.0%2B%29-brightgreen.svg" alt="Android MinSDK" /></a>
+    <a href="https://developer.android.com/about/versions/nougat"><img src="https://img.shields.io/badge/Min%20SDK-24%20%28Android%207.0%2B%29-brightgreen.svg" alt="Android MinSDK" /></a>
     <a href="https://kotlinlang.org/"><img src="https://img.shields.io/badge/Language-Kotlin-blue.svg" alt="Kotlin" /></a>
     <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Jetpack%20Compose%20Material3-purple.svg" alt="UI Framework" /></a>
     <a href="#multi-architecture-support"><img src="https://img.shields.io/badge/Architecture-ARM64%20%7C%20x86__64%20%7C%20ARMv7-orange.svg" alt="Architecture" /></a>
@@ -44,23 +44,32 @@ Powered by a native **PRoot** user-space engine, a multi-session **POSIX PTY ter
         <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/2_terminal.png" width="100%" alt="Terminal" /><br />
         <b>Multi-Tab Terminal & Hotkeys</b>
       </td>
+    <tr>
       <td align="center" width="33%">
-        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_container_overview.png" width="100%" alt="Container Overview" /><br />
-        <b>Container Overview & Service Controls</b>
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/3_desktop.png" width="100%" alt="Built-in Graphical Desktop" /><br />
+        <b>Built-in Graphical Desktop</b>
+      </td>
+      <td align="center" width="33%">
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_software_hub.png" width="100%" alt="Software Center" /><br />
+        <b>1-Click Software Center</b>
+      </td>
+      <td align="center" width="33%">
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_container_overview.png" width="100%" alt="Container Overview" /><br />
+        <b>Container Overview &amp; Monitor</b>
       </td>
     </tr>
     <tr>
       <td align="center" width="33%">
-        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4_software_hub.png" width="100%" alt="Software Hub" /><br />
-        <b>1-Click Software Hub</b>
-      </td>
-      <td align="center" width="33%">
-        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/5_distro_wizard.png" width="100%" alt="Distro Setup Wizard" /><br />
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_distro_wizard.png" width="100%" alt="Distro Setup Wizard" /><br />
         <b>Distro Setup Wizard</b>
       </td>
       <td align="center" width="33%">
-        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/6_welcome_onboarding.png" width="100%" alt="Welcome & Onboarding" /><br />
-        <b>Architecture & Onboarding</b>
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/7_settings_themes.png" width="100%" alt="Appearance &amp; Themes" /><br />
+        <b>Material 3 &amp; Terminal Themes</b>
+      </td>
+      <td align="center" width="33%">
+        <img src="fastlane/metadata/android/en-US/images/phoneScreenshots/8_welcome_onboarding.png" width="100%" alt="Welcome &amp; Onboarding" /><br />
+        <b>Architecture &amp; Onboarding</b>
       </td>
     </tr>
   </table>
@@ -177,6 +186,7 @@ Complete Linux Installer provisions environments using official root filesystem 
 | **talloc (`libtalloc.so`)** | Hierarchical pool-based memory allocator developed by the Samba project, required by PRoot. | [Samba talloc](https://talloc.samba.org/) / [LGPL-3.0](https://www.gnu.org/licenses/lgpl-3.0.html) |
 | **Termux Project** | Architectural references for PRoot execution and PTY subprocess management on Android. | [Termux](https://github.com/termux) / [GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html) |
 | **JetBrains Mono** | Bundled monospace font used in the terminal renderer. | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) / [SIL OFL 1.1](licenses/fonts/JetBrainsMono-OFL-1.1.txt) |
+| **Plus Jakarta Sans** | Bundled geometric sans-serif font used for UI display headlines. | [tokotype/PlusJakartaSans](https://github.com/tokotype/PlusJakartaSans) / [SIL OFL 1.1](licenses/fonts/PlusJakartaSans-OFL-1.1.txt) |
 | **Ubuntu Mono** | Bundled monospace font option for the terminal. | [Ubuntu Font Family](https://design.ubuntu.com/font/) / [Ubuntu Font Licence](licenses/fonts/UbuntuFontLicence.txt) |
 
 ---

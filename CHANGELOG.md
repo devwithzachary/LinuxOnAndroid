@@ -2,7 +2,7 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
-## [1.9.0] - In Development
+## [1.9.0] - 2026-11-24
 
 ### ✨ New Features
 - **Material 3 Expressive UI Redesign & Themes**: Redesigned every screen across the app (Dashboard, Container Overview, Software Center, Container Settings, Setup Wizard, Desktop, Terminal header/tabs/extra keys, Settings, About, Welcome, and What's New) with unified tonal surfaces, segmented lists, concentric progress rings, Plus Jakarta Sans headlines, JetBrains Mono technical chips, `ModalBottomSheet` dialogs, and rounded Material icons. Added persistent **App Theme** (`System`, `Light`, `Dark`) and **Dynamic Color** (`Material You` vs `LinuxOnAndroid Classic` palette) toggles in Settings, plus a new warm `LinuxOnAndroid` default terminal color theme.
@@ -30,6 +30,7 @@ All notable changes to the LinuxOnAndroid project will be documented in this fil
 - **Debian/Ubuntu `systemd-sysusers` Account Creation Fix**: Removed the legacy `/usr/bin/systemd-sysusers` no-op stub (and auto-cleaned it on existing containers) so Debian/Ubuntu `postinst` scripts such as `polkitd` and `synaptic` fall back to `adduser`/`addgroup` and configure cleanly.
 - **Android 12+ Phantom Process Killer Mitigation**: Trimmed unneeded XFCE/D-Bus background daemons (`gvfs*`, `localsearch-3`, `tumblerd`, `xdg-desktop-portal*`, `at-spi-bus-launcher`, `ssh-agent`, `gpg-agent`), added orphaned desktop process cleanup between sessions, and replaced `"Unknown VNC connection error"` on `EOFException` with an actionable explanation.
 - **TigerVNC Binary Fallback**: Added `Xtigervnc` fallback detection in `vncserver` and desktop installation checks for Debian, Ubuntu, and Kali.
+- **Minimum Android Version (API 24 / Android 7.0)**: Raised minimum supported SDK from Android 6.0 (API 23) to Android 7.0 (API 24) to support the latest Jetpack Compose Material 3 libraries.
 
 ## [1.8.2] - 2026-11-12
 

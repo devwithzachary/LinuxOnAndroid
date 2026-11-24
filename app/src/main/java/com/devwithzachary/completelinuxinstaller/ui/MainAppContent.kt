@@ -16,8 +16,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
+import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
+import com.devwithzachary.completelinuxinstaller.ui.components.GitHubUpdateDialog
 import com.devwithzachary.completelinuxinstaller.ui.screens.about.AboutScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.container.DeletingContainerScreen
@@ -63,6 +66,7 @@ fun MainAppContent(viewModel: MainViewModel) {
     val systemMetrics by viewModel.systemMetrics.collectAsStateWithLifecycle()
     val containerMetrics by viewModel.containerMetrics.collectAsStateWithLifecycle()
     val isDesktopRunning by viewModel.isDesktopRunning.collectAsStateWithLifecycle()
+    val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
 
     val isInitializing = dashboardState.isInitializing
     val isInstalled = dashboardState.isInstalled
@@ -92,7 +96,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                     hasEvaluatedWhatsNew = true
                     currentScreen = AppScreen.WIZARD
                 }
-            } else if (currentScreen == AppScreen.SPLASH || currentScreen == AppScreen.WELCOME || currentScreen == AppScreen.WIZARD) {
+            } else if (currentScreen == AppScreen.SPLASH) {
                 if (!hasEvaluatedWhatsNew) {
                     hasEvaluatedWhatsNew = true
                     if (isInstalled && viewModel.shouldAutoShowWhatsNew()) {
@@ -618,7 +622,6 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val isKeepScreenOnEnabled by viewModel.isKeepScreenOnEnabled.collectAsState()
                         val isGitHubUpdateCheckEnabled by viewModel.isGitHubUpdateCheckEnabled.collectAsStateWithLifecycle()
                         val isCheckingForUpdates by viewModel.isCheckingForUpdates.collectAsStateWithLifecycle()
-                        val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
                         val isShowWhatsNewOnUpdateEnabled by viewModel.isShowWhatsNewOnUpdateEnabled.collectAsStateWithLifecycle()
                         SettingsScreen(
                             state = dashboardState,
@@ -656,7 +659,6 @@ fun MainAppContent(viewModel: MainViewModel) {
 
                     AppScreen.ABOUT -> {
                         val isCheckingForUpdates by viewModel.isCheckingForUpdates.collectAsStateWithLifecycle()
-                        val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
                         AboutScreen(
                             onCheckForUpdatesClick = { viewModel.checkForGitHubUpdates(manual = true) },
                             isCheckingForUpdates = isCheckingForUpdates,
@@ -679,6 +681,24 @@ fun MainAppContent(viewModel: MainViewModel) {
                         )
                     }
                 }
+            }
+        }
+
+        if (!BuildConfig.IS_PLAY_STORE) {
+            val availableUpdate = updateCheckResult as? UpdateCheckResult.UpdateAvailable
+            if (availableUpdate != null) {
+                GitHubUpdateDialog(
+                    release = availableUpdate.release,
+                    currentVersion = availableUpdate.currentVersion,
+                    onDismiss = { viewModel.clearUpdateCheckResult() },
+                    onRemindLater = {
+                        viewModel.dismissGitHubUpdate(
+                            dontAskAgain = false,
+                            releaseTag = availableUpdate.release.tagName
+                        )
+                    },
+                    onDontAskAgain = { viewModel.dismissGitHubUpdate(dontAskAgain = true) }
+                )
             }
         }
     }

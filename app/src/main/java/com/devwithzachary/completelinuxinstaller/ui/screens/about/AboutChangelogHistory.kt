@@ -22,7 +22,7 @@ data class ReleaseChangelog(
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
         version = "v1.9.0",
-        date = "In Development",
+        date = "November 2026",
         initialExpanded = true,
         highlights = listOf(
             "Material 3 UI Redesign & App Themes: Redesigned all screens with unified tonal surfaces, segmented lists, concentric progress rings, bottom-sheet modals, and refreshed Terminal/Desktop chrome. Added System/Light/Dark theme mode, Material You Dynamic Color vs LinuxOnAndroid Classic palette toggle, and a new warm LinuxOnAndroid default terminal color theme.",
@@ -32,7 +32,8 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
             "Software Center Search & Filters: Added instant search, All/Installed/Available filter chips, plus Apps & Productivity and Creative & Media categories.",
             "1-Click Package Uninstall: Added full uninstall support with service shutdown, confirmation dialog, and live logs for all 1-click packages across all 7 distributions.",
             "Updated Base Images: Upgraded Debian to Debian 13 (Trixie), Fedora to Fedora 45, and Alpine Linux to 3.24.4.",
-            "Desktop & PRoot Stability: Added /dev/shm bind mount for Electron/Chromium apps, fixed Debian/Ubuntu systemd-sysusers account creation for polkitd/synaptic, added Xtigervnc detection, and reduced background XFCE daemons to prevent Android Phantom Process Killer disconnects."
+            "Desktop & PRoot Stability: Added /dev/shm bind mount for Electron/Chromium apps, fixed Debian/Ubuntu systemd-sysusers account creation for polkitd/synaptic, added Xtigervnc detection, and reduced background XFCE daemons to prevent Android Phantom Process Killer disconnects.",
+            "Minimum Android 7.0 (API 24): Raised minimum supported SDK from Android 6.0 to Android 7.0 to support the latest Jetpack Compose Material 3 libraries."
         )
     ),
     ReleaseChangelog(

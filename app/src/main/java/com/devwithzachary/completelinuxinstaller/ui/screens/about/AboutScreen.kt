@@ -229,35 +229,37 @@ fun AboutScreen(
                                 LoaMonospaceChip(text = "DevWithZachary")
                             }
                         )
-                        row(
-                            title = checkUpdatesTitle,
-                            subtitle = upToDateText ?: errorText,
-                            leadingIcon = Icons.Rounded.CloudDownload,
-                            enabled = !isCheckingForUpdates,
-                            trailingContent = {
-                                when {
-                                    isCheckingForUpdates -> LoaProgressRing(
-                                        progress = null,
-                                        size = 20.dp,
-                                        strokeWidth = 3.dp
-                                    )
-                                    updateCheckResult is UpdateCheckResult.UpToDate -> LoaStatusBadge(
-                                        label = "Up to date",
-                                        tone = LoaStatusTone.Running
-                                    )
-                                    updateCheckResult is UpdateCheckResult.Error -> LoaStatusBadge(
-                                        label = "Error",
-                                        tone = LoaStatusTone.Error
-                                    )
-                                    else -> Icon(
-                                        imageVector = Icons.Rounded.ChevronRight,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            },
-                            onClick = onCheckForUpdatesClick
-                        )
+                        if (!BuildConfig.IS_PLAY_STORE) {
+                            row(
+                                title = checkUpdatesTitle,
+                                subtitle = upToDateText ?: errorText,
+                                leadingIcon = Icons.Rounded.CloudDownload,
+                                enabled = !isCheckingForUpdates,
+                                trailingContent = {
+                                    when {
+                                        isCheckingForUpdates -> LoaProgressRing(
+                                            progress = null,
+                                            size = 20.dp,
+                                            strokeWidth = 3.dp
+                                        )
+                                        updateCheckResult is UpdateCheckResult.UpToDate -> LoaStatusBadge(
+                                            label = "Up to date",
+                                            tone = LoaStatusTone.Running
+                                        )
+                                        updateCheckResult is UpdateCheckResult.Error -> LoaStatusBadge(
+                                            label = "Error",
+                                            tone = LoaStatusTone.Error
+                                        )
+                                        else -> Icon(
+                                            imageVector = Icons.Rounded.ChevronRight,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                onClick = onCheckForUpdatesClick
+                            )
+                        }
                         row(
                             title = "App Overview & Architecture",
                             subtitle = "View PRoot user-space virtualization introduction",

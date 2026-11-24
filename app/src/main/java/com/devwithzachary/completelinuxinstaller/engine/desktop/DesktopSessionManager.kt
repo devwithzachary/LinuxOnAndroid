@@ -83,7 +83,7 @@ class DesktopSessionManager(
                             _isDesktopRunning.value = false
                             if (wasRunning) {
                                 vncServerProcess?.let { proc ->
-                                    if (proc.isAlive) proc.destroyForcibly()
+                                    if (isProcessAlive(proc)) terminateProcess(proc)
                                 }
                                 vncServerProcess = null
                                 managerScope.launch(Dispatchers.IO) {
@@ -548,7 +548,7 @@ class DesktopSessionManager(
                         isPortOpen = true
                         break
                     }
-                    if (!proc.isAlive && proc.exitValue() != 0) {
+                    if (!isProcessAlive(proc) && proc.exitValue() != 0) {
                         Log.w(TAG, "PRoot VNC process exited early with failure code: ${proc.exitValue()}")
                         break
                     }
@@ -557,7 +557,7 @@ class DesktopSessionManager(
 
                 if (!isPortOpen) {
                     val recent = synchronized(capturedLogs) { capturedLogs.joinToString("\n") }
-                    val errorDetails = if (!proc.isAlive && proc.exitValue() != 0) {
+                    val errorDetails = if (!isProcessAlive(proc) && proc.exitValue() != 0) {
                         "VNC server exited with code ${proc.exitValue()}.\n$recent"
                     } else {
                         "VNC server did not start on port $DEFAULT_VNC_PORT within 15 seconds.\n$recent"
@@ -596,8 +596,8 @@ class DesktopSessionManager(
                 executeOneShotCommand(container, stopScript, timeoutMs = 5000L)
             }
             vncServerProcess?.let { proc ->
-                if (proc.isAlive) {
-                    proc.destroyForcibly()
+                if (isProcessAlive(proc)) {
+                    terminateProcess(proc)
                 }
             }
             vncServerProcess = null
@@ -699,6 +699,27 @@ class DesktopSessionManager(
             }
         } catch (_: Exception) {
             false
+        }
+    }
+
+    private fun isProcessAlive(proc: Process): Boolean {
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            proc.isAlive
+        } else {
+            try {
+                proc.exitValue()
+                false
+            } catch (_: IllegalThreadStateException) {
+                true
+            }
+        }
+    }
+
+    private fun terminateProcess(proc: Process) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            proc.destroyForcibly()
+        } else {
+            proc.destroy()
         }
     }
 }
