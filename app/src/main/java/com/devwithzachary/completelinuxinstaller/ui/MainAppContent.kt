@@ -3,11 +3,11 @@ package com.devwithzachary.completelinuxinstaller.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DesktopWindows
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.rounded.DesktopWindows
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -157,7 +157,7 @@ fun MainAppContent(viewModel: MainViewModel) {
         ) {
             val isImeVisible = WindowInsets.isImeVisible
             Scaffold(
-                containerColor = if (isDesktop && isDesktopRunning) Color(0xFF0F172A) else MaterialTheme.colorScheme.background,
+                containerColor = if (isDesktop && isDesktopRunning) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.background,
                 contentWindowInsets = if (isTerminal || (isDesktop && isDesktopRunning)) {
                     if (isImeVisible) WindowInsets(0, 0, 0, 0)
                     else WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)
@@ -176,7 +176,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 },
                                 icon = {
                                     Icon(
-                                        Icons.Default.Home,
+                                        Icons.Rounded.Home,
                                         contentDescription = stringResource(R.string.nav_dashboard)
                                     )
                                 },
@@ -187,7 +187,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 onClick = { currentScreen = AppScreen.TERMINAL },
                                 icon = {
                                     Icon(
-                                        Icons.Default.Terminal,
+                                        Icons.Rounded.Terminal,
                                         contentDescription = stringResource(R.string.nav_terminal)
                                     )
                                 },
@@ -200,12 +200,12 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     BadgedBox(
                                         badge = {
                                             if (isDesktopRunning) {
-                                                Badge(containerColor = Color(0xFF4CAF50))
+                                                Badge(containerColor = MaterialTheme.colorScheme.secondary)
                                             }
                                         }
                                     ) {
                                         Icon(
-                                            Icons.Default.DesktopWindows,
+                                            Icons.Rounded.DesktopWindows,
                                             contentDescription = stringResource(R.string.nav_desktop)
                                         )
                                     }
@@ -217,7 +217,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 onClick = { currentScreen = AppScreen.SETTINGS },
                                 icon = {
                                     Icon(
-                                        Icons.Default.Settings,
+                                        Icons.Rounded.Settings,
                                         contentDescription = stringResource(R.string.nav_settings)
                                     )
                                 },
@@ -228,7 +228,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 onClick = { currentScreen = AppScreen.ABOUT },
                                 icon = {
                                     Icon(
-                                        Icons.Default.Info,
+                                        Icons.Rounded.Info,
                                         contentDescription = stringResource(R.string.nav_about)
                                     )
                                 },
@@ -277,7 +277,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 },
                                 icon = {
                                     Icon(
-                                        Icons.Default.Home,
+                                        Icons.Rounded.Home,
                                         contentDescription = stringResource(R.string.nav_dashboard)
                                     )
                                 },
@@ -290,12 +290,12 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     BadgedBox(
                                         badge = {
                                             if (dashboardState.isRunning) {
-                                                Badge(containerColor = Color(0xFF4CAF50))
+                                                Badge(containerColor = MaterialTheme.colorScheme.secondary)
                                             }
                                         }
                                     ) {
                                         Icon(
-                                            Icons.Default.Terminal,
+                                            Icons.Rounded.Terminal,
                                             contentDescription = stringResource(R.string.nav_terminal)
                                         )
                                     }
@@ -309,12 +309,12 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     BadgedBox(
                                         badge = {
                                             if (isDesktopRunning) {
-                                                Badge(containerColor = Color(0xFF4CAF50))
+                                                Badge(containerColor = MaterialTheme.colorScheme.secondary)
                                             }
                                         }
                                     ) {
                                         Icon(
-                                            Icons.Default.DesktopWindows,
+                                            Icons.Rounded.DesktopWindows,
                                             contentDescription = stringResource(R.string.nav_desktop)
                                         )
                                     }
@@ -326,7 +326,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 onClick = { currentScreen = AppScreen.SETTINGS },
                                 icon = {
                                     Icon(
-                                        Icons.Default.Settings,
+                                        Icons.Rounded.Settings,
                                         contentDescription = stringResource(R.string.nav_settings)
                                     )
                                 },
@@ -337,7 +337,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 onClick = { currentScreen = AppScreen.ABOUT },
                                 icon = {
                                     Icon(
-                                        Icons.Default.Info,
+                                        Icons.Rounded.Info,
                                         contentDescription = stringResource(R.string.nav_about)
                                     )
                                 },
@@ -351,6 +351,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                         currentScreen == AppScreen.DASHBOARD ||
                         currentScreen == AppScreen.SETTINGS ||
                         currentScreen == AppScreen.ABOUT ||
+                        currentScreen == AppScreen.WHATS_NEW ||
                         currentScreen == AppScreen.WELCOME ||
                         currentScreen == AppScreen.WIZARD
                     val topContentPadding = if (screenHandlesTopInsets) 0.dp else innerPadding.calculateTopPadding()
@@ -360,7 +361,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                             .fillMaxHeight()
                             .padding(top = topContentPadding)
                             .consumeWindowInsets(PaddingValues(top = topContentPadding)),
-                        color = if (isDesktop && isDesktopRunning) Color(0xFF0F172A) else MaterialTheme.colorScheme.background
+                        color = if (isDesktop && isDesktopRunning) MaterialTheme.colorScheme.surfaceContainerLowest else MaterialTheme.colorScheme.background
                     ) {
                         when (currentScreen) {
                     AppScreen.SPLASH -> {

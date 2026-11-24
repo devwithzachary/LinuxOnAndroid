@@ -502,22 +502,26 @@ fun KeyPillButton(
         MaterialTheme.colorScheme.onSurface
     }
 
-    Button(
+    Surface(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = bgColor,
-            contentColor = textColor
-        ),
+        color = bgColor,
+        contentColor = textColor,
         shape = RoundedCornerShape(6.dp),
-        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
         modifier = modifier.height(32.dp)
     ) {
-        Text(
-            text = label,
-            style = LoaMonoTextStyle.copy(
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
+        Box(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = label,
+                style = LoaMonoTextStyle.copy(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
             )
-        )
+        }
     }
 }

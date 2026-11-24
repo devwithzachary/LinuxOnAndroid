@@ -16,7 +16,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -139,7 +139,7 @@ fun FullTerminalView(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF1E1E1E))
+            .background(terminalBridge.emulator.theme.defaultBg)
     ) {
         val widthPx = with(density) { maxWidth.toPx() }
         val heightPx = with(density) { maxHeight.toPx() }
@@ -682,9 +682,10 @@ fun FullTerminalView(
             ) {
                 Surface(
                     shape = RoundedCornerShape(24.dp),
-                    color = Color(0xFF2D2D2D),
-                    shadowElevation = 8.dp,
-                    tonalElevation = 6.dp
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    shadowElevation = 0.dp,
+                    tonalElevation = 0.dp
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -714,7 +715,7 @@ fun FullTerminalView(
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(
-                                Icons.Default.ContentCopy,
+                                Icons.Rounded.ContentCopy,
                                 contentDescription = "Copy Selection",
                                 modifier = Modifier.size(16.dp)
                             )
@@ -733,13 +734,13 @@ fun FullTerminalView(
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Icon(
-                                Icons.Default.SelectAll,
+                                Icons.Rounded.SelectAll,
                                 contentDescription = "Select All",
                                 modifier = Modifier.size(16.dp),
-                                tint = Color(0xFF90CAF9)
+                                tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Select All", fontSize = 12.sp, color = Color(0xFF90CAF9))
+                            Text("Select All", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                         }
 
                         // Share Selected Text
@@ -762,9 +763,9 @@ fun FullTerminalView(
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                Icons.Default.Share,
+                                Icons.Rounded.Share,
                                 contentDescription = "Share Selection",
-                                tint = Color.LightGray,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -778,9 +779,9 @@ fun FullTerminalView(
                             modifier = Modifier.size(32.dp)
                         ) {
                             Icon(
-                                Icons.Default.Close,
+                                Icons.Rounded.Close,
                                 contentDescription = "Clear Selection",
-                                tint = Color.LightGray,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -795,8 +796,10 @@ fun FullTerminalView(
                         .align(Alignment.BottomEnd)
                         .padding(bottom = 16.dp, end = 16.dp),
                     shape = RoundedCornerShape(20.dp),
-                    color = Color(0xFF007ACC),
-                    shadowElevation = 6.dp
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shadowElevation = 0.dp,
+                    tonalElevation = 0.dp
                 ) {
                     Row(
                         modifier = Modifier
@@ -806,14 +809,14 @@ fun FullTerminalView(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.ArrowDownward,
+                            imageVector = Icons.Rounded.ArrowDownward,
                             contentDescription = "Scroll to Bottom",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(16.dp)
                         )
                         Text(
                             text = "Scroll to Bottom (${terminalBridge.emulator.scrollOffset})",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -840,7 +843,7 @@ fun FullTerminalView(
                     // Copy
                     DropdownMenuItem(
                         text = { Text("Copy") },
-                        leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showContextMenu = false
                             if (hasTextSelected) {
@@ -864,7 +867,7 @@ fun FullTerminalView(
                     DropdownMenuItem(
                         text = { Text("Paste") },
                         enabled = !clipText.isNullOrEmpty(),
-                        leadingIcon = { Icon(Icons.Default.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(Icons.Rounded.ContentPaste, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showContextMenu = false
                             if (!clipText.isNullOrEmpty()) {
@@ -877,7 +880,7 @@ fun FullTerminalView(
                     // Select All
                     DropdownMenuItem(
                         text = { Text("Select All") },
-                        leadingIcon = { Icon(Icons.Default.SelectAll, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(Icons.Rounded.SelectAll, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showContextMenu = false
                             val total = terminalBridge.emulator.totalBufferRows
@@ -888,7 +891,7 @@ fun FullTerminalView(
                     // Clear Screen / Buffer
                     DropdownMenuItem(
                         text = { Text("Clear Buffer") },
-                        leadingIcon = { Icon(Icons.Default.ClearAll, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(Icons.Rounded.ClearAll, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showContextMenu = false
                             terminalBridge.clearTerminal()
@@ -899,7 +902,7 @@ fun FullTerminalView(
                     // Reset Terminal
                     DropdownMenuItem(
                         text = { Text("Reset Terminal") },
-                        leadingIcon = { Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                        leadingIcon = { Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             showContextMenu = false
                             terminalBridge.sendInput("\u001Bc")
