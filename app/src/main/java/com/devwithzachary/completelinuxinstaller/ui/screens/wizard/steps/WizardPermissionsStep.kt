@@ -5,27 +5,30 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.devwithzachary.completelinuxinstaller.model.DistroDefinition
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSectionHeader
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedGroup
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusBadge
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusTone
 
 @Composable
 fun WizardPermissionsStep(
@@ -35,38 +38,19 @@ fun WizardPermissionsStep(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    var isStorageGranted by remember {
-        mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.READ_MEDIA_IMAGES
-                ) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.READ_MEDIA_VIDEO
-                ) == PackageManager.PERMISSION_GRANTED
-            } else {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.READ_EXTERNAL_STORAGE
-                ) == PackageManager.PERMISSION_GRANTED
-            }
-        )
-    }
+    val isInspection = LocalInspectionMode.current
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { _ ->
-        isStorageGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    fun checkStoragePermission(): Boolean {
+        if (isInspection) return false
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.READ_MEDIA_IMAGES
             ) == PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.READ_MEDIA_VIDEO
-            ) == PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_MEDIA_VIDEO
+                ) == PackageManager.PERMISSION_GRANTED
         } else {
             ContextCompat.checkSelfPermission(
                 context,
@@ -75,204 +59,117 @@ fun WizardPermissionsStep(
         }
     }
 
+    var isStorageGranted by remember { mutableStateOf(checkStoragePermission()) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        isStorageGranted = checkStoragePermission()
+    }
+
+    val supportsRuntimeNotif = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    var isNotificationGranted by remember {
+        mutableStateOf(
+            if (isInspection || !supportsRuntimeNotif) true
+            else ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val notificationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        isNotificationGranted = granted
+    }
+
+    val requestStorage: () -> Unit = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO,
+                    Manifest.permission.READ_MEDIA_AUDIO
+                )
+            )
+        } else {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )
+            )
+        }
+    }
+
     Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Icon(
-            imageVector = Icons.Default.Security,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "System Permissions",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                text = "Optional permissions for mounting Android storage and keeping background sessions alive.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
-        Text(
-            text = "Step 3: System Permissions",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LoaSectionHeader(title = "Device Access")
 
-        Text(
-            text = "Configure device permissions to allow file mounting and uninterrupted background execution.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        // Storage Permission Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isStorageGranted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant
-            ),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isStorageGranted) Icons.Default.CheckCircle else Icons.Default.Folder,
-                        contentDescription = null,
-                        tint = if (isStorageGranted) Color(0xFF4CAF50) else MaterialTheme.colorScheme.secondary
-                    )
-                    Text(
-                        text = "Device Storage & SDCard Mount",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                }
-
-                Text(
-                    text = "Linux containers mount /sdcard and Downloads directly. Granting storage access lets container applications read and write your host files.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            LoaSegmentedGroup {
+                row(
+                    title = "Device Storage (/sdcard)",
+                    subtitle = "Allow ${selectedDistro.name} to read and write host files in /sdcard",
+                    leadingIcon = Icons.Rounded.Folder,
+                    trailingContent = {
+                        if (isStorageGranted) {
+                            LoaStatusBadge(
+                                label = "Granted",
+                                tone = LoaStatusTone.Running
+                            )
+                        } else {
+                            FilledTonalButton(onClick = requestStorage) {
+                                Text("Grant")
+                            }
+                        }
+                    },
+                    onClick = if (!isStorageGranted) requestStorage else null
                 )
 
-                if (isStorageGranted) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
-                        Text("Storage Permission Granted", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50), fontSize = 12.sp)
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                permissionLauncher.launch(
-                                    arrayOf(
-                                        Manifest.permission.READ_MEDIA_IMAGES,
-                                        Manifest.permission.READ_MEDIA_VIDEO,
-                                        Manifest.permission.READ_MEDIA_AUDIO
-                                    )
+                if (supportsRuntimeNotif) {
+                    row(
+                        title = "Background Notifications",
+                        subtitle = "Show active terminal and server status in your notification shade",
+                        leadingIcon = Icons.Rounded.Notifications,
+                        trailingContent = {
+                            if (isNotificationGranted) {
+                                LoaStatusBadge(
+                                    label = "Granted",
+                                    tone = LoaStatusTone.Running
                                 )
                             } else {
-                                permissionLauncher.launch(
-                                    arrayOf(
-                                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                    )
-                                )
+                                FilledTonalButton(
+                                    onClick = {
+                                        notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                ) {
+                                    Text("Enable")
+                                }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                    ) {
-                        Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Grant Storage Access")
-                    }
-                }
-            }
-        }
-
-        // Notification Permission Card (Android 13+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            var isNotificationGranted by remember {
-                mutableStateOf(
-                    ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.POST_NOTIFICATIONS
-                    ) == PackageManager.PERMISSION_GRANTED
-                )
-            }
-
-            val notificationLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestPermission()
-            ) { granted ->
-                isNotificationGranted = granted
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isNotificationGranted) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant
-                ),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isNotificationGranted) Icons.Default.CheckCircle else Icons.Default.Notifications,
-                            contentDescription = null,
-                            tint = if (isNotificationGranted) Color(0xFF4CAF50) else MaterialTheme.colorScheme.secondary
-                        )
-                        Text(
-                            text = "Background Execution Notifications",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                    }
-
-                    Text(
-                        text = "Allows the foreground service to show active terminal sessions and servers in your notification shade, preventing process kills.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        onClick = if (!isNotificationGranted) {
+                            { notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
+                        } else {
+                            null
+                        }
                     )
-
-                    if (isNotificationGranted) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
-                            Text("Notification Permission Granted", fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50), fontSize = 12.sp)
-                        }
-                    } else {
-                        Button(
-                            onClick = {
-                                notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
-                        ) {
-                            Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Enable Notifications")
-                        }
-                    }
                 }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = onBack,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Back")
-            }
-
-            Button(
-                onClick = onStartInstall,
-                modifier = Modifier.weight(1.5f),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
-            ) {
-                Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Install")
             }
         }
     }

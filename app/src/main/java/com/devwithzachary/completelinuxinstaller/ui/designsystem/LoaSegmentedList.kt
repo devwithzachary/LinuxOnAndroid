@@ -60,6 +60,7 @@ class LoaSegmentedGroupScope {
         title: String,
         modifier: Modifier = Modifier,
         subtitle: String? = null,
+        subtitleMaxLines: Int = 2,
         leadingIcon: ImageVector? = null,
         trailingContent: (@Composable () -> Unit)? = null,
         containerColor: Color? = null,
@@ -72,6 +73,7 @@ class LoaSegmentedGroupScope {
                 title = title,
                 modifier = modifier,
                 subtitle = subtitle,
+                subtitleMaxLines = subtitleMaxLines,
                 leadingIcon = leadingIcon,
                 trailingContent = trailingContent,
                 shape = shape,
@@ -106,6 +108,7 @@ fun LoaSegmentedRow(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    subtitleMaxLines: Int = 2,
     leadingIcon: ImageVector? = null,
     trailingContent: (@Composable () -> Unit)? = null,
     shape: Shape = LoaSegmentedSingleShape,
@@ -158,7 +161,7 @@ fun LoaSegmentedRow(
                         text = subtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         color = iconColor,
-                        maxLines = 2,
+                        maxLines = subtitleMaxLines,
                         overflow = TextOverflow.Ellipsis
                     )
                 }

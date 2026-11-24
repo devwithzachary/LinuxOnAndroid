@@ -1,32 +1,49 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.splash
 
-import android.app.Activity
-import androidx.compose.animation.core.*
+import android.content.res.Configuration
+import android.os.Build
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaMonospaceChip
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaProgressRing
+import com.devwithzachary.completelinuxinstaller.ui.theme.LinuxOnAndroidTheme
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaMonoTextStyle
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaSegmentedSingleShape
 
 @Composable
 fun SplashScreen(
@@ -36,48 +53,27 @@ fun SplashScreen(
     onRetry: () -> Unit = {},
     onContinueAnyway: () -> Unit = {}
 ) {
-    val view = LocalView.current
-    val window = remember(view) { (view.context as? Activity)?.window }
-    val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
-
-    @Suppress("DEPRECATION")
-    DisposableEffect(window, insetsController) {
-        val prevStatusBarColor = window?.statusBarColor
-        val prevLightStatusBars = insetsController?.isAppearanceLightStatusBars
-
-        window?.statusBarColor = android.graphics.Color.parseColor("#1E1E2E")
-        insetsController?.isAppearanceLightStatusBars = false
-
-        onDispose {
-            if (window != null && prevStatusBarColor != null) {
-                window.statusBarColor = prevStatusBarColor
-            }
-            if (insetsController != null && prevLightStatusBars != null) {
-                insetsController.isAppearanceLightStatusBars = prevLightStatusBars
-            }
-        }
-    }
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val infiniteTransition = rememberInfiniteTransition(label = "splash_pulse")
     val scale by infiniteTransition.animateFloat(
-        initialValue = 0.95f,
-        targetValue = 1.05f,
+        initialValue = 0.96f,
+        targetValue = 1.04f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
+            animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "scale"
     )
     val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
+        initialValue = 0.65f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
+            animation = tween(1400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "alpha"
     )
 
-    val primaryAbi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
+    val primaryAbi = Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
     val archLabel = when {
         primaryAbi.contains("arm64") || primaryAbi.contains("aarch64") -> "ARM64"
         primaryAbi.contains("x86_64") || primaryAbi.contains("amd64") -> "x86_64"
@@ -85,143 +81,131 @@ fun SplashScreen(
         else -> primaryAbi
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF1E1E2E),
-                        Color(0xFF11111B)
-                    )
-                )
-            ),
-        contentAlignment = Alignment.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .systemBarsPadding()
+                .padding(24.dp)
         ) {
-            // Animated App Logo Circle Badge
-            Surface(
-                modifier = Modifier
-                    .size(110.dp)
-                    .scale(scale),
-                shape = CircleShape,
-                color = Color.Transparent,
-                shadowElevation = 12.dp
+            Column(
+                modifier = Modifier.widthIn(max = 420.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
-                    contentAlignment = Alignment.Center,
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_logo),
+                    contentDescription = "Linux on Android Logo",
                     modifier = Modifier
-                        .fillMaxSize()
+                        .size(96.dp)
+                        .scale(scale)
                         .clip(CircleShape)
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_launcher_logo),
-                        contentDescription = "Linux on Android Logo",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
+                )
 
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // App Title
-            Text(
-                text = "Linux on Android",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Subtitle
-            Text(
-                text = "Complete Linux Installer",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Architecture & PRoot Container Environment Badge
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF3FB950))
-                    )
-                    Text(
-                        text = "PRoot Container • $archLabel",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.LightGray,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // Progress Indicator
-            CircularProgressIndicator(
-                modifier = Modifier.size(36.dp),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 3.dp
-            )
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Dynamic Step-by-Step Status message
-            Text(
-                text = statusText,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFFBAC2DE),
-                modifier = Modifier.alpha(alpha)
-            )
-
-            if (initSlow) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Surface(
-                    shape = MaterialTheme.shapes.medium,
-                    color = Color(0xFFF38BA8).copy(alpha = 0.12f),
-                    contentColor = Color(0xFFF38BA8)
-                ) {
-                    Text(
-                        text = stringResource(R.string.splash_init_slow_warning, elapsedSeconds),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
-                    )
-                }
+                Text(
+                    text = "Linux on Android",
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(onClick = onRetry) {
-                        Text(stringResource(R.string.splash_retry))
+                Text(
+                    text = "Complete Linux Installer",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                LoaMonospaceChip(text = "PRoot | $archLabel")
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                LoaProgressRing(
+                    progress = null,
+                    size = 56.dp,
+                    strokeWidth = 6.dp
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = statusText,
+                    style = LoaMonoTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.alpha(alpha)
+                )
+
+                if (initSlow) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = LoaSegmentedSingleShape,
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 0.dp
+                    ) {
+                        Text(
+                            text = stringResource(R.string.splash_init_slow_warning, elapsedSeconds),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(16.dp)
+                        )
                     }
-                    Button(onClick = onContinueAnyway) {
-                        Text(stringResource(R.string.splash_continue_anyway))
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(onClick = onRetry) {
+                            Text(stringResource(R.string.splash_retry))
+                        }
+                        Button(onClick = onContinueAnyway) {
+                            Text(stringResource(R.string.splash_continue_anyway))
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Preview(
+    name = "Splash - Light",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
+@Composable
+private fun SplashScreenLightPreview() {
+    LinuxOnAndroidTheme(darkTheme = false, dynamicColor = false) {
+        SplashScreen()
+    }
+}
+
+@Preview(
+    name = "Splash Slow - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun SplashScreenDarkSlowPreview() {
+    LinuxOnAndroidTheme(darkTheme = true, dynamicColor = false) {
+        SplashScreen(
+            initSlow = true,
+            elapsedSeconds = 12
+        )
     }
 }

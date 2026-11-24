@@ -1,39 +1,29 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.welcome
 
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,21 +34,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaMonospaceChip
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedGroup
+import com.devwithzachary.completelinuxinstaller.ui.theme.LinuxOnAndroidTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,27 +56,22 @@ fun WelcomeScreen(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             if (onBack != null) {
                 TopAppBar(
-                    title = {
-                        Text(
-                            text = "App Overview",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
+                    title = { Text("App Overview") },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                 contentDescription = "Back"
                             )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.background
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             }
@@ -98,261 +79,145 @@ fun WelcomeScreen(
         bottomBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.background,
-                tonalElevation = 6.dp,
-                shadowElevation = 8.dp
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp
             ) {
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .navigationBarsPadding(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Button(
-                        onClick = onGetStarted,
+                    Column(
                         modifier = Modifier
+                            .widthIn(max = 600.dp)
                             .fillMaxWidth()
-                            .height(54.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
+                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        Button(
+                            onClick = onGetStarted,
+                            modifier = Modifier
+                                .widthIn(max = 320.dp)
+                                .fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (hasExistingContainers) "Continue to Wizard" else "Get Started"
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
                         Text(
-                            text = if (hasExistingContainers) "Continue to Wizard" else "Get Started",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
+                            text = "User-space PRoot virtualization. Zero root permissions required.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Non-destructive • User-space virtualization • Zero root permissions",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center,
-                        fontSize = 11.sp
-                    )
                 }
             }
         }
     ) { innerPadding ->
-        val scrollState = rememberScrollState()
-
-        val infiniteTransition = rememberInfiniteTransition(label = "hero_pulse")
-        val pulseScale by infiniteTransition.animateFloat(
-            initialValue = 0.97f,
-            targetValue = 1.03f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(2200, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulse"
-        )
-
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .verticalScroll(scrollState)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .verticalScroll(rememberScrollState()),
+            contentAlignment = Alignment.TopCenter
         ) {
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Hero Tux Logo with Glowing Border
-            Box(
+            Column(
                 modifier = Modifier
-                    .size(92.dp)
-                    .scale(pulseScale)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-                    .border(
-                        width = 2.dp,
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
-                            )
-                        ),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
+                    .widthIn(max = 600.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Image(
                     painter = painterResource(id = R.drawable.ic_launcher_logo),
                     contentDescription = "Linux on Android Logo",
                     modifier = Modifier
-                        .size(72.dp)
+                        .size(88.dp)
                         .clip(CircleShape)
                 )
-            }
 
-            Spacer(modifier = Modifier.height(18.dp))
+                LoaMonospaceChip(text = "USER-SPACE | NO ROOT")
 
-            // Sandboxed User-Space Badge
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                border = androidx.compose.foundation.BorderStroke(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                Text(
+                    text = "Welcome to LinuxOnAndroid",
+                    style = MaterialTheme.typography.headlineLarge,
+                    textAlign = TextAlign.Center
                 )
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF3FB950))
+
+                Text(
+                    text = "Run genuine Linux distributions natively on your Android device.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LoaSegmentedGroup {
+                    row(
+                        title = "Complete Linux Environments",
+                        subtitle = "Run Ubuntu, Debian, Arch, Alpine, Kali, or Void natively with CLI tools and XFCE desktop.",
+                        subtitleMaxLines = Int.MAX_VALUE,
+                        leadingIcon = Icons.Rounded.Terminal
                     )
-                    Text(
-                        text = "100% USER-SPACE • NO ROOT REQUIRED",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 10.5.sp
+                    row(
+                        title = "Multi-Container Support",
+                        subtitle = "Install multiple independent distributions side by side and switch anytime from the Dashboard.",
+                        subtitleMaxLines = Int.MAX_VALUE,
+                        leadingIcon = Icons.Rounded.Layers
+                    )
+                    row(
+                        title = "Safe & Non-Destructive",
+                        subtitle = "Runs entirely in user-space without root and never alters your Android OS or partitions.",
+                        subtitleMaxLines = Int.MAX_VALUE,
+                        leadingIcon = Icons.Rounded.Shield
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Headline
-            Text(
-                text = "Welcome to LinuxOnAndroid",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Tagline
-            Text(
-                text = "Run genuine, full-featured Linux distributions natively on your Android device.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                lineHeight = 20.sp
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // Feature Card 1: What is LinuxOnAndroid?
-            WelcomeFeatureCard(
-                icon = Icons.Default.Terminal,
-                iconTint = MaterialTheme.colorScheme.primary,
-                iconContainerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
-                title = "Complete Linux Environments",
-                description = "Run genuine Linux distributions (Ubuntu, Debian, Alpine Linux, Arch Linux, Kali, and Void) directly on your device's hardware. Execute native command-line tools, compile code, manage packages via apt, pacman, apk, or xbps, and launch full graphical XFCE desktop environments through VNC."
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Feature Card 2: First Container & Multi-Container Setup
-            WelcomeFeatureCard(
-                icon = Icons.Default.Layers,
-                iconTint = Color(0xFF58A6FF),
-                iconContainerColor = Color(0xFF58A6FF).copy(alpha = 0.15f),
-                title = "Setup Your First Container",
-                description = "In the next step, the setup wizard will guide you to choose your preferred distribution, username, and storage to initialize your first container. You can create multiple independent Linux distributions side-by-side and switch between them anytime from the Dashboard."
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Feature Card 3: 100% Safe, Sandboxed & Non-Destructive
-            WelcomeFeatureCard(
-                icon = Icons.Default.Shield,
-                iconTint = Color(0xFF3FB950),
-                iconContainerColor = Color(0xFF3FB950).copy(alpha = 0.15f),
-                title = "100% Safe • Does Not Alter Android",
-                description = "Everything runs in user-space powered by PRoot virtualization. This app does NOT require root access, cannot brick or alter your device, and will never touch, modify, or overwrite your Android operating system, system partitions, firmware, or personal files. Everything is safely contained within this app."
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
+@Preview(
+    name = "Welcome - Light",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
 @Composable
-private fun WelcomeFeatureCard(
-    icon: ImageVector,
-    iconTint: Color,
-    iconContainerColor: Color,
-    title: String,
-    description: String,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = iconContainerColor,
-                modifier = Modifier.size(44.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = iconTint,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+private fun WelcomeScreenLightPreview() {
+    LinuxOnAndroidTheme(darkTheme = false, dynamicColor = false) {
+        WelcomeScreen(onGetStarted = {})
+    }
+}
 
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
-                )
-            }
-        }
+@Preview(
+    name = "Welcome - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun WelcomeScreenDarkPreview() {
+    LinuxOnAndroidTheme(darkTheme = true, dynamicColor = false) {
+        WelcomeScreen(
+            onGetStarted = {},
+            hasExistingContainers = true,
+            onBack = {}
+        )
     }
 }
