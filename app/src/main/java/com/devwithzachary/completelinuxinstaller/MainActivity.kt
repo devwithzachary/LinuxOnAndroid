@@ -15,10 +15,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.devwithzachary.completelinuxinstaller.service.PRootForegroundService
-import com.devwithzachary.completelinuxinstaller.theme.LinuxOnAndroidTheme
 import com.devwithzachary.completelinuxinstaller.ui.AppScreen
 import com.devwithzachary.completelinuxinstaller.ui.MainAppContent
 import com.devwithzachary.completelinuxinstaller.ui.MainViewModel
+import com.devwithzachary.completelinuxinstaller.ui.theme.LinuxOnAndroidTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
             LinuxOnAndroidTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.surface
                 ) {
                     MainAppContent(viewModel = mainViewModel)
                 }

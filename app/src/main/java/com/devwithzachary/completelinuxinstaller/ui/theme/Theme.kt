@@ -1,31 +1,16 @@
-package com.devwithzachary.completelinuxinstaller.theme
+package com.devwithzachary.completelinuxinstaller.ui.theme
 
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-)
 
 @Composable
 fun LinuxOnAndroidTheme(
@@ -38,8 +23,8 @@ fun LinuxOnAndroidTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> LoaDarkColorScheme
+        else -> LoaLightColorScheme
     }
 
     val view = LocalView.current
@@ -47,11 +32,7 @@ fun LinuxOnAndroidTheme(
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
-                @Suppress("DEPRECATION")
-                window.statusBarColor = colorScheme.background.toArgb()
-                @Suppress("DEPRECATION")
-                window.navigationBarColor = colorScheme.background.toArgb()
-                val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+                val insetsController = WindowCompat.getInsetsController(window, view)
                 insetsController.isAppearanceLightStatusBars = !darkTheme
                 insetsController.isAppearanceLightNavigationBars = !darkTheme
             }
@@ -60,7 +41,8 @@ fun LinuxOnAndroidTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = LoaTypography,
+        shapes = LoaShapes,
         content = content
     )
 }
