@@ -1,216 +1,145 @@
 package com.devwithzachary.completelinuxinstaller.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.model.InstallStatus
 import com.devwithzachary.completelinuxinstaller.model.SoftwarePackage
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaBottomSheet
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaMonospaceChip
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaProgressRing
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusBadge
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusTone
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaMonoTextStyle
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogViewerDialog(
     pkg: SoftwarePackage,
     onDismiss: () -> Unit
 ) {
-    Dialog(
+    val statusLabel = when (pkg.status) {
+        InstallStatus.UNINSTALLING -> "Uninstalling"
+        InstallStatus.INSTALLING -> stringResource(R.string.log_status_installing)
+        InstallStatus.INSTALLED -> stringResource(R.string.log_status_complete)
+        InstallStatus.FAILED -> stringResource(R.string.log_status_failed)
+        InstallStatus.NOT_INSTALLED -> stringResource(R.string.log_status_not_installed)
+    }
+    val statusTone = when (pkg.status) {
+        InstallStatus.INSTALLING, InstallStatus.UNINSTALLING -> LoaStatusTone.Downloading
+        InstallStatus.INSTALLED -> LoaStatusTone.Running
+        InstallStatus.FAILED -> LoaStatusTone.Error
+        InstallStatus.NOT_INSTALLED -> LoaStatusTone.Stopped
+    }
+
+    LoaBottomSheet(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        title = pkg.name,
+        subtitle = stringResource(R.string.log_viewer_terminal_output_log)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.85f)
-                .border(1.dp, Color(0xFF30363D), RoundedCornerShape(16.dp)),
-            shape = RoundedCornerShape(16.dp),
-            color = Color(0xFF161B22),
-            tonalElevation = 8.dp
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Header Bar
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Terminal,
-                            contentDescription = null,
-                            tint = Color(0xFF58A6FF)
-                        )
-                        Column {
-                            Text(
-                                text = pkg.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = stringResource(R.string.log_viewer_terminal_output_log),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF8B949E)
-                            )
-                        }
-                    }
-
-                    IconButton(onClick = onDismiss) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
-                            tint = Color(0xFF8B949E)
-                        )
-                    }
-                }
-
-                HorizontalDivider(color = Color(0xFF30363D))
-
-                // Status Ribbon
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF0D1117), shape = RoundedCornerShape(8.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        when (pkg.status) {
-                            InstallStatus.INSTALLING, InstallStatus.UNINSTALLING -> {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Color(0xFF58A6FF)
-                                )
-                                Text(
-                                    text = if (pkg.status == InstallStatus.UNINSTALLING) "UNINSTALLING..." else stringResource(R.string.log_status_installing),
-                                    color = Color(0xFF58A6FF),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            InstallStatus.INSTALLED -> {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF3FB950), modifier = Modifier.size(16.dp))
-                                Text(
-                                    text = stringResource(R.string.log_status_complete),
-                                    color = Color(0xFF3FB950),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            InstallStatus.FAILED -> {
-                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFF85149), modifier = Modifier.size(16.dp))
-                                Text(
-                                    text = stringResource(R.string.log_status_failed),
-                                    color = Color(0xFFF85149),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            InstallStatus.NOT_INSTALLED -> {
-                                Text(
-                                    text = stringResource(R.string.log_status_not_installed),
-                                    color = Color.Gray,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-                    }
-
-                    Text(
-                        text = "UTF-8",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFF8B949E),
-                        fontFamily = FontFamily.Monospace
+                LoaStatusBadge(label = statusLabel, tone = statusTone)
+                if (pkg.status == InstallStatus.INSTALLING || pkg.status == InstallStatus.UNINSTALLING) {
+                    LoaProgressRing(
+                        progress = null,
+                        size = 20.dp,
+                        strokeWidth = 3.dp
                     )
                 }
+            }
 
-                // Terminal Logs Box
-                val scrollState = rememberLazyListState()
-                val logLines = pkg.installLogs.lines()
+            LoaMonospaceChip(text = "UTF-8")
+        }
 
-                LaunchedEffect(logLines.size) {
-                    if (logLines.isNotEmpty()) {
-                        scrollState.animateScrollToItem(logLines.size - 1)
-                    }
-                }
+        val scrollState = rememberLazyListState()
+        val logLines = pkg.installLogs.lines().filter { it.isNotBlank() }
 
-                Surface(
+        LaunchedEffect(logLines.size) {
+            if (logLines.isNotEmpty()) {
+                scrollState.animateScrollToItem(logLines.size - 1)
+            }
+        }
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 200.dp, max = 380.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
+        ) {
+            if (logLines.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.log_initializing),
+                    style = LoaMonoTextStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(12.dp)
+                )
+            } else {
+                LazyColumn(
+                    state = scrollState,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f)
-                        .border(1.dp, Color(0xFF30363D), RoundedCornerShape(8.dp)),
-                    color = Color(0xFF0D1117),
-                    shape = RoundedCornerShape(8.dp)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    LazyColumn(
-                        state = scrollState,
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        items(logLines) { line ->
-                            if (line.isNotBlank()) {
-                                Text(
-                                    text = line,
-                                    color = when {
-                                        line.contains("ERROR", ignoreCase = true) || line.contains("Failed", ignoreCase = true) -> Color(0xFFF85149)
-                                        line.contains("Setting up", ignoreCase = true) || line.contains("Unpacking", ignoreCase = true) -> Color(0xFF79C0FF)
-                                        line.contains("Processing triggers", ignoreCase = true) -> Color(0xFFD2A8FF)
-                                        line.contains("completed successfully", ignoreCase = true) -> Color(0xFF56D364)
-                                        else -> Color(0xFFC9D1D9)
-                                    },
-                                    fontSize = 11.sp,
-                                    fontFamily = FontFamily.Monospace,
-                                    lineHeight = 15.sp
-                                )
-                            }
-                        }
+                    items(logLines) { line ->
+                        Text(
+                            text = line,
+                            color = when {
+                                line.contains("ERROR", ignoreCase = true) ||
+                                    line.contains("Failed", ignoreCase = true) -> MaterialTheme.colorScheme.error
+                                line.contains("Setting up", ignoreCase = true) ||
+                                    line.contains("Unpacking", ignoreCase = true) -> MaterialTheme.colorScheme.primary
+                                line.contains("Processing triggers", ignoreCase = true) -> MaterialTheme.colorScheme.tertiary
+                                line.contains("completed successfully", ignoreCase = true) -> MaterialTheme.colorScheme.secondary
+                                else -> MaterialTheme.colorScheme.onSurface
+                            },
+                            style = LoaMonoTextStyle
+                        )
                     }
                 }
+            }
+        }
 
-                // Footer Close Button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Button(
-                        onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(stringResource(R.string.btn_close_log_viewer))
-                    }
-                }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .widthIn(max = 320.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.btn_close_log_viewer))
             }
         }
     }

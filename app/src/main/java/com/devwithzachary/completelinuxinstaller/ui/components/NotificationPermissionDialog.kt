@@ -6,17 +6,21 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
+import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.devwithzachary.completelinuxinstaller.R
 
@@ -55,26 +59,26 @@ fun NotificationPermissionRationaleHandler(
                 isDismissed = true
                 prefs.edit().putBoolean("notification_rationale_dismissed", true).apply()
             },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            iconContentColor = MaterialTheme.colorScheme.primary,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             icon = {
                 Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
+                    imageVector = Icons.Rounded.Notifications,
+                    contentDescription = null
                 )
             },
             title = {
                 Text(
                     text = stringResource(R.string.dialog_notification_permission_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.headlineSmall
                 )
             },
             text = {
                 Text(
                     text = stringResource(R.string.dialog_notification_permission_desc),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodyMedium
                 )
             },
             confirmButton = {
@@ -83,8 +87,7 @@ fun NotificationPermissionRationaleHandler(
                         isDismissed = true
                         prefs.edit().putBoolean("notification_rationale_dismissed", true).apply()
                         launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    },
-                    shape = RoundedCornerShape(10.dp)
+                    }
                 ) {
                     Text(stringResource(R.string.dialog_notification_permission_grant))
                 }

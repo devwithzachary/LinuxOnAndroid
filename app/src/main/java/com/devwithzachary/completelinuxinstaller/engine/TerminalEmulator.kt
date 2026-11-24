@@ -105,7 +105,7 @@ class TerminalEmulator(
     var scrollBottom = rows - 1
         private set
 
-    var theme: com.devwithzachary.completelinuxinstaller.theme.TerminalTheme = com.devwithzachary.completelinuxinstaller.theme.TerminalTheme.DRACULA
+    var theme: com.devwithzachary.completelinuxinstaller.theme.TerminalTheme = com.devwithzachary.completelinuxinstaller.theme.TerminalTheme.DEFAULT
         private set
 
     private var currentFg: Color = theme.defaultFg

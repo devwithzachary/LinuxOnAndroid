@@ -4,30 +4,37 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaMonoTextStyle
 import kotlin.math.ceil
 
 private const val GRID_COLUMNS = 7
@@ -43,14 +50,12 @@ fun ExtraKeysRow(
     isAltActive: Boolean = false,
     onToggleAlt: () -> Unit = {}
 ) {
-    var isExpanded by rememberSaveable { mutableStateOf(true) }
+    val isExpanded by rememberSaveable { mutableStateOf(true) }
 
-    // Primary row pinned keys that are handled in the top fixed grid
     val primaryPinnedSet = remember {
         setOf("esc", "tab", "▲", "▼", "ctrl", "alt", "paste")
     }
 
-    // Secondary keys filtered from custom list to avoid duplication
     val secondaryKeys = remember(keys) {
         val filtered = keys.filter { it.lowercase() !in primaryPinnedSet }
         if (filtered.isEmpty()) {
@@ -66,70 +71,66 @@ fun ExtraKeysRow(
     val pagerState = rememberPagerState { pageCount }
 
     Surface(
-        color = Color(0xFF212121),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 3.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Row 1: Fixed Termux-style primary control row (7 equal-width columns)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Column 1: ESC
                 TermuxKeyCell(
                     label = "ESC",
                     modifier = Modifier.weight(1f),
                     onClick = { onKeyClick("Esc") }
                 )
 
-                // Column 2: TAB
                 TermuxKeyCell(
                     label = "TAB",
                     modifier = Modifier.weight(1f),
                     onClick = { onKeyClick("Tab") }
                 )
 
-                // Column 3: CTRL (Active highlight)
                 TermuxKeyCell(
                     label = "CTRL",
                     isActive = isCtrlActive,
-                    activeContainerColor = Color(0xFF2E7D32),
+                    activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    activeContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.weight(1f),
                     onClick = onToggleCtrl
                 )
 
-                // Column 4: ALT (Active highlight)
                 TermuxKeyCell(
                     label = "ALT",
                     isActive = isAltActive,
-                    activeContainerColor = Color(0xFF2E7D32),
+                    activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    activeContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier = Modifier.weight(1f),
                     onClick = onToggleAlt
                 )
 
-                // Column 5: PASTE
                 TermuxKeyCell(
                     label = "PASTE",
-                    containerColor = Color(0xFF1E3A5F),
-                    contentColor = Color(0xFF90CAF9),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.weight(1f),
                     onClick = onPaste
                 )
 
-                // Column 6: UP ARROW
                 TermuxKeyCell(
                     label = "▲",
                     modifier = Modifier.weight(1f),
                     onClick = { onKeyClick("▲") }
                 )
 
-                // Column 7: DOWN ARROW
                 TermuxKeyCell(
                     label = "▼",
                     modifier = Modifier.weight(1f),
@@ -137,7 +138,6 @@ fun ExtraKeysRow(
                 )
             }
 
-            // Row 2: Secondary custom hotkeys aligned to the same 7-column grid
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically(),
@@ -156,7 +156,7 @@ fun ExtraKeysRow(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             for (i in 0 until GRID_COLUMNS) {
@@ -168,30 +168,32 @@ fun ExtraKeysRow(
                                         onClick = { onKeyClick(key) }
                                     )
                                 } else {
-                                    // Preserve equal column spacing when page has fewer than 7 keys
                                     Spacer(modifier = Modifier.weight(1f))
                                 }
                             }
                         }
                     }
 
-                    // Page indicator dots for secondary row pagination
                     if (pageCount > 1) {
                         Row(
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 1.dp)
+                                .padding(top = 2.dp)
                         ) {
                             repeat(pageCount) { index ->
                                 val isSelected = pagerState.currentPage == index
                                 Box(
                                     modifier = Modifier
                                         .padding(horizontal = 2.dp)
-                                        .size(if (isSelected) 5.dp else 3.5.dp)
+                                        .size(if (isSelected) 6.dp else 4.dp)
                                         .background(
-                                            if (isSelected) Color(0xFF90CAF9) else Color(0xFF555555),
+                                            if (isSelected) {
+                                                MaterialTheme.colorScheme.primary
+                                            } else {
+                                                MaterialTheme.colorScheme.outlineVariant
+                                            },
                                             CircleShape
                                         )
                                 )
@@ -209,10 +211,10 @@ private fun TermuxKeyCell(
     label: String,
     modifier: Modifier = Modifier,
     isActive: Boolean = false,
-    containerColor: Color = Color(0xFF333333),
-    contentColor: Color = Color(0xFFE0E0E0),
-    activeContainerColor: Color = Color(0xFF2E7D32),
-    activeContentColor: Color = Color.White,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    contentColor: Color = MaterialTheme.colorScheme.onSurface,
+    activeContainerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
+    activeContentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
     onClick: () -> Unit
 ) {
     val bg = if (isActive) activeContainerColor else containerColor
@@ -221,9 +223,10 @@ private fun TermuxKeyCell(
     Surface(
         onClick = onClick,
         modifier = modifier.height(34.dp),
-        shape = RoundedCornerShape(5.dp),
+        shape = RoundedCornerShape(6.dp),
         color = bg,
-        tonalElevation = if (isActive) 4.dp else 1.dp
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -232,9 +235,10 @@ private fun TermuxKeyCell(
             Text(
                 text = label,
                 color = fg,
-                fontSize = if (label.length > 5) 10.sp else 12.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
+                style = LoaMonoTextStyle.copy(
+                    fontSize = if (label.length > 5) 10.sp else 12.sp,
+                    fontWeight = FontWeight.Bold
+                ),
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

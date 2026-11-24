@@ -6,31 +6,56 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.LocalCafe
+import androidx.compose.material.icons.rounded.VolunteerActivism
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaMonospaceChip
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSectionHeader
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedGroup
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaSegmentedSingleShape
 
 enum class CreditsCategory(val labelRes: Int) {
     ALL(R.string.nav_about),
@@ -205,260 +230,218 @@ fun AboutCreditsSection(
     var isSectionExpanded by rememberSaveable { mutableStateOf(initialExpanded) }
     var selectedCategory by remember { mutableStateOf(CreditsCategory.ALL) }
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Clickable Header Row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { isSectionExpanded = !isSectionExpanded },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.VolunteerActivism,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = stringResource(R.string.about_credits_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (isSectionExpanded) {
-                                stringResource(R.string.about_credits_subtitle)
-                            } else {
-                                val totalContributors = (CODE_CONTRIBUTORS.map { it.username } + ISSUE_CONTRIBUTORS.map { it.username }).distinct().size
-                                val totalPrs = CODE_CONTRIBUTORS.flatMap { it.contributions }.count { it.isPr }
-                                val totalIssues = ISSUE_CONTRIBUTORS.flatMap { it.contributions }.count { !it.isPr }
-                                "$totalContributors contributors • $totalPrs ${if (totalPrs == 1) "PR" else "PRs"} • $totalIssues ${if (totalIssues == 1) "issue" else "issues"}"
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+    val creditsTitle = stringResource(R.string.about_credits_title)
+    val totalContributors = remember {
+        (CODE_CONTRIBUTORS.map { it.username } + ISSUE_CONTRIBUTORS.map { it.username }).distinct().size
+    }
+    val totalPrs = remember { CODE_CONTRIBUTORS.flatMap { it.contributions }.count { it.isPr } }
+    val totalIssues = remember { ISSUE_CONTRIBUTORS.flatMap { it.contributions }.count { !it.isPr } }
+    val summarySubtitle = if (isSectionExpanded) {
+        stringResource(R.string.about_credits_subtitle)
+    } else {
+        "$totalContributors contributors - $totalPrs ${if (totalPrs == 1) "PR" else "PRs"} - $totalIssues ${if (totalIssues == 1) "issue" else "issues"}"
+    }
 
-                IconButton(
-                    onClick = { isSectionExpanded = !isSectionExpanded },
-                    modifier = Modifier.size(32.dp)
-                ) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        LoaSectionHeader(title = creditsTitle)
+
+        LoaSegmentedGroup {
+            row(
+                title = creditsTitle,
+                subtitle = summarySubtitle,
+                leadingIcon = Icons.Rounded.VolunteerActivism,
+                trailingContent = {
                     Icon(
-                        imageVector = if (isSectionExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isSectionExpanded) "Collapse" else "Expand",
+                        imageVector = if (isSectionExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                        contentDescription = if (isSectionExpanded) "Collapse $creditsTitle" else "Expand $creditsTitle",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
-            }
+                },
+                onClick = { isSectionExpanded = !isSectionExpanded }
+            )
+        }
 
-            AnimatedVisibility(
-                visible = isSectionExpanded,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
+        AnimatedVisibility(
+            visible = isSectionExpanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(top = 4.dp)
             ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.padding(top = 4.dp)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-
-            // Category Filter Chips
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                item {
-                    FilterChip(
-                        selected = selectedCategory == CreditsCategory.ALL,
-                        onClick = { selectedCategory = CreditsCategory.ALL },
-                        label = { Text("All") },
-                        leadingIcon = if (selectedCategory == CreditsCategory.ALL) {
-                            { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = selectedCategory == CreditsCategory.CODE,
-                        onClick = { selectedCategory = CreditsCategory.CODE },
-                        label = { Text(stringResource(R.string.credits_tab_code)) },
-                        leadingIcon = if (selectedCategory == CreditsCategory.CODE) {
-                            { Icon(Icons.Default.Code, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
-                }
-                item {
-                    FilterChip(
-                        selected = selectedCategory == CreditsCategory.ISSUES,
-                        onClick = { selectedCategory = CreditsCategory.ISSUES },
-                        label = { Text(stringResource(R.string.credits_tab_issues)) },
-                        leadingIcon = if (selectedCategory == CreditsCategory.ISSUES) {
-                            { Icon(Icons.Default.BugReport, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
-                }
-                if (!com.devwithzachary.completelinuxinstaller.BuildConfig.IS_PLAY_STORE) {
                     item {
                         FilterChip(
-                            selected = selectedCategory == CreditsCategory.PATREON,
-                            onClick = { selectedCategory = CreditsCategory.PATREON },
-                            label = { Text(stringResource(R.string.credits_tab_patreon)) },
-                            leadingIcon = if (selectedCategory == CreditsCategory.PATREON) {
-                                { Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            selected = selectedCategory == CreditsCategory.ALL,
+                            onClick = { selectedCategory = CreditsCategory.ALL },
+                            label = { Text("All") },
+                            leadingIcon = if (selectedCategory == CreditsCategory.ALL) {
+                                { Icon(Icons.Rounded.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp)) }
                             } else null
                         )
                     }
-                }
-            }
-
-            HorizontalDivider()
-
-            // Code & PR Contributors
-            if (selectedCategory == CreditsCategory.ALL || selectedCategory == CreditsCategory.CODE) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Code,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Code & Pull Requests",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                    item {
+                        FilterChip(
+                            selected = selectedCategory == CreditsCategory.CODE,
+                            onClick = { selectedCategory = CreditsCategory.CODE },
+                            label = { Text(stringResource(R.string.credits_tab_code)) },
+                            leadingIcon = if (selectedCategory == CreditsCategory.CODE) {
+                                { Icon(Icons.Rounded.Code, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            } else null
                         )
                     }
-
-                    for (contributor in CODE_CONTRIBUTORS) {
-                        ContributorCard(contributor = contributor, onOpenUrl = { url ->
-                            try { uriHandler.openUri(url) } catch (_: Exception) {}
-                        })
-                    }
-                }
-            }
-
-            // Bug Hunters & Issue Contributors
-            if (selectedCategory == CreditsCategory.ALL || selectedCategory == CreditsCategory.ISSUES) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.BugReport,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Bug Hunters & Feature Pioneers",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.secondary
+                    item {
+                        FilterChip(
+                            selected = selectedCategory == CreditsCategory.ISSUES,
+                            onClick = { selectedCategory = CreditsCategory.ISSUES },
+                            label = { Text(stringResource(R.string.credits_tab_issues)) },
+                            leadingIcon = if (selectedCategory == CreditsCategory.ISSUES) {
+                                { Icon(Icons.Rounded.BugReport, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            } else null
                         )
                     }
-
-                    for (contributor in ISSUE_CONTRIBUTORS) {
-                        ContributorCard(contributor = contributor, onOpenUrl = { url ->
-                            try { uriHandler.openUri(url) } catch (_: Exception) {}
-                        })
+                    if (!BuildConfig.IS_PLAY_STORE) {
+                        item {
+                            FilterChip(
+                                selected = selectedCategory == CreditsCategory.PATREON,
+                                onClick = { selectedCategory = CreditsCategory.PATREON },
+                                label = { Text(stringResource(R.string.credits_tab_patreon)) },
+                                leadingIcon = if (selectedCategory == CreditsCategory.PATREON) {
+                                    { Icon(Icons.Rounded.Favorite, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                } else null
+                            )
+                        }
                     }
                 }
-            }
 
-            // Project Supporters (hidden on Play Store builds)
-            if (!com.devwithzachary.completelinuxinstaller.BuildConfig.IS_PLAY_STORE && (selectedCategory == CreditsCategory.ALL || selectedCategory == CreditsCategory.PATREON)) {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Favorite,
-                            contentDescription = null,
-                            tint = Color(0xFFFF424D),
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = stringResource(R.string.credits_tab_patreon),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFFF424D)
-                        )
-                    }
-
-                    if (PATREON_SPONSORS.isEmpty()) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(14.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.credits_patreon_empty_title),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = stringResource(R.string.credits_patreon_empty_text),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
+                if (selectedCategory == CreditsCategory.ALL || selectedCategory == CreditsCategory.CODE) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LoaSectionHeader(title = "Code & Pull Requests")
+                        LoaSegmentedGroup {
+                            for (contributor in CODE_CONTRIBUTORS) {
+                                item { shape ->
+                                    ContributorCard(
+                                        contributor = contributor,
+                                        shape = shape,
+                                        onOpenUrl = { url ->
+                                            try { uriHandler.openUri(url) } catch (_: Exception) {}
+                                        }
+                                    )
+                                }
                             }
                         }
-                    } else {
-                        for (sponsor in PATREON_SPONSORS) {
-                            SponsorCard(sponsor = sponsor, onOpenUrl = { url ->
-                                try { uriHandler.openUri(url) } catch (_: Exception) {}
-                            })
+                    }
+                }
+
+                if (selectedCategory == CreditsCategory.ALL || selectedCategory == CreditsCategory.ISSUES) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LoaSectionHeader(title = "Bug Hunters & Feature Pioneers")
+                        LoaSegmentedGroup {
+                            for (contributor in ISSUE_CONTRIBUTORS) {
+                                item { shape ->
+                                    ContributorCard(
+                                        contributor = contributor,
+                                        shape = shape,
+                                        onOpenUrl = { url ->
+                                            try { uriHandler.openUri(url) } catch (_: Exception) {}
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
+                }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                try { uriHandler.openUri(patreonUrl) } catch (_: Exception) {}
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.btn_join_patreon), fontSize = 13.sp, maxLines = 1)
+                if (!BuildConfig.IS_PLAY_STORE && (selectedCategory == CreditsCategory.ALL || selectedCategory == CreditsCategory.PATREON)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LoaSectionHeader(title = stringResource(R.string.credits_tab_patreon))
+
+                        if (PATREON_SPONSORS.isEmpty()) {
+                            Surface(
+                                shape = LoaSegmentedSingleShape,
+                                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                tonalElevation = 0.dp,
+                                shadowElevation = 0.dp,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.credits_patreon_empty_title),
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.credits_patreon_empty_text),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.widthIn(max = 560.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            LoaSegmentedGroup {
+                                for (sponsor in PATREON_SPONSORS) {
+                                    item { shape ->
+                                        SponsorCard(
+                                            sponsor = sponsor,
+                                            shape = shape,
+                                            onOpenUrl = { url ->
+                                                try { uriHandler.openUri(url) } catch (_: Exception) {}
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
 
-                        Button(
-                            onClick = {
-                                try { uriHandler.openUri(buymeacoffeeUrl) } catch (_: Exception) {}
-                            },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
-                            shape = RoundedCornerShape(10.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            Icon(Icons.Default.VolunteerActivism, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.btn_buy_me_a_coffee), fontSize = 13.sp, maxLines = 1)
+                            FilledTonalButton(
+                                onClick = {
+                                    try { uriHandler.openUri(patreonUrl) } catch (_: Exception) {}
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .widthIn(max = 320.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Favorite,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(stringResource(R.string.btn_join_patreon), maxLines = 1)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    try { uriHandler.openUri(buymeacoffeeUrl) } catch (_: Exception) {}
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .widthIn(max = 320.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.LocalCafe,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(stringResource(R.string.btn_buy_me_a_coffee), maxLines = 1)
+                            }
                         }
                     }
                 }
@@ -466,26 +449,28 @@ fun AboutCreditsSection(
         }
     }
 }
-}
-}
 
 @Composable
 fun ContributorCard(
     contributor: Contributor,
     onOpenUrl: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shape: Shape = LoaSegmentedSingleShape
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { isExpanded = !isExpanded }
+        onClick = { isExpanded = !isExpanded },
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp,
+        modifier = modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -493,13 +478,12 @@ fun ContributorCard(
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    // Contributor Avatar Badge
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
                             .background(
                                 if (contributor.isCodeContributor) {
@@ -513,7 +497,6 @@ fun ContributorCard(
                         Text(
                             text = contributor.displayName.take(2).uppercase(),
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
                             color = if (contributor.isCodeContributor) {
                                 MaterialTheme.colorScheme.onPrimaryContainer
                             } else {
@@ -522,87 +505,75 @@ fun ContributorCard(
                         )
                     }
 
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
                                 text = contributor.displayName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            LoaMonospaceChip(
+                                text = "@${contributor.username}",
+                                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                 onClick = { onOpenUrl(contributor.githubUrl) }
-                            ) {
-                                Text(
-                                    text = "@${contributor.username}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontFamily = FontFamily.Monospace,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
+                            )
                         }
                         Text(
-                            text = "${contributor.roleBadge} • ${contributor.contributions.size} ${if (contributor.contributions.size == 1) "item" else "items"}",
+                            text = "${contributor.roleBadge} - ${contributor.contributions.size} ${if (contributor.contributions.size == 1) "item" else "items"}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                IconButton(
-                    onClick = { isExpanded = !isExpanded },
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = if (isExpanded) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    contentDescription = if (isExpanded) "Collapse ${contributor.displayName}" else "Expand ${contributor.displayName}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
             }
 
-            // Expandable Contribution Items
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
                     for (item in contributor.contributions) {
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable { onOpenUrl(item.url) }
+                            onClick = { onOpenUrl(item.url) },
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Surface(
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = if (item.isPr) Color(0xFF8957E5).copy(alpha = 0.2f) else Color(0xFF238636).copy(alpha = 0.2f)
-                                ) {
-                                    Text(
-                                        text = if (item.isPr) "PR #${item.referenceNumber}" else "#${item.referenceNumber}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace,
-                                        color = if (item.isPr) Color(0xFFB392F0) else Color(0xFF3FB950),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                    )
-                                }
+                                LoaMonospaceChip(
+                                    text = if (item.isPr) "PR #${item.referenceNumber}" else "#${item.referenceNumber}",
+                                    containerColor = if (item.isPr) {
+                                        MaterialTheme.colorScheme.tertiaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    },
+                                    contentColor = if (item.isPr) {
+                                        MaterialTheme.colorScheme.onTertiaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    }
+                                )
 
                                 Text(
                                     text = item.title,
@@ -614,10 +585,10 @@ fun ContributorCard(
                                 )
 
                                 Icon(
-                                    Icons.AutoMirrored.Filled.OpenInNew,
-                                    contentDescription = "Open in GitHub",
+                                    imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                                    contentDescription = "Open ${if (item.isPr) "PR #${item.referenceNumber}" else "issue #${item.referenceNumber}"}",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
@@ -632,34 +603,28 @@ fun ContributorCard(
 fun SponsorCard(
     sponsor: Sponsor,
     onOpenUrl: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shape: Shape = LoaSegmentedSingleShape
 ) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(enabled = sponsor.profileUrl != null) {
-                sponsor.profileUrl?.let(onOpenUrl)
-            }
-    ) {
+    val rowContent: @Composable () -> Unit = {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
+                    .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFFF424D).copy(alpha = 0.2f)),
+                    .background(MaterialTheme.colorScheme.tertiaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Default.Favorite,
+                    imageVector = Icons.Rounded.Favorite,
                     contentDescription = null,
-                    tint = Color(0xFFFF424D),
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -667,8 +632,8 @@ fun SponsorCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = sponsor.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = sponsor.tier,
@@ -679,12 +644,33 @@ fun SponsorCard(
 
             if (sponsor.profileUrl != null) {
                 Icon(
-                    Icons.AutoMirrored.Filled.OpenInNew,
-                    contentDescription = null,
+                    imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
+                    contentDescription = "Open ${sponsor.name} profile",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
             }
         }
+    }
+
+    if (sponsor.profileUrl != null) {
+        Surface(
+            onClick = { onOpenUrl(sponsor.profileUrl) },
+            shape = shape,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+            modifier = modifier.fillMaxWidth(),
+            content = rowContent
+        )
+    } else {
+        Surface(
+            shape = shape,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+            modifier = modifier.fillMaxWidth(),
+            content = rowContent
+        )
     }
 }

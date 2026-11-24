@@ -157,7 +157,7 @@ fun MainAppContent(viewModel: MainViewModel) {
         ) {
             val isImeVisible = WindowInsets.isImeVisible
             Scaffold(
-                containerColor = if (isTerminal || (isDesktop && isDesktopRunning)) Color(0xFF0F172A) else MaterialTheme.colorScheme.background,
+                containerColor = if (isDesktop && isDesktopRunning) Color(0xFF0F172A) else MaterialTheme.colorScheme.background,
                 contentWindowInsets = if (isTerminal || (isDesktop && isDesktopRunning)) {
                     if (isImeVisible) WindowInsets(0, 0, 0, 0)
                     else WindowInsets.navigationBars.only(WindowInsetsSides.Bottom)
@@ -249,8 +249,8 @@ fun MainAppContent(viewModel: MainViewModel) {
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .padding(top = if (isTerminal) 0.dp else innerPadding.calculateTopPadding()),
-                            containerColor = if (isTerminal) Color(0xFF242424) else NavigationRailDefaults.ContainerColor,
-                            contentColor = if (isTerminal) Color.White else MaterialTheme.colorScheme.onSurface,
+                            containerColor = NavigationRailDefaults.ContainerColor,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
                             header = {
                                 IconButton(
                                     onClick = {
@@ -350,6 +350,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                         (isDesktop && isDesktopRunning) ||
                         currentScreen == AppScreen.DASHBOARD ||
                         currentScreen == AppScreen.SETTINGS ||
+                        currentScreen == AppScreen.ABOUT ||
                         currentScreen == AppScreen.WELCOME ||
                         currentScreen == AppScreen.WIZARD
                     val topContentPadding = if (screenHandlesTopInsets) 0.dp else innerPadding.calculateTopPadding()
@@ -359,7 +360,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                             .fillMaxHeight()
                             .padding(top = topContentPadding)
                             .consumeWindowInsets(PaddingValues(top = topContentPadding)),
-                        color = if (isTerminal || (isDesktop && isDesktopRunning)) Color(0xFF0F172A) else MaterialTheme.colorScheme.background
+                        color = if (isDesktop && isDesktopRunning) Color(0xFF0F172A) else MaterialTheme.colorScheme.background
                     ) {
                         when (currentScreen) {
                     AppScreen.SPLASH -> {

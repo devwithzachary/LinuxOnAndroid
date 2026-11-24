@@ -47,7 +47,7 @@ fun SettingsScreen(
     onSetAppThemeMode: (AppThemeMode) -> Unit = {},
     useDynamicColor: Boolean = true,
     onSetUseDynamicColor: (Boolean) -> Unit = {},
-    terminalTheme: TerminalTheme = TerminalTheme.DRACULA,
+    terminalTheme: TerminalTheme = TerminalTheme.DEFAULT,
     terminalFontSize: Int = 13,
     terminalFontFamily: String = "Monospace",
     onSelectTheme: (String) -> Unit = {},

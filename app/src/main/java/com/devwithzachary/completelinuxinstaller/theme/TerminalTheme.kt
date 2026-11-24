@@ -13,6 +13,21 @@ data class TerminalTheme(
     val ansiColors: List<Color>
 ) {
     companion object {
+        val LINUX_ON_ANDROID = TerminalTheme(
+            id = "linux_on_android",
+            name = "LinuxOnAndroid",
+            defaultFg = Color(0xFFF0DFD9),
+            defaultBg = Color(0xFF1A120E),
+            cursorColor = Color(0xFFFFB596),
+            selectionColor = Color(0xFF4A3831),
+            ansiColors = listOf(
+                Color(0xFF271E1A), Color(0xFFF07167), Color(0xFFB3D278), Color(0xFFF5BF48),
+                Color(0xFF7FB3D5), Color(0xFFD896C8), Color(0xFF76C7B7), Color(0xFFF0DFD9),
+                Color(0xFF8A766E), Color(0xFFFF8E82), Color(0xFFCFEF91), Color(0xFFFFDEA0),
+                Color(0xFFA3CFEB), Color(0xFFEBB4DE), Color(0xFF9CE0D2), Color(0xFFFFF8F6)
+            )
+        )
+
         val DRACULA = TerminalTheme(
             id = "dracula",
             name = "Dracula",
@@ -88,10 +103,12 @@ data class TerminalTheme(
             )
         )
 
-        val PRESETS = listOf(DRACULA, SOLARIZED_DARK, MONOKAI, ONE_DARK, CYBERPUNK)
+        val DEFAULT = LINUX_ON_ANDROID
+
+        val PRESETS = listOf(LINUX_ON_ANDROID, DRACULA, SOLARIZED_DARK, MONOKAI, ONE_DARK, CYBERPUNK)
 
         fun getById(id: String): TerminalTheme {
-            return PRESETS.firstOrNull { it.id == id } ?: DRACULA
+            return PRESETS.firstOrNull { it.id == id } ?: DEFAULT
         }
 
         fun colorToHex(color: Color): String {

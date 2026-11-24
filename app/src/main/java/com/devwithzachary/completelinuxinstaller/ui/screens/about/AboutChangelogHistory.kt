@@ -1,18 +1,16 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.about
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.ui.components.ChangelogItem
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSectionHeader
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedGroup
 
 data class ReleaseChangelog(
     val version: String,
@@ -309,31 +307,25 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
 
 @Composable
 fun AboutChangelogSection(modifier: Modifier = Modifier) {
-    Card(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.History, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.about_changelog_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+        LoaSectionHeader(
+            title = stringResource(R.string.about_changelog_title)
+        )
 
+        LoaSegmentedGroup {
             for (entry in APP_CHANGELOG_HISTORY) {
-                ChangelogItem(
-                    version = entry.version,
-                    date = entry.date,
-                    initialExpanded = entry.initialExpanded,
-                    highlights = entry.highlights
-                )
+                item { shape ->
+                    ChangelogItem(
+                        version = entry.version,
+                        date = entry.date,
+                        initialExpanded = entry.initialExpanded,
+                        highlights = entry.highlights,
+                        shape = shape
+                    )
+                }
             }
         }
     }

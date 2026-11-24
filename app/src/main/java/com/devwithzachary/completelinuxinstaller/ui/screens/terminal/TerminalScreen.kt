@@ -3,35 +3,71 @@ package com.devwithzachary.completelinuxinstaller.ui.screens.terminal
 import android.app.Activity
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Keyboard
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ContentPaste
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Keyboard
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.KeyboardHide
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Stop
+import androidx.compose.material.icons.rounded.StopCircle
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -42,15 +78,15 @@ import com.devwithzachary.completelinuxinstaller.engine.TerminalBridge
 import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
 import com.devwithzachary.completelinuxinstaller.ui.components.EditHotkeysDialog
 import com.devwithzachary.completelinuxinstaller.ui.components.ExtraKeysRow
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.KeyboardHide
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaBottomSheet
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedGroup
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaMonoTextStyle
+import com.devwithzachary.completelinuxinstaller.ui.util.HotkeyManager
 import com.devwithzachary.completelinuxinstaller.ui.util.handHover
 import com.devwithzachary.completelinuxinstaller.ui.util.isHardwareKeyboardConnected
-import com.devwithzachary.completelinuxinstaller.ui.util.onContextMenu
 import com.devwithzachary.completelinuxinstaller.ui.util.onSecondaryClick
-import com.devwithzachary.completelinuxinstaller.ui.util.HotkeyManager
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalScreen(
     terminalBridge: TerminalBridge,
@@ -94,14 +130,16 @@ fun TerminalScreen(
 
     val window = remember(view) { (view.context as? Activity)?.window }
     val insetsController = remember(window, view) { window?.let { WindowCompat.getInsetsController(it, view) } }
+    val headerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    val isLightHeader = headerColor.luminance() > 0.5f
 
     @Suppress("DEPRECATION")
-    DisposableEffect(window, insetsController) {
+    DisposableEffect(window, insetsController, headerColor) {
         val prevStatusBarColor = window?.statusBarColor
         val prevLightStatusBars = insetsController?.isAppearanceLightStatusBars
 
-        window?.statusBarColor = android.graphics.Color.parseColor("#242424")
-        insetsController?.isAppearanceLightStatusBars = false
+        window?.statusBarColor = headerColor.toArgb()
+        insetsController?.isAppearanceLightStatusBars = isLightHeader
 
         onDispose {
             if (window != null && prevStatusBarColor != null) {
@@ -139,13 +177,16 @@ fun TerminalScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1E1E1E))
+            .background(MaterialTheme.colorScheme.surface)
             .imePadding()
     ) {
         // Terminal Top Action Bar
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color(0xFF242424)
+            color = headerColor,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
         ) {
             Column(modifier = Modifier.statusBarsPadding()) {
                 Row(
@@ -162,9 +203,13 @@ fun TerminalScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(10.dp)
+                                .size(8.dp)
                                 .background(
-                                    color = if (isRunning) Color(0xFF4CAF50) else Color(0xFFE57373),
+                                    color = if (isRunning) {
+                                        MaterialTheme.colorScheme.secondary
+                                    } else {
+                                        MaterialTheme.colorScheme.error
+                                    },
                                     shape = CircleShape
                                 )
                         )
@@ -172,10 +217,11 @@ fun TerminalScreen(
                         val activeTitle = activeSession?.let { it.title.value } ?: "Terminal"
                         Text(
                             text = if (isRunning) "$activeTitle $promptSymbol" else "$activeTitle (Stopped)",
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = LoaMonoTextStyle.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -186,18 +232,21 @@ fun TerminalScreen(
                             horizontalArrangement = Arrangement.spacedBy(2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Toggle Extra Keys Ribbon
                             IconButton(
                                 onClick = { showExtraKeysOverride = !showExtraKeys },
                                 modifier = Modifier
-                                    .size(34.dp)
+                                    .size(36.dp)
                                     .handHover()
                             ) {
                                 Icon(
-                                    imageVector = if (showExtraKeys) Icons.Default.KeyboardHide else Icons.Default.KeyboardArrowUp,
+                                    imageVector = if (showExtraKeys) Icons.Rounded.KeyboardHide else Icons.Rounded.KeyboardArrowUp,
                                     contentDescription = if (showExtraKeys) "Hide On-screen Keys" else "Show On-screen Keys",
-                                    tint = if (showExtraKeys) Color(0xFF81D4FA) else Color.Gray,
-                                    modifier = Modifier.size(19.dp)
+                                    tint = if (showExtraKeys) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 
@@ -209,28 +258,28 @@ fun TerminalScreen(
                                     }
                                 },
                                 modifier = Modifier
-                                    .size(34.dp)
+                                    .size(36.dp)
                                     .handHover()
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.ContentPaste,
+                                    imageVector = Icons.Rounded.ContentPaste,
                                     contentDescription = "Paste Clipboard",
-                                    tint = Color(0xFF81D4FA),
-                                    modifier = Modifier.size(19.dp)
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 
                             IconButton(
                                 onClick = { showEditHotkeysDialog = true },
                                 modifier = Modifier
-                                    .size(34.dp)
+                                    .size(36.dp)
                                     .handHover()
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Tune,
+                                    imageVector = Icons.Rounded.Tune,
                                     contentDescription = "Edit Hotkeys",
-                                    tint = Color(0xFFFFB74D),
-                                    modifier = Modifier.size(19.dp)
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 
@@ -240,45 +289,43 @@ fun TerminalScreen(
                                     keyboardController?.show()
                                 },
                                 modifier = Modifier
-                                    .size(34.dp)
+                                    .size(36.dp)
                                     .handHover()
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Keyboard,
+                                    imageVector = Icons.Rounded.Keyboard,
                                     contentDescription = "Show Keyboard",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(19.dp)
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 
                             if (isRunning) {
                                 IconButton(
-                                    onClick = {
-                                        showStopConfirmDialog = true
-                                    },
+                                    onClick = { showStopConfirmDialog = true },
                                     modifier = Modifier
-                                        .size(34.dp)
+                                        .size(36.dp)
                                         .handHover()
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Stop,
+                                        imageVector = Icons.Rounded.Stop,
                                         contentDescription = "Stop Terminal",
-                                        tint = Color(0xFFE57373),
-                                        modifier = Modifier.size(19.dp)
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             } else {
                                 IconButton(
                                     onClick = onStartSession,
                                     modifier = Modifier
-                                        .size(34.dp)
+                                        .size(36.dp)
                                         .handHover()
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.PlayArrow,
+                                        imageVector = Icons.Rounded.PlayArrow,
                                         contentDescription = "Start Terminal",
-                                        tint = Color(0xFF81C784),
-                                        modifier = Modifier.size(19.dp)
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
@@ -289,7 +336,9 @@ fun TerminalScreen(
                 // Tab Strip for Multiple Concurrent Terminal Windows
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color(0xFF1E1E1E)
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp
                 ) {
                     Row(
                         modifier = Modifier
@@ -307,11 +356,24 @@ fun TerminalScreen(
                                 val sessionRunning by session.isRunning.collectAsStateWithLifecycle()
                                 val sessionTitle by session.title.collectAsStateWithLifecycle()
 
+                                val tabContainerColor = if (isSelected) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceContainerHigh
+                                }
+                                val tabContentColor = if (isSelected) {
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
+
                                 Box {
                                     Surface(
                                         shape = RoundedCornerShape(8.dp),
-                                        color = if (isSelected) Color(0xFF333333) else Color(0xFF262626),
-                                        border = if (isSelected) androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF4CAF50)) else null,
+                                        color = tabContainerColor,
+                                        contentColor = tabContentColor,
+                                        tonalElevation = 0.dp,
+                                        shadowElevation = 0.dp,
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
                                             .handHover()
@@ -338,17 +400,22 @@ fun TerminalScreen(
                                                 modifier = Modifier
                                                     .size(6.dp)
                                                     .background(
-                                                        color = if (sessionRunning) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
+                                                        color = if (sessionRunning) {
+                                                            MaterialTheme.colorScheme.secondary
+                                                        } else {
+                                                            MaterialTheme.colorScheme.outline
+                                                        },
                                                         shape = CircleShape
                                                     )
                                             )
 
                                             Text(
                                                 text = sessionTitle,
-                                                color = if (isSelected) Color.White else Color(0xFFB0B0B0),
-                                                fontSize = 12.sp,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                fontFamily = FontFamily.Monospace,
+                                                color = tabContentColor,
+                                                style = LoaMonoTextStyle.copy(
+                                                    fontSize = 12.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                                ),
                                                 maxLines = 1
                                             )
 
@@ -357,13 +424,15 @@ fun TerminalScreen(
                                                     onCloseTab(session.id)
                                                     terminalBridge.closeSession(session.id)
                                                 },
-                                                modifier = Modifier.size(16.dp).handHover()
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .handHover()
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.Close,
-                                                    contentDescription = "Close Tab",
-                                                    tint = Color(0xFFB0B0B0),
-                                                    modifier = Modifier.size(12.dp)
+                                                    imageVector = Icons.Rounded.Close,
+                                                    contentDescription = "Close $sessionTitle",
+                                                    tint = tabContentColor,
+                                                    modifier = Modifier.size(14.dp)
                                                 )
                                             }
                                         }
@@ -379,7 +448,9 @@ fun TerminalScreen(
                                                 tabContextMenuSessionId = null
                                                 sessionToRename = Pair(session.id, sessionTitle)
                                             },
-                                            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) }
+                                            leadingIcon = {
+                                                Icon(Icons.Rounded.Edit, contentDescription = null)
+                                            }
                                         )
                                         DropdownMenuItem(
                                             text = { Text("Close Tab") },
@@ -388,7 +459,9 @@ fun TerminalScreen(
                                                 onCloseTab(session.id)
                                                 terminalBridge.closeSession(session.id)
                                             },
-                                            leadingIcon = { Icon(Icons.Default.Close, contentDescription = null) }
+                                            leadingIcon = {
+                                                Icon(Icons.Rounded.Close, contentDescription = null)
+                                            }
                                         )
                                         if (sessions.size > 1) {
                                             HorizontalDivider()
@@ -401,7 +474,9 @@ fun TerminalScreen(
                                                         terminalBridge.closeSession(other.id)
                                                     }
                                                 },
-                                                leadingIcon = { Icon(Icons.Default.Close, contentDescription = null) }
+                                                leadingIcon = {
+                                                    Icon(Icons.Rounded.Close, contentDescription = null)
+                                                }
                                             )
                                         }
                                     }
@@ -411,8 +486,7 @@ fun TerminalScreen(
 
                         Spacer(modifier = Modifier.width(6.dp))
 
-                        // + New Tab Button
-                        IconButton(
+                        Surface(
                             onClick = {
                                 if (containers.size > 1) {
                                     showNewTabDialog = true
@@ -421,17 +495,23 @@ fun TerminalScreen(
                                     onCreateTab(container?.id, container?.defaultUser ?: defaultLoginUser, null)
                                 }
                             },
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp,
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(30.dp)
                                 .handHover()
-                                .background(Color(0xFF333333), shape = RoundedCornerShape(6.dp))
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "New Terminal Tab",
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Add,
+                                    contentDescription = "New Terminal Tab",
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -505,57 +585,74 @@ fun TerminalScreen(
         }
     }
 
-    // New Tab Selector Dialog
+    // New Tab Selector Sheet
     if (showNewTabDialog) {
-        AlertDialog(
+        LoaBottomSheet(
             onDismissRequest = { showNewTabDialog = false },
-            title = { Text("Open New Terminal Tab", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Select container rootfs for this session:", style = MaterialTheme.typography.bodyMedium)
-                    containers.forEach { container ->
+            title = "Open New Terminal Tab",
+            subtitle = "Select container rootfs for this session"
+        ) {
+            LoaSegmentedGroup {
+                containers.forEach { container ->
+                    item { shape ->
                         Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .clickable {
-                                    showNewTabDialog = false
-                                    onCreateTab(container.id, container.defaultUser, "${container.name} (${sessionTabCount(sessions, container.id) + 1})")
-                                },
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(8.dp)
+                            onClick = {
+                                showNewTabDialog = false
+                                onCreateTab(
+                                    container.id,
+                                    container.defaultUser,
+                                    "${container.name} (${sessionTabCount(sessions, container.id) + 1})"
+                                )
+                            },
+                            shape = shape,
+                            color = MaterialTheme.colorScheme.surfaceContainer,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 0.dp,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(10.dp)
-                                            .clip(CircleShape)
-                                            .background(Color(container.colorHex))
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(container.colorHex))
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = container.name,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    Column {
-                                        Text(container.name, fontWeight = FontWeight.Bold)
-                                        Text(container.distroName, style = MaterialTheme.typography.bodySmall)
-                                    }
+                                    Text(
+                                        text = container.distroName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }
                     }
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = { showNewTabDialog = false }) {
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                TextButton(
+                    onClick = { showNewTabDialog = false },
+                    modifier = Modifier.widthIn(max = 320.dp)
+                ) {
                     Text("Cancel")
                 }
             }
-        )
+        }
     }
 
     // Rename Tab Dialog
@@ -563,7 +660,22 @@ fun TerminalScreen(
         var newTitleText by remember { mutableStateOf(currentTitle) }
         AlertDialog(
             onDismissRequest = { sessionToRename = null },
-            title = { Text("Rename Tab", fontWeight = FontWeight.Bold) },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            iconContentColor = MaterialTheme.colorScheme.primary,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.Edit,
+                    contentDescription = null
+                )
+            },
+            title = {
+                Text(
+                    text = "Rename Tab",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+            },
             text = {
                 OutlinedTextField(
                     value = newTitleText,
@@ -595,17 +707,26 @@ fun TerminalScreen(
     if (showStopConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showStopConfirmDialog = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            iconContentColor = MaterialTheme.colorScheme.error,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            icon = {
+                Icon(
+                    imageVector = Icons.Rounded.StopCircle,
+                    contentDescription = null
+                )
+            },
             title = {
                 Text(
                     text = "Stop Terminal Session?",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = MaterialTheme.typography.headlineSmall
                 )
             },
             text = {
                 Text(
                     text = "Are you sure you want to stop the active terminal session? Any running commands or processes will be terminated.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodyMedium
                 )
             },
             confirmButton = {
@@ -648,6 +769,9 @@ fun TerminalScreen(
     }
 }
 
-private fun sessionTabCount(sessions: List<com.devwithzachary.completelinuxinstaller.engine.TerminalSession>, containerId: String): Int {
+private fun sessionTabCount(
+    sessions: List<com.devwithzachary.completelinuxinstaller.engine.TerminalSession>,
+    containerId: String
+): Int {
     return sessions.count { it.containerId == containerId }
 }

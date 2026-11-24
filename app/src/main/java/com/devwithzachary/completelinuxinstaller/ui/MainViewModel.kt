@@ -564,7 +564,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadTerminalTheme(): TerminalTheme {
-        val themeId = prefs.getString("theme_id", "dracula") ?: "dracula"
+        val themeId = prefs.getString("theme_id", TerminalTheme.DEFAULT.id) ?: TerminalTheme.DEFAULT.id
         if (themeId == "custom") {
             return loadCustomTheme()
         }
@@ -574,7 +574,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun loadCustomTheme(): TerminalTheme {
-        val defaultCustom = TerminalTheme.DRACULA.copy(id = "custom", name = "Custom")
+        val defaultCustom = TerminalTheme.DEFAULT.copy(id = "custom", name = "Custom")
         val fgHex = prefs.getString("custom_fg", TerminalTheme.colorToHex(defaultCustom.defaultFg)) ?: ""
         val bgHex = prefs.getString("custom_bg", TerminalTheme.colorToHex(defaultCustom.defaultBg)) ?: ""
         val cursorHex = prefs.getString("custom_cursor", TerminalTheme.colorToHex(defaultCustom.cursorColor)) ?: ""
