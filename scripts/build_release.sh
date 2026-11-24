@@ -39,8 +39,9 @@ fi
 # Clean previous CXX build caches to avoid path discrepancies between environments
 rm -rf "$PROJECT_ROOT/app/.cxx"
 
-# Execute Gradle Clean Build for Release AAB and APK
-./gradlew clean bundleRelease assembleRelease
+# Execute Gradle Clean Build for F-Droid/GitHub APK (IS_PLAY_STORE=false) and Play Store AAB (IS_PLAY_STORE=true)
+./gradlew clean assembleRelease
+./gradlew bundleRelease -PplayStoreBuild=true
 
 OUT_DIR="$PROJECT_ROOT/release"
 mkdir -p "$OUT_DIR"

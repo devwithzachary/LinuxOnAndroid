@@ -29,6 +29,7 @@ val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
         highlights = listOf(
             "Expanded Software Center (33 Packages): Added 24 new 1-click packages including CLI/Dev tools (Clang/C++, Go, Rust, Ruby, PHP, PostgreSQL, MariaDB, Redis, btop/Fastfetch, tmux/htop/jq, Zsh, aria2, Rclone, FFmpeg, iPerf3, Nmap, tshark) plus 7 Desktop GUI apps marked as Beta (VS Code Desktop, Blender, Kdenlive, GIMP, LibreOffice, Geany, Firefox).",
             "Desktop GUI Apps (Beta): Added BETA badges and GitHub/Discord issue-reporting links for Desktop GUI apps while they run on software rendering ahead of future hardware-accelerated GPU support.",
+            "What's New Update Guide: Added an automatic What's New screen for existing users after app updates showing key features and where to find them, with a Settings toggle.",
             "Software Center Search & Filters: Added instant search, All/Installed/Available filter chips, plus Apps & Productivity and Creative & Media categories.",
             "1-Click Package Uninstall: Added full uninstall support with service shutdown, confirmation dialog, and live logs for all 1-click packages across all 7 distributions.",
             "Updated Base Images: Upgraded Debian to Debian 13 (Trixie), Fedora to Fedora 45, and Alpine Linux to 3.24.4.",

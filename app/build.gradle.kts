@@ -7,6 +7,8 @@ plugins {
 }
 
 android {
+    val isPlayStoreBuild = (project.findProperty("playStoreBuild") as? String)?.toBoolean() ?: false
+
     namespace = "com.devwithzachary.completelinuxinstaller"
     compileSdk = 36
     ndkVersion = "28.2.13676358"
@@ -17,6 +19,8 @@ android {
         versionCode = 20
         versionName = "1.9.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("boolean", "IS_PLAY_STORE", isPlayStoreBuild.toString())
 
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")

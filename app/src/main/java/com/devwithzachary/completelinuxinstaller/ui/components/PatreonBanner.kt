@@ -17,12 +17,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
 
 @Composable
 fun PatreonBanner(
     modifier: Modifier = Modifier
 ) {
+    if (BuildConfig.IS_PLAY_STORE) return
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val patreonUrl = stringResource(R.string.patreon_url)

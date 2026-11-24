@@ -310,15 +310,17 @@ fun AboutCreditsSection(
                         } else null
                     )
                 }
-                item {
-                    FilterChip(
-                        selected = selectedCategory == CreditsCategory.PATREON,
-                        onClick = { selectedCategory = CreditsCategory.PATREON },
-                        label = { Text(stringResource(R.string.credits_tab_patreon)) },
-                        leadingIcon = if (selectedCategory == CreditsCategory.PATREON) {
-                            { Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
+                if (!com.devwithzachary.completelinuxinstaller.BuildConfig.IS_PLAY_STORE) {
+                    item {
+                        FilterChip(
+                            selected = selectedCategory == CreditsCategory.PATREON,
+                            onClick = { selectedCategory = CreditsCategory.PATREON },
+                            label = { Text(stringResource(R.string.credits_tab_patreon)) },
+                            leadingIcon = if (selectedCategory == CreditsCategory.PATREON) {
+                                { Icon(Icons.Default.Favorite, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            } else null
+                        )
+                    }
                 }
             }
 
@@ -378,8 +380,8 @@ fun AboutCreditsSection(
                 }
             }
 
-            // Project Supporters
-            if (selectedCategory == CreditsCategory.ALL || selectedCategory == CreditsCategory.PATREON) {
+            // Project Supporters (hidden on Play Store builds)
+            if (!com.devwithzachary.completelinuxinstaller.BuildConfig.IS_PLAY_STORE && (selectedCategory == CreditsCategory.ALL || selectedCategory == CreditsCategory.PATREON)) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(

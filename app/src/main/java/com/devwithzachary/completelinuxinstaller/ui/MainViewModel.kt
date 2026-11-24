@@ -306,6 +306,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun completeWelcome() {
         prefs.edit().putBoolean("has_seen_welcome", true).apply()
         _hasSeenWelcome.value = true
+        markWhatsNewSeen()
+    }
+
+    private val whatsNewPrefs = application.getSharedPreferences("whats_new_prefs", Context.MODE_PRIVATE)
+    private val _isShowWhatsNewOnUpdateEnabled = MutableStateFlow(
+        whatsNewPrefs.getBoolean("show_whats_new_on_update", true)
+    )
+    val isShowWhatsNewOnUpdateEnabled: StateFlow<Boolean> = _isShowWhatsNewOnUpdateEnabled.asStateFlow()
+
+    fun setShowWhatsNewOnUpdateEnabled(enabled: Boolean) {
+        whatsNewPrefs.edit().putBoolean("show_whats_new_on_update", enabled).apply()
+        _isShowWhatsNewOnUpdateEnabled.value = enabled
+    }
+
+    fun markWhatsNewSeen(
+        versionKey: String = com.devwithzachary.completelinuxinstaller.ui.screens.whatsnew.CURRENT_WHATS_NEW_RELEASE.versionKey
+    ) {
+        whatsNewPrefs.edit().putString("last_seen_whats_new_version", versionKey).apply()
+    }
+
+    fun shouldAutoShowWhatsNew(
+        versionKey: String = com.devwithzachary.completelinuxinstaller.ui.screens.whatsnew.CURRENT_WHATS_NEW_RELEASE.versionKey
+    ): Boolean {
+        val lastSeen = whatsNewPrefs.getString("last_seen_whats_new_version", "") ?: ""
+        return com.devwithzachary.completelinuxinstaller.ui.screens.whatsnew.WhatsNewLogic.shouldAutoShowWhatsNew(
+            isEnabled = _isShowWhatsNewOnUpdateEnabled.value,
+            lastSeenVersion = lastSeen,
+            currentVersionKey = versionKey
+        )
     }
 
     fun resetWelcome() {

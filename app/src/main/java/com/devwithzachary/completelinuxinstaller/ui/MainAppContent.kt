@@ -26,6 +26,7 @@ import com.devwithzachary.completelinuxinstaller.ui.screens.settings.SettingsScr
 import com.devwithzachary.completelinuxinstaller.ui.screens.splash.SplashScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.terminal.TerminalScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.welcome.WelcomeScreen
+import com.devwithzachary.completelinuxinstaller.ui.screens.whatsnew.WhatsNewScreen
 import com.devwithzachary.completelinuxinstaller.ui.screens.wizard.WizardScreen
 
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,7 +45,8 @@ enum class AppScreen(val titleRes: Int) {
     TERMINAL(R.string.nav_terminal),
     DESKTOP(R.string.nav_desktop),
     SETTINGS(R.string.nav_settings),
-    ABOUT(R.string.nav_about)
+    ABOUT(R.string.nav_about),
+    WHATS_NEW(R.string.app_name)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -66,6 +68,8 @@ fun MainAppContent(viewModel: MainViewModel) {
     val isInstalled = dashboardState.isInstalled
     val splashDismissed = dashboardState.splashDismissed
     var currentScreen by rememberSaveable { mutableStateOf(AppScreen.SPLASH) }
+    var hasEvaluatedWhatsNew by rememberSaveable { mutableStateOf(false) }
+    var whatsNewReturnScreen by rememberSaveable { mutableStateOf(AppScreen.DASHBOARD) }
     var selectedContainerTarget by remember { mutableStateOf<Pair<String, com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab>?>(null) }
 
     LaunchedEffect(requestedScreen) {
@@ -80,12 +84,26 @@ fun MainAppContent(viewModel: MainViewModel) {
         if (!isInitializing) {
             if (!isInstalled && !splashDismissed) {
                 if (!hasSeenWelcome) {
+                    // Fresh install: mark What's New as seen so brand-new users do not see the update guide
+                    viewModel.markWhatsNewSeen()
+                    hasEvaluatedWhatsNew = true
                     currentScreen = AppScreen.WELCOME
                 } else {
+                    hasEvaluatedWhatsNew = true
                     currentScreen = AppScreen.WIZARD
                 }
             } else if (currentScreen == AppScreen.SPLASH || currentScreen == AppScreen.WELCOME || currentScreen == AppScreen.WIZARD) {
-                currentScreen = AppScreen.DASHBOARD
+                if (!hasEvaluatedWhatsNew) {
+                    hasEvaluatedWhatsNew = true
+                    if (isInstalled && viewModel.shouldAutoShowWhatsNew()) {
+                        whatsNewReturnScreen = AppScreen.DASHBOARD
+                        currentScreen = AppScreen.WHATS_NEW
+                    } else {
+                        currentScreen = AppScreen.DASHBOARD
+                    }
+                } else {
+                    currentScreen = AppScreen.DASHBOARD
+                }
             }
         }
     }
@@ -104,7 +122,7 @@ fun MainAppContent(viewModel: MainViewModel) {
     } else {
         val isTerminal = currentScreen == AppScreen.TERMINAL
         val isDesktop = currentScreen == AppScreen.DESKTOP
-        val isFullscreenScreen = currentScreen == AppScreen.WIZARD || currentScreen == AppScreen.WELCOME
+        val isFullscreenScreen = currentScreen == AppScreen.WIZARD || currentScreen == AppScreen.WELCOME || currentScreen == AppScreen.WHATS_NEW
 
         Box(
             modifier = Modifier
@@ -588,6 +606,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                         val isGitHubUpdateCheckEnabled by viewModel.isGitHubUpdateCheckEnabled.collectAsStateWithLifecycle()
                         val isCheckingForUpdates by viewModel.isCheckingForUpdates.collectAsStateWithLifecycle()
                         val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
+                        val isShowWhatsNewOnUpdateEnabled by viewModel.isShowWhatsNewOnUpdateEnabled.collectAsStateWithLifecycle()
                         SettingsScreen(
                             state = dashboardState,
                             terminalTheme = terminalTheme,
@@ -608,7 +627,13 @@ fun MainAppContent(viewModel: MainViewModel) {
                             onSetGitHubUpdateCheckEnabled = { enabled -> viewModel.setGitHubUpdateCheckEnabled(enabled) },
                             isCheckingForUpdates = isCheckingForUpdates,
                             updateCheckResult = updateCheckResult,
-                            onCheckForUpdatesClick = { viewModel.checkForGitHubUpdates(manual = true) }
+                            onCheckForUpdatesClick = { viewModel.checkForGitHubUpdates(manual = true) },
+                            isShowWhatsNewOnUpdateEnabled = isShowWhatsNewOnUpdateEnabled,
+                            onSetShowWhatsNewOnUpdate = { enabled -> viewModel.setShowWhatsNewOnUpdateEnabled(enabled) },
+                            onOpenWhatsNew = {
+                                whatsNewReturnScreen = AppScreen.SETTINGS
+                                currentScreen = AppScreen.WHATS_NEW
+                            }
                         )
                     }
 
@@ -620,6 +645,20 @@ fun MainAppContent(viewModel: MainViewModel) {
                             isCheckingForUpdates = isCheckingForUpdates,
                             updateCheckResult = updateCheckResult,
                             onViewAppOverview = { currentScreen = AppScreen.WELCOME }
+                        )
+                    }
+
+                    AppScreen.WHATS_NEW -> {
+                        val isShowWhatsNewOnUpdateEnabled by viewModel.isShowWhatsNewOnUpdateEnabled.collectAsStateWithLifecycle()
+                        WhatsNewScreen(
+                            isShowWhatsNewOnUpdateEnabled = isShowWhatsNewOnUpdateEnabled,
+                            onToggleShowWhatsNewOnUpdate = { enabled ->
+                                viewModel.setShowWhatsNewOnUpdateEnabled(enabled)
+                            },
+                            onDismiss = {
+                                viewModel.markWhatsNewSeen()
+                                currentScreen = whatsNewReturnScreen
+                            }
                         )
                     }
                 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Warning
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.CollapsibleSettingsCard
+import com.devwithzachary.completelinuxinstaller.ui.screens.whatsnew.CURRENT_WHATS_NEW_RELEASE
 
 @Composable
 fun AppUpdatesCard(
@@ -30,6 +32,9 @@ fun AppUpdatesCard(
     isCheckingForUpdates: Boolean,
     updateCheckResult: UpdateCheckResult?,
     onCheckForUpdatesClick: () -> Unit,
+    isShowWhatsNewOnUpdateEnabled: Boolean = true,
+    onSetShowWhatsNewOnUpdate: (Boolean) -> Unit = {},
+    onOpenWhatsNew: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     CollapsibleSettingsCard(
@@ -150,6 +155,45 @@ fun AppUpdatesCard(
                     )
                 }
             }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { onSetShowWhatsNewOnUpdate(!isShowWhatsNewOnUpdateEnabled) }
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Show What's New on Update",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Automatically display update highlights after major app updates",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = isShowWhatsNewOnUpdateEnabled,
+                onCheckedChange = { onSetShowWhatsNewOnUpdate(it) }
+            )
+        }
+
+        OutlinedButton(
+            onClick = onOpenWhatsNew,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("Review What's New in ${CURRENT_WHATS_NEW_RELEASE.displayVersion}")
         }
     }
 }

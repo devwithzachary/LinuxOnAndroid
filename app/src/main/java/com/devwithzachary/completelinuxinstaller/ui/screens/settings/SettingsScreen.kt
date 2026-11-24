@@ -50,7 +50,10 @@ fun SettingsScreen(
     onSetGitHubUpdateCheckEnabled: (Boolean) -> Unit = {},
     isCheckingForUpdates: Boolean = false,
     updateCheckResult: UpdateCheckResult? = null,
-    onCheckForUpdatesClick: () -> Unit = {}
+    onCheckForUpdatesClick: () -> Unit = {},
+    isShowWhatsNewOnUpdateEnabled: Boolean = true,
+    onSetShowWhatsNewOnUpdate: (Boolean) -> Unit = {},
+    onOpenWhatsNew: () -> Unit = {}
 ) {
     var selectedCategory by remember { mutableStateOf(SettingsCategory.ALL) }
     var expandedCards by remember {
@@ -82,7 +85,10 @@ fun SettingsScreen(
             onSetGitHubUpdateCheckEnabled = onSetGitHubUpdateCheckEnabled,
             isCheckingForUpdates = isCheckingForUpdates,
             updateCheckResult = updateCheckResult,
-            onCheckForUpdatesClick = onCheckForUpdatesClick
+            onCheckForUpdatesClick = onCheckForUpdatesClick,
+            isShowWhatsNewOnUpdateEnabled = isShowWhatsNewOnUpdateEnabled,
+            onSetShowWhatsNewOnUpdate = onSetShowWhatsNewOnUpdate,
+            onOpenWhatsNew = onOpenWhatsNew
         )
     }
 

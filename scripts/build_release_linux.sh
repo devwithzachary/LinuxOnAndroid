@@ -138,8 +138,11 @@ docker run --rm \
         cp local.properties local.properties.host 2>/dev/null || true
         echo "sdk.dir=/opt/android-sdk" > local.properties
 
-        echo "📦 Compiling Android release artifacts with Gradle..."
-        ./gradlew clean bundleRelease assembleRelease --no-daemon --no-configuration-cache
+        echo "📦 Compiling reproducible release APK with Gradle (IS_PLAY_STORE=false)..."
+        ./gradlew clean assembleRelease --no-daemon --no-configuration-cache
+
+        echo "📦 Compiling Play Store App Bundle (AAB) with Gradle (IS_PLAY_STORE=true)..."
+        ./gradlew bundleRelease -PplayStoreBuild=true --no-daemon --no-configuration-cache
     '
 
 OUT_DIR="$PROJECT_ROOT/release"

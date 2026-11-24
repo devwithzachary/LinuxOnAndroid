@@ -1,3 +1,3 @@
-• Software Center: Expanded to 33 1-click packages (Clang/C++, Go, Rust, PHP, Ruby, Postgres, MariaDB, Redis, FFmpeg, Nmap, tshark) with search, filters, and 1-click uninstall.
+• Software Center: Expanded to 33 1-click packages with search, filters, and 1-click uninstall across all 7 distros.
 • Desktop GUI Apps (Beta): VS Code, Blender, Kdenlive, GIMP, LibreOffice, Geany, and Firefox marked Beta (software rendering until GPU acceleration arrives).
-• Distros & Stability: Updated Debian 13, Fedora 45, Alpine 3.24.4, plus /dev/shm and Android Phantom Process Killer fixes.
+• What's New Guide & Stability: Added What's New screen on updates, Debian 13/Fedora 45/Alpine 3.24.4 updates, and /dev/shm + Phantom Process Killer fixes.

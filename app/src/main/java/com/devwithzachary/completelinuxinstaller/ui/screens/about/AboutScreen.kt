@@ -172,6 +172,7 @@ fun AboutScreen(
         }
 
         // Support the Project Card
+        if (!com.devwithzachary.completelinuxinstaller.BuildConfig.IS_PLAY_STORE) {
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -250,6 +251,7 @@ fun AboutScreen(
                     }
                 }
             }
+        }
         }
 
         // Discord Community Card
