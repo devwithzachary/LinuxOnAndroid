@@ -242,6 +242,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(bottom = innerPadding.calculateBottomPadding())
+                        .consumeWindowInsets(PaddingValues(bottom = innerPadding.calculateBottomPadding()))
                 ) {
                     if (windowSizeClass.isMediumOrExpanded && (isInstalled || splashDismissed) && !isFullscreenScreen) {
                         NavigationRail(
@@ -345,11 +346,16 @@ fun MainAppContent(viewModel: MainViewModel) {
                         }
                     }
 
+                    val screenHandlesTopInsets = isTerminal ||
+                        (isDesktop && isDesktopRunning) ||
+                        (currentScreen == AppScreen.DASHBOARD && selectedContainerTarget == null)
+                    val topContentPadding = if (screenHandlesTopInsets) 0.dp else innerPadding.calculateTopPadding()
                     Surface(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .padding(top = if (isTerminal || (isDesktop && isDesktopRunning)) 0.dp else innerPadding.calculateTopPadding()),
+                            .padding(top = topContentPadding)
+                            .consumeWindowInsets(PaddingValues(top = topContentPadding)),
                         color = if (isTerminal || (isDesktop && isDesktopRunning)) Color(0xFF0F172A) else MaterialTheme.colorScheme.background
                     ) {
                         when (currentScreen) {

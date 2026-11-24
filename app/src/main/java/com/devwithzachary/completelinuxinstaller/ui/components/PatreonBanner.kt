@@ -1,48 +1,71 @@
 package com.devwithzachary.completelinuxinstaller.ui.components
 
 import android.content.Context
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.LocalCafe
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaSegmentedSingleShape
 
 @Composable
 fun PatreonBanner(
     modifier: Modifier = Modifier
 ) {
     if (BuildConfig.IS_PLAY_STORE) return
+    val isInspection = LocalInspectionMode.current
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val patreonUrl = stringResource(R.string.patreon_url)
     val buymeacoffeeUrl = stringResource(R.string.buymeacoffee_url)
-    val prefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
-    var isBannerDismissed by remember { mutableStateOf(prefs.getBoolean("patreon_banner_dismissed", false)) }
+    val prefs = remember(isInspection) {
+        if (isInspection) null else context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    }
+    var isBannerDismissed by remember {
+        mutableStateOf(prefs?.getBoolean("patreon_banner_dismissed", false) ?: false)
+    }
 
     if (!isBannerDismissed) {
-        Card(
+        Surface(
             modifier = modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-            )
+            shape = LoaSegmentedSingleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
         ) {
             Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -54,7 +77,7 @@ fun PatreonBanner(
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Favorite,
+                            imageVector = Icons.Rounded.Favorite,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
@@ -62,30 +85,31 @@ fun PatreonBanner(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = stringResource(R.string.patreon_banner_title),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleSmall
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
                     IconButton(
                         onClick = {
-                            prefs.edit().putBoolean("patreon_banner_dismissed", true).apply()
+                            prefs?.edit()?.putBoolean("patreon_banner_dismissed", true)?.apply()
                             isBannerDismissed = true
-                        },
-                        modifier = Modifier.size(24.dp)
+                        }
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Close,
+                            imageVector = Icons.Rounded.Close,
                             contentDescription = "Dismiss Banner",
-                            modifier = Modifier.size(18.dp)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
                 Text(
                     text = stringResource(R.string.patreon_banner_text),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.widthIn(max = 560.dp)
                 )
 
                 Row(
@@ -96,16 +120,16 @@ fun PatreonBanner(
                         onClick = {
                             try {
                                 uriHandler.openUri(patreonUrl)
-                            } catch (_: Exception) {}
+                            } catch (_: Exception) {
+                            }
                         },
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = stringResource(R.string.btn_join_patreon),
                             maxLines = 1,
-                            softWrap = false,
-                            fontSize = 13.sp
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
@@ -113,16 +137,16 @@ fun PatreonBanner(
                         onClick = {
                             try {
                                 uriHandler.openUri(buymeacoffeeUrl)
-                            } catch (_: Exception) {}
+                            } catch (_: Exception) {
+                            }
                         },
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = stringResource(R.string.btn_buy_me_a_coffee),
                             maxLines = 1,
-                            softWrap = false,
-                            fontSize = 13.sp
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }

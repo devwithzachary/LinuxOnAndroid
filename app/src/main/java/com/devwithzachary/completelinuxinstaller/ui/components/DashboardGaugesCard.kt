@@ -1,39 +1,38 @@
 package com.devwithzachary.completelinuxinstaller.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Memory
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaProgressRing
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusBadge
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusTone
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaMonoTextStyle
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaSegmentedSingleShape
+import java.util.Locale
 
 @Composable
 fun DashboardGaugesCard(
     metrics: SystemResourceMetrics,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        )
+        shape = LoaSegmentedSingleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -47,57 +46,71 @@ fun DashboardGaugesCard(
                 Text(
                     text = "Live System Resources",
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
-                Surface(
-                    shape = CircleShape,
-                    color = if (metrics.isSessionRunning) Color(0xFF4CAF50).copy(alpha = 0.15f) else MaterialTheme.colorScheme.outlineVariant
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(if (metrics.isSessionRunning) Color(0xFF4CAF50) else Color.Gray)
-                        )
-                        Text(
-                            text = if (metrics.isSessionRunning) "Live Feed" else "Standby",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (metrics.isSessionRunning) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                LoaStatusBadge(
+                    label = if (metrics.isSessionRunning) "Live" else "Standby",
+                    tone = if (metrics.isSessionRunning) LoaStatusTone.Running else LoaStatusTone.Stopped
+                )
+            }
+
+            val ramProgress = metrics.ramUsagePercent.coerceIn(0f, 1f)
+            val ramColor = when {
+                ramProgress > 0.85f -> MaterialTheme.colorScheme.error
+                ramProgress > 0.65f -> MaterialTheme.colorScheme.tertiary
+                else -> MaterialTheme.colorScheme.primary
+            }
+
+            val diskProgress = if (metrics.storageTotalBytes > 0L) {
+                metrics.storageUsagePercent.coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+            val diskColor = when {
+                diskProgress > 0.85f -> MaterialTheme.colorScheme.error
+                diskProgress > 0.65f -> MaterialTheme.colorScheme.tertiary
+                else -> MaterialTheme.colorScheme.primary
+            }
+            val freeGb = if (metrics.storageTotalBytes > 0) {
+                String.format(
+                    Locale.US,
+                    "%.1f",
+                    metrics.storageAvailableBytes / (1024.0 * 1024.0 * 1024.0)
+                )
+            } else {
+                "0.0"
+            }
+            val rootfsUsedText = if (metrics.storageUsedMb >= 1024L) {
+                String.format(Locale.US, "%.1f GB", metrics.storageUsedMb / 1024.0)
+            } else {
+                "${metrics.storageUsedMb} MB"
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. RAM Resource Gauge Card
-                ResourceGaugeItem(
-                    icon = Icons.Default.Memory,
-                    title = "RAM Usage",
+                ResourceRingColumn(
+                    title = "RAM",
+                    progress = ramProgress,
+                    indicatorColor = ramColor,
                     primaryValue = "${metrics.containerMemoryUsedMb} MB",
-                    primaryLabel = "Container Memory",
-                    secondaryText = if (metrics.systemTotalRamMb > 0) "Device: ${metrics.systemUsedRamMb}/${metrics.systemTotalRamMb} MB" else "Device RAM",
-                    progress = metrics.ramUsagePercent,
+                    secondaryValue = if (metrics.systemTotalRamMb > 0) {
+                        "${metrics.systemUsedRamMb}/${metrics.systemTotalRamMb} MB"
+                    } else {
+                        "Device RAM"
+                    },
                     modifier = Modifier.weight(1f)
                 )
 
-                // 2. Storage Allocation Gauge Card
-                val freeGb = if (metrics.storageTotalBytes > 0) String.format(java.util.Locale.US, "%.1f", metrics.storageAvailableBytes / (1024.0 * 1024.0 * 1024.0)) else "0.0"
-                ResourceGaugeItem(
-                    icon = Icons.Default.Storage,
-                    title = "RootFS Disk",
-                    primaryValue = "${metrics.storageUsedMb} MB",
-                    primaryLabel = "Container Storage",
-                    secondaryText = "$freeGb GB Free on Device",
-                    progress = (metrics.storageUsedMb.toFloat() / 4096f).coerceIn(0.05f, 1f),
+                ResourceRingColumn(
+                    title = "Storage",
+                    progress = diskProgress,
+                    indicatorColor = diskColor,
+                    primaryValue = rootfsUsedText,
+                    secondaryValue = "$freeGb GB free",
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -106,88 +119,56 @@ fun DashboardGaugesCard(
 }
 
 @Composable
-private fun ResourceGaugeItem(
-    icon: ImageVector,
+private fun ResourceRingColumn(
     title: String,
-    primaryValue: String,
-    primaryLabel: String,
-    secondaryText: String,
     progress: Float,
+    indicatorColor: androidx.compose.ui.graphics.Color,
+    primaryValue: String,
+    secondaryValue: String,
     modifier: Modifier = Modifier
 ) {
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress.coerceIn(0f, 1f),
-        animationSpec = tween(600),
-        label = "gauge_progress"
-    )
-
-    val progressColor = when {
-        animatedProgress > 0.85f -> MaterialTheme.colorScheme.error
-        animatedProgress > 0.65f -> Color(0xFFFFA000)
-        else -> MaterialTheme.colorScheme.primary
-    }
-
-    Surface(
+    Column(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 2.dp
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        LoaProgressRing(
+            progress = progress,
+            size = 72.dp,
+            strokeWidth = 8.dp,
+            indicatorColor = indicatorColor
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = progressColor,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = primaryValue,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 19.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = primaryLabel,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 10.sp
-                )
-            }
-
-            LinearProgressIndicator(
-                progress = { animatedProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = progressColor,
-                trackColor = progressColor.copy(alpha = 0.15f)
-            )
-
             Text(
-                text = secondaryText,
-                style = MaterialTheme.typography.bodySmall,
+                text = "${(progress * 100).toInt()}%",
+                style = LoaMonoTextStyle,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = primaryValue,
+                style = LoaMonoTextStyle,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = secondaryValue,
+                style = LoaMonoTextStyle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 11.sp,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }

@@ -1,31 +1,75 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.dashboard
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Analytics
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.DesktopWindows
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Terminal
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.SystemResourceMetrics
 import com.devwithzachary.completelinuxinstaller.model.ContainerInstance
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
 import com.devwithzachary.completelinuxinstaller.ui.components.DashboardGaugesCard
 import com.devwithzachary.completelinuxinstaller.ui.components.PatreonBanner
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaHeroContainer
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaMonospaceChip
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSectionHeader
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedGroup
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusBadge
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusTone
 import com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab
+import com.devwithzachary.completelinuxinstaller.ui.theme.LinuxOnAndroidTheme
 import com.devwithzachary.completelinuxinstaller.ui.util.handHover
 import com.devwithzachary.completelinuxinstaller.ui.util.onContextMenu
 import com.devwithzachary.completelinuxinstaller.ui.util.rememberWindowSizeClass
@@ -46,512 +90,502 @@ fun DashboardScreen(
     onSetDefaultContainerClick: (String) -> Unit = {}
 ) {
     val windowSizeClass = rememberWindowSizeClass()
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    if (windowSizeClass.isExpanded && state.isInstalled && state.containers.isNotEmpty()) {
-        // Large Screen & Desktop 2-Column Responsive Dashboard Layout
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            // Left Column: Containers List & Management
-            Column(
-                modifier = Modifier
-                    .weight(1.15f)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                // Section Header: Installed RootFS Containers
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Widgets,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.surface,
+        topBar = {
+            LargeTopAppBar(
+                title = {
                     Text(
-                        text = "Installed RootFS Containers",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        text = stringResource(R.string.app_title),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = "${state.containers.size} installed",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                // List of Container Cards with Right-Click Context Menu Support
-                state.containers.forEach { container ->
-                    val isDefault = container.id == state.defaultContainerId
-                    val isRunning = state.isRunning && (isDefault || container.isDefault)
-                    ContainerCard(
-                        container = container,
-                        isDefault = isDefault,
-                        isRunning = isRunning,
-                        cMetrics = containerMetrics[container.id],
-                        fallbackMetrics = metrics,
-                        isDesktopSetup = isContainerDesktopSetup(container.id),
-                        onContainerClick = onContainerClick,
-                        onOpenContainerTerminalClick = onOpenContainerTerminalClick,
-                        onOpenContainerDesktopClick = onOpenContainerDesktopClick,
-                        onSetDefaultContainerClick = onSetDefaultContainerClick
-                    )
-                }
-
-                // Add More Container Button
-                OutlinedButton(
-                    onClick = onInstallClick,
-                    modifier = Modifier.fillMaxWidth().handHover(),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Default.AddCircleOutline, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Install Another Linux Distribution")
-                }
-            }
-
-            // Right Column: Hero Banner, Live Gauges, Quick Terminal Launcher & Community
-            Column(
-                modifier = Modifier
-                    .weight(0.85f)
-                    .fillMaxHeight()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Hero Header Card
-                HeroHeaderCard()
-
-                // Quick Terminal Launcher Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Terminal,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "Terminal Session",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Surface(
-                                shape = CircleShape,
-                                color = if (state.isRunning) Color(0xFF4CAF50).copy(alpha = 0.15f) else MaterialTheme.colorScheme.outlineVariant
-                            ) {
-                                Text(
-                                    text = if (state.isRunning) "RUNNING" else "STOPPED",
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (state.isRunning) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Text(
-                            text = "Press Ctrl+Alt+T or click below to launch the PRoot terminal console.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Button(
-                            onClick = onOpenTerminalClick,
-                            modifier = Modifier.fillMaxWidth().handHover(),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Open Terminal (Ctrl+Alt+T)")
-                        }
-
-                        val defaultHasDesktop = isContainerDesktopSetup(state.defaultContainerId)
-                        if (defaultHasDesktop) {
-                            FilledTonalButton(
-                                onClick = onOpenDesktopClick,
-                                modifier = Modifier.fillMaxWidth().handHover(),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                Icon(Icons.Default.DesktopWindows, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Open Desktop Session")
-                            }
-                        }
-                    }
-                }
-
-                // Live System Resource Gauges Card
-                DashboardGaugesCard(metrics = metrics)
-
-                // Patreon Community Banner
-                PatreonBanner()
-            }
-        }
-    } else {
-        // Compact Phone Layout (or when no container is installed yet)
-        val scrollState = rememberScrollState()
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(scrollState)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            PatreonBanner()
-
-            // Hero Header Card
-            HeroHeaderCard()
-
-            if (!state.isInstalled || state.containers.isEmpty()) {
-                // Setup Required Action Card
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                },
+                actions = {
+                    if (state.isInstalled && state.containers.isNotEmpty()) {
+                        IconButton(
+                            onClick = onInstallClick,
+                            modifier = Modifier.handHover()
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onErrorContainer
+                                imageVector = Icons.Rounded.Add,
+                                contentDescription = "Install Distribution"
                             )
-                            Text(
-                                text = "No Linux distribution rootfs installed yet.",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        }
-                        Button(
-                            onClick = onInstallClick,
-                            modifier = Modifier.fillMaxWidth().handHover(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            )
-                        ) {
-                            Icon(Icons.Default.Download, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Install a Linux Distribution")
                         }
                     }
-                }
-            } else {
-                // Section Header: Installed RootFS Containers
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
+            )
+        }
+    ) { innerPadding ->
+        if (windowSizeClass.isExpanded && state.isInstalled && state.containers.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.TopCenter
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .widthIn(max = 1200.dp)
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Widgets,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Installed RootFS Containers",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    Column(
+                        modifier = Modifier
+                            .weight(1.15f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ContainersListSection(
+                            state = state,
+                            metrics = metrics,
+                            containerMetrics = containerMetrics,
+                            isContainerDesktopSetup = isContainerDesktopSetup,
+                            onInstallClick = onInstallClick,
+                            onContainerClick = onContainerClick,
+                            onOpenContainerTerminalClick = onOpenContainerTerminalClick,
+                            onOpenContainerDesktopClick = onOpenContainerDesktopClick,
+                            onSetDefaultContainerClick = onSetDefaultContainerClick
+                        )
+                    }
 
-                // List of Container Cards
-                state.containers.forEach { container ->
-                    val isDefault = container.id == state.defaultContainerId
-                    val isRunning = state.isRunning && (isDefault || container.isDefault)
-                    ContainerCard(
-                        container = container,
-                        isDefault = isDefault,
-                        isRunning = isRunning,
-                        cMetrics = containerMetrics[container.id],
-                        fallbackMetrics = metrics,
-                        isDesktopSetup = isContainerDesktopSetup(container.id),
-                        onContainerClick = onContainerClick,
-                        onOpenContainerTerminalClick = onOpenContainerTerminalClick,
-                        onOpenContainerDesktopClick = onOpenContainerDesktopClick,
-                        onSetDefaultContainerClick = onSetDefaultContainerClick
-                    )
-                }
+                    Column(
+                        modifier = Modifier
+                            .weight(0.85f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        DashboardHeroSection(
+                            state = state,
+                            metrics = metrics,
+                            containerMetrics = containerMetrics,
+                            isContainerDesktopSetup = isContainerDesktopSetup,
+                            onInstallClick = onInstallClick,
+                            onOpenTerminalClick = onOpenTerminalClick,
+                            onOpenDesktopClick = onOpenDesktopClick
+                        )
 
-                // Bottom Add More Container Button
-                OutlinedButton(
-                    onClick = onInstallClick,
-                    modifier = Modifier.fillMaxWidth().handHover(),
-                    shape = RoundedCornerShape(12.dp)
+                        DashboardGaugesCard(metrics = metrics)
+
+                        PatreonBanner()
+                    }
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState()),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 640.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Icon(Icons.Default.AddCircleOutline, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Install Another Linux Distribution")
+                    DashboardHeroSection(
+                        state = state,
+                        metrics = metrics,
+                        containerMetrics = containerMetrics,
+                        isContainerDesktopSetup = isContainerDesktopSetup,
+                        onInstallClick = onInstallClick,
+                        onOpenTerminalClick = onOpenTerminalClick,
+                        onOpenDesktopClick = onOpenDesktopClick
+                    )
+
+                    if (state.isInstalled && state.containers.isNotEmpty()) {
+                        DashboardGaugesCard(metrics = metrics)
+
+                        ContainersListSection(
+                            state = state,
+                            metrics = metrics,
+                            containerMetrics = containerMetrics,
+                            isContainerDesktopSetup = isContainerDesktopSetup,
+                            onInstallClick = onInstallClick,
+                            onContainerClick = onContainerClick,
+                            onOpenContainerTerminalClick = onOpenContainerTerminalClick,
+                            onOpenContainerDesktopClick = onOpenContainerDesktopClick,
+                            onSetDefaultContainerClick = onSetDefaultContainerClick
+                        )
+                    }
+
+                    PatreonBanner()
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun HeroHeaderCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
-        shape = RoundedCornerShape(20.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.app_title),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+private fun DashboardHeroSection(
+    state: DashboardUiState,
+    metrics: SystemResourceMetrics,
+    containerMetrics: Map<String, SystemResourceMetrics>,
+    isContainerDesktopSetup: (String) -> Boolean,
+    onInstallClick: () -> Unit,
+    onOpenTerminalClick: () -> Unit,
+    onOpenDesktopClick: () -> Unit
+) {
+    val defaultContainer = state.containers.find { it.id == state.defaultContainerId }
+        ?: state.containers.firstOrNull()
+
+    if (!state.isInstalled || defaultContainer == null) {
+        LoaHeroContainer {
+            LoaStatusBadge(
+                label = "Not Installed",
+                tone = LoaStatusTone.Stopped
             )
+
+            Text(
+                text = "No Linux environment installed",
+                style = MaterialTheme.typography.headlineSmall
+            )
+
             Text(
                 text = stringResource(R.string.app_tagline_hero),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Button(
+                onClick = onInstallClick,
+                modifier = Modifier
+                    .widthIn(max = 320.dp)
+                    .fillMaxWidth()
+                    .handHover()
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Download,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "Install a Linux Distribution")
+            }
+        }
+        return
+    }
+
+    val activeMetrics = containerMetrics[defaultContainer.id]
+    val isRunning = state.isRunning
+    val ramMb = when {
+        activeMetrics != null && activeMetrics.processes.isNotEmpty() -> activeMetrics.containerMemoryUsedMb
+        isRunning -> metrics.containerMemoryUsedMb
+        else -> 0L
+    }
+    val procCount = when {
+        activeMetrics != null -> activeMetrics.processes.size
+        isRunning -> metrics.processes.size
+        else -> 0
+    }
+    val hasDesktop = isContainerDesktopSetup(defaultContainer.id)
+
+    LoaHeroContainer {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = defaultContainer.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = defaultContainer.distroName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            LoaStatusBadge(
+                label = if (isRunning) "Running" else "Ready",
+                tone = if (isRunning) LoaStatusTone.Running else LoaStatusTone.Stopped
+            )
+        }
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            LoaMonospaceChip(text = "$ramMb MB RAM")
+            LoaMonospaceChip(text = "${formatStorageSize(defaultContainer.storageUsedMb)} disk")
+            LoaMonospaceChip(text = if (procCount > 0) "$procCount proc" else "idle")
+        }
+
+        if (hasDesktop) {
+            Row(
+                modifier = Modifier
+                    .widthIn(max = 640.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onOpenTerminalClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .handHover(),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Terminal,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Terminal",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                FilledTonalButton(
+                    onClick = onOpenDesktopClick,
+                    modifier = Modifier
+                        .weight(1f)
+                        .handHover(),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DesktopWindows,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Desktop",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        } else {
+            Button(
+                onClick = onOpenTerminalClick,
+                modifier = Modifier
+                    .widthIn(max = 320.dp)
+                    .fillMaxWidth()
+                    .handHover(),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Terminal,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Open Terminal",
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ContainerCard(
+private fun ContainersListSection(
+    state: DashboardUiState,
+    metrics: SystemResourceMetrics,
+    containerMetrics: Map<String, SystemResourceMetrics>,
+    isContainerDesktopSetup: (String) -> Boolean,
+    onInstallClick: () -> Unit,
+    onContainerClick: (String, ContainerDetailTab) -> Unit,
+    onOpenContainerTerminalClick: (String) -> Unit,
+    onOpenContainerDesktopClick: (String) -> Unit,
+    onSetDefaultContainerClick: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        LoaSectionHeader(
+            title = "Containers (${state.containers.size})",
+            actionLabel = "Add",
+            onActionClick = onInstallClick
+        )
+
+        LoaSegmentedGroup {
+            state.containers.forEach { container ->
+                val isDefault = container.id == state.defaultContainerId
+                val isRunning = state.isRunning && (isDefault || container.isDefault)
+                item { shape ->
+                    ContainerSegmentedRow(
+                        container = container,
+                        shape = shape,
+                        isDefault = isDefault,
+                        isRunning = isRunning,
+                        cMetrics = containerMetrics[container.id],
+                        fallbackMetrics = metrics,
+                        isDesktopSetup = isContainerDesktopSetup(container.id),
+                        onContainerClick = onContainerClick,
+                        onOpenContainerTerminalClick = onOpenContainerTerminalClick,
+                        onOpenContainerDesktopClick = onOpenContainerDesktopClick,
+                        onSetDefaultContainerClick = onSetDefaultContainerClick
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ContainerSegmentedRow(
     container: ContainerInstance,
+    shape: Shape,
     isDefault: Boolean,
     isRunning: Boolean,
     cMetrics: SystemResourceMetrics?,
     fallbackMetrics: SystemResourceMetrics,
-    isDesktopSetup: Boolean = false,
+    isDesktopSetup: Boolean,
     onContainerClick: (String, ContainerDetailTab) -> Unit,
     onOpenContainerTerminalClick: (String) -> Unit,
-    onOpenContainerDesktopClick: (String) -> Unit = {},
+    onOpenContainerDesktopClick: (String) -> Unit,
     onSetDefaultContainerClick: (String) -> Unit
 ) {
     var showContextMenu by remember { mutableStateOf(false) }
 
-    Box {
-        Card(
+    val ramText = when {
+        cMetrics != null && cMetrics.processes.isNotEmpty() -> "${cMetrics.containerMemoryUsedMb} MB"
+        cMetrics == null && isRunning -> "${fallbackMetrics.containerMemoryUsedMb} MB"
+        else -> "0 MB"
+    }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Surface(
+            onClick = { onContainerClick(container.id, ContainerDetailTab.OVERVIEW) },
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
                 .handHover()
-                .clickable { onContainerClick(container.id, ContainerDetailTab.OVERVIEW) }
                 .onContextMenu { showContextMenu = true },
-            shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            shape = shape,
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Container Title & Badges
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(14.dp)
-                                .background(Color(container.colorHex), shape = CircleShape)
-                        )
-                        Column {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            itemVerticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
                                 text = container.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                style = MaterialTheme.typography.titleMedium
                             )
-                            Text(
-                                text = container.distroName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (isDefault) {
-                            Badge(containerColor = MaterialTheme.colorScheme.primary) {
-                                Text(
-                                    text = "DEFAULT",
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
+                            if (isDefault) {
+                                LoaMonospaceChip(
+                                    text = "default",
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
                         }
 
-                        IconButton(
-                            onClick = { onContainerClick(container.id, ContainerDetailTab.SETTINGS) },
-                            modifier = Modifier.size(26.dp).handHover()
-                        ) {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = "Container Settings",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = container.distroName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { showContextMenu = true },
+                        modifier = Modifier.handHover()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.MoreVert,
+                            contentDescription = "Options for ${container.name}"
+                        )
                     }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-
-                val ramText = if (cMetrics != null) {
-                    if (cMetrics.processes.isNotEmpty()) "${cMetrics.containerMemoryUsedMb} MB" else "Idle (0 MB)"
-                } else if (isRunning) {
-                    "${fallbackMetrics.containerMemoryUsedMb} MB"
-                } else {
-                    "Idle (0 MB)"
-                }
-                val procText = if (cMetrics != null) {
-                    if (cMetrics.processes.isNotEmpty()) "${cMetrics.processes.size} active" else "Stopped"
-                } else if (isRunning) {
-                    "${fallbackMetrics.processes.size} active"
-                } else {
-                    "Stopped"
-                }
-
-                // Resource Usage Overview Grid (RAM, Storage, CPU/Processes, Status)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    ContainerMetricItem(
-                        label = "RAM Used",
-                        value = ramText,
-                        icon = Icons.Default.Memory,
-                        modifier = Modifier.weight(1f)
-                    )
+                    FlowRow(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LoaStatusBadge(
+                            label = if (isRunning) "Running" else "Stopped",
+                            tone = if (isRunning) LoaStatusTone.Running else LoaStatusTone.Stopped
+                        )
+                        LoaMonospaceChip(text = ramText)
+                        LoaMonospaceChip(text = formatStorageSize(container.storageUsedMb))
+                    }
 
-                    ContainerMetricItem(
-                        label = "Storage",
-                        value = "${container.storageUsedMb} MB",
-                        icon = Icons.Default.Storage,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    ContainerMetricItem(
-                        label = "Processes",
-                        value = procText,
-                        icon = Icons.Default.Speed,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                // Card Actions (max 3 buttons per row)
-                val actionButtons = buildList<@Composable (Modifier) -> Unit> {
-                    add { modifier ->
-                        Button(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        FilledTonalIconButton(
                             onClick = { onOpenContainerTerminalClick(container.id) },
-                            modifier = modifier.handHover(),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                            modifier = Modifier.handHover()
                         ) {
-                            Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(15.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Terminal", fontSize = 12.sp, maxLines = 1)
+                            Icon(
+                                imageVector = Icons.Rounded.Terminal,
+                                contentDescription = "Open terminal for ${container.name}"
+                            )
                         }
-                    }
 
-                    add { modifier ->
-                        FilledTonalButton(
-                            onClick = { onContainerClick(container.id, ContainerDetailTab.OVERVIEW) },
-                            modifier = modifier.handHover(),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(15.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Overview", fontSize = 12.sp, maxLines = 1)
-                        }
-                    }
-
-                    add { modifier ->
-                        FilledTonalButton(
-                            onClick = { onContainerClick(container.id, ContainerDetailTab.SOFTWARE) },
-                            modifier = modifier.handHover(),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Apps, contentDescription = null, modifier = Modifier.size(15.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Software", fontSize = 12.sp, maxLines = 1)
-                        }
-                    }
-
-                    if (isDesktopSetup) {
-                        add { modifier ->
-                            Button(
+                        if (isDesktopSetup) {
+                            FilledTonalIconButton(
                                 onClick = { onOpenContainerDesktopClick(container.id) },
-                                modifier = modifier.handHover(),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                                modifier = Modifier.handHover()
                             ) {
-                                Icon(Icons.Default.DesktopWindows, contentDescription = null, modifier = Modifier.size(15.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Desktop", fontSize = 12.sp, maxLines = 1)
-                            }
-                        }
-                    }
-                }
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    actionButtons.chunked(3).forEach { rowActions ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            rowActions.forEach { actionComposable ->
-                                actionComposable(Modifier.weight(1f))
+                                Icon(
+                                    imageVector = Icons.Rounded.DesktopWindows,
+                                    contentDescription = "Open desktop for ${container.name}"
+                                )
                             }
                         }
                     }
@@ -559,7 +593,6 @@ private fun ContainerCard(
             }
         }
 
-        // Desktop Mouse Right-Click & Long-Press Context Menu
         DropdownMenu(
             expanded = showContextMenu,
             onDismissRequest = { showContextMenu = false }
@@ -570,7 +603,9 @@ private fun ContainerCard(
                     showContextMenu = false
                     onOpenContainerTerminalClick(container.id)
                 },
-                leadingIcon = { Icon(Icons.Default.Terminal, contentDescription = null) }
+                leadingIcon = {
+                    Icon(Icons.Rounded.Terminal, contentDescription = null)
+                }
             )
             if (isDesktopSetup) {
                 DropdownMenuItem(
@@ -579,7 +614,9 @@ private fun ContainerCard(
                         showContextMenu = false
                         onOpenContainerDesktopClick(container.id)
                     },
-                    leadingIcon = { Icon(Icons.Default.DesktopWindows, contentDescription = null) }
+                    leadingIcon = {
+                        Icon(Icons.Rounded.DesktopWindows, contentDescription = null)
+                    }
                 )
             }
             DropdownMenuItem(
@@ -588,7 +625,9 @@ private fun ContainerCard(
                     showContextMenu = false
                     onContainerClick(container.id, ContainerDetailTab.OVERVIEW)
                 },
-                leadingIcon = { Icon(Icons.Default.Analytics, contentDescription = null) }
+                leadingIcon = {
+                    Icon(Icons.Rounded.Analytics, contentDescription = null)
+                }
             )
             DropdownMenuItem(
                 text = { Text("Software Hub") },
@@ -596,7 +635,9 @@ private fun ContainerCard(
                     showContextMenu = false
                     onContainerClick(container.id, ContainerDetailTab.SOFTWARE)
                 },
-                leadingIcon = { Icon(Icons.Default.Apps, contentDescription = null) }
+                leadingIcon = {
+                    Icon(Icons.Rounded.Apps, contentDescription = null)
+                }
             )
             DropdownMenuItem(
                 text = { Text("Container Settings") },
@@ -604,7 +645,9 @@ private fun ContainerCard(
                     showContextMenu = false
                     onContainerClick(container.id, ContainerDetailTab.SETTINGS)
                 },
-                leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) }
+                leadingIcon = {
+                    Icon(Icons.Rounded.Settings, contentDescription = null)
+                }
             )
             if (!isDefault) {
                 HorizontalDivider()
@@ -614,47 +657,202 @@ private fun ContainerCard(
                         showContextMenu = false
                         onSetDefaultContainerClick(container.id)
                     },
-                    leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) }
+                    leadingIcon = {
+                        Icon(Icons.Rounded.Star, contentDescription = null)
+                    }
                 )
             }
         }
     }
 }
 
+private fun formatStorageSize(mb: Long): String {
+    return if (mb >= 1024L) {
+        String.format(java.util.Locale.US, "%.1f GB", mb / 1024.0)
+    } else {
+        "$mb MB"
+    }
+}
+
+private val previewContainers = listOf(
+    ContainerInstance(
+        id = "ubuntu_default",
+        name = "Ubuntu Workstation",
+        distroId = "ubuntu",
+        distroName = "Ubuntu 26.04 LTS (arm64)",
+        rootDirPath = "/data/user/0/com.devwithzachary.completelinuxinstaller/files/ubuntu",
+        isDefault = true,
+        storageUsedMb = 1480L
+    ),
+    ContainerInstance(
+        id = "debian_dev",
+        name = "Debian Sandbox",
+        distroId = "debian",
+        distroName = "Debian 13 Trixie (arm64)",
+        rootDirPath = "/data/user/0/com.devwithzachary.completelinuxinstaller/files/debian",
+        isDefault = false,
+        storageUsedMb = 640L
+    )
+)
+
+@Preview(
+    name = "Dashboard Empty - Light",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
 @Composable
-private fun ContainerMetricItem(
-    label: String,
-    value: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 4.dp),
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(14.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 11.sp
-            )
-        }
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp
+private fun DashboardEmptyLightPreview() {
+    LinuxOnAndroidTheme(darkTheme = false, dynamicColor = false) {
+        DashboardScreen(
+            state = DashboardUiState(
+                isInitializing = false,
+                isInstalled = false,
+                containers = emptyList()
+            ),
+            onInstallClick = {},
+            onOpenTerminalClick = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Dashboard Empty - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun DashboardEmptyDarkPreview() {
+    LinuxOnAndroidTheme(darkTheme = true, dynamicColor = false) {
+        DashboardScreen(
+            state = DashboardUiState(
+                isInitializing = false,
+                isInstalled = false,
+                containers = emptyList()
+            ),
+            onInstallClick = {},
+            onOpenTerminalClick = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Dashboard Ready - Light",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
+@Composable
+private fun DashboardReadyLightPreview() {
+    LinuxOnAndroidTheme(darkTheme = false, dynamicColor = false) {
+        DashboardScreen(
+            state = DashboardUiState(
+                isInitializing = false,
+                isInstalled = true,
+                isRunning = false,
+                containers = previewContainers,
+                defaultContainerId = "ubuntu_default"
+            ),
+            metrics = SystemResourceMetrics(
+                isSessionRunning = false,
+                storageUsedMb = 1480L,
+                storageTotalBytes = 128L * 1024 * 1024 * 1024,
+                storageAvailableBytes = 42L * 1024 * 1024 * 1024
+            ),
+            isContainerDesktopSetup = { it == "ubuntu_default" },
+            onInstallClick = {},
+            onOpenTerminalClick = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Dashboard Ready - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun DashboardReadyDarkPreview() {
+    LinuxOnAndroidTheme(darkTheme = true, dynamicColor = false) {
+        DashboardScreen(
+            state = DashboardUiState(
+                isInitializing = false,
+                isInstalled = true,
+                isRunning = false,
+                containers = previewContainers,
+                defaultContainerId = "ubuntu_default"
+            ),
+            metrics = SystemResourceMetrics(
+                isSessionRunning = false,
+                storageUsedMb = 1480L,
+                storageTotalBytes = 128L * 1024 * 1024 * 1024,
+                storageAvailableBytes = 42L * 1024 * 1024 * 1024
+            ),
+            isContainerDesktopSetup = { it == "ubuntu_default" },
+            onInstallClick = {},
+            onOpenTerminalClick = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Dashboard Running - Light",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
+@Composable
+private fun DashboardRunningLightPreview() {
+    LinuxOnAndroidTheme(darkTheme = false, dynamicColor = false) {
+        DashboardScreen(
+            state = DashboardUiState(
+                isInitializing = false,
+                isInstalled = true,
+                isRunning = true,
+                containers = previewContainers,
+                defaultContainerId = "ubuntu_default"
+            ),
+            metrics = SystemResourceMetrics(
+                isSessionRunning = true,
+                containerMemoryUsedMb = 512L,
+                systemTotalRamMb = 8192L,
+                systemAvailableRamMb = 4792L,
+                storageUsedMb = 1480L,
+                storageTotalBytes = 128L * 1024 * 1024 * 1024,
+                storageAvailableBytes = 42L * 1024 * 1024 * 1024
+            ),
+            isContainerDesktopSetup = { it == "ubuntu_default" },
+            onInstallClick = {},
+            onOpenTerminalClick = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Dashboard Running - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun DashboardRunningDarkPreview() {
+    LinuxOnAndroidTheme(darkTheme = true, dynamicColor = false) {
+        DashboardScreen(
+            state = DashboardUiState(
+                isInitializing = false,
+                isInstalled = true,
+                isRunning = true,
+                containers = previewContainers,
+                defaultContainerId = "ubuntu_default"
+            ),
+            metrics = SystemResourceMetrics(
+                isSessionRunning = true,
+                containerMemoryUsedMb = 512L,
+                systemTotalRamMb = 8192L,
+                systemAvailableRamMb = 4792L,
+                storageUsedMb = 1480L,
+                storageTotalBytes = 128L * 1024 * 1024 * 1024,
+                storageAvailableBytes = 42L * 1024 * 1024 * 1024
+            ),
+            isContainerDesktopSetup = { it == "ubuntu_default" },
+            onInstallClick = {},
+            onOpenTerminalClick = {}
         )
     }
 }
