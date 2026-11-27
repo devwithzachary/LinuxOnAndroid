@@ -1,11 +1,10 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.whatsnew
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Apps
-import androidx.compose.material.icons.rounded.DeleteOutline
-import androidx.compose.material.icons.rounded.DesktopWindows
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Build
+import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Palette
-import androidx.compose.material.icons.rounded.RocketLaunch
 import androidx.compose.ui.graphics.vector.ImageVector
 
 data class WhatsNewFeature(
@@ -36,65 +35,52 @@ object WhatsNewLogic {
 }
 
 val CURRENT_WHATS_NEW_RELEASE: WhatsNewRelease = WhatsNewRelease(
-    versionKey = "1.9.0",
-    displayVersion = "v1.9.0",
-    headline = "Material 3 Redesign, 33 1-Click Packages & More",
-    subtitle = "Welcome to LinuxOnAndroid 1.9.0! Here are the key new features in this release and where to find them in the app.",
+    versionKey = "1.9.1",
+    displayVersion = "v1.9.1",
+    headline = "Android Green Theme, Cleaner Navigation & Key Fixes",
+    subtitle = "Welcome to LinuxOnAndroid 1.9.1! Here is what changed and what was fixed in this release.",
     features = listOf(
         WhatsNewFeature(
-            badge = "NEW UI",
-            title = "Material 3 Redesign & App Themes",
-            summary = "Every screen has been redesigned with Material 3 tonal surfaces, segmented lists, concentric progress rings, bottom-sheet dialogs, and refreshed Terminal and Desktop chrome. Switch between System, Light, and Dark modes, toggle Material You Dynamic Color vs the LinuxOnAndroid Classic palette, or enjoy the new app-matched LinuxOnAndroid default terminal theme.",
+            badge = "UPDATED",
+            title = "Android Green Classic Theme & Terminal Palette",
+            summary = "Updated the LinuxOnAndroid Classic app theme and the default LinuxOnAndroid terminal color scheme to an Android green and dark forest-charcoal palette in both light and dark modes.",
             stepsToFind = listOf(
                 "Open Settings -> Appearance to switch between System, Light, and Dark modes.",
-                "Toggle Dynamic Color on Android 12+ to switch between Material You wallpaper colors and the LinuxOnAndroid Classic palette.",
-                "Select LinuxOnAndroid (or any preset/custom palette) under Terminal Theme."
+                "Turn off Dynamic Color on Android 12+ to use the updated Android green Classic palette.",
+                "Select LinuxOnAndroid under Terminal Theme to preview the forest-charcoal palette."
             ),
             icon = Icons.Rounded.Palette
         ),
         WhatsNewFeature(
-            badge = "NEW CATALOG",
-            title = "Expanded Software Center (33 Packages)",
-            summary = "Added 24 new 1-click packages across all 7 distributions, including C/C++, Go, Rust, PHP, Ruby, PostgreSQL, MariaDB, Redis, btop/Fastfetch, tmux/htop/jq, Zsh, aria2, Rclone, FFmpeg, iPerf3, Nmap, and tshark, plus instant search and status filters.",
+            badge = "UPDATED",
+            title = "Cleaner Navigation & Dashboard Details",
+            summary = "Moved About into Settings so the bottom navigation bar stays focused on four tabs (Dashboard, Terminal, Desktop, Settings), and updated Dashboard container subtitles to show architecture and runtime info instead of repeating the distro name.",
             stepsToFind = listOf(
-                "Open any container from the Dashboard.",
-                "Switch to the Software tab.",
-                "Use the search bar, status chips (All/Installed/Available), or category tabs to browse and install."
+                "Use the 4-tab navigation bar to switch between Dashboard, Terminal, Desktop, and Settings.",
+                "Scroll to the bottom of Settings and tap Complete Linux Installer to open About, Credits, and Changelog.",
+                "Check container cards on the Dashboard to see architecture and runtime subtitles."
             ),
-            icon = Icons.Rounded.Apps
+            icon = Icons.Rounded.Dashboard
         ),
         WhatsNewFeature(
-            badge = "BETA",
-            title = "Desktop GUI Applications (Beta)",
-            summary = "Install VS Code (Desktop), Blender, Kdenlive, GIMP, LibreOffice, Geany IDE, and Firefox with 1 click. These GUI apps currently use software rendering until GPU acceleration arrives, so please report any bugs on GitHub or Discord.",
+            badge = "FIXED",
+            title = "Ubuntu 26.04 Package Upgrade Fix",
+            summary = "Fixed package upgrade and installation errors on Ubuntu 26.04 where core shell commands like mkdir and basename could fail during updates.",
             stepsToFind = listOf(
-                "Open a container's Software tab and look for packages with the amber BETA badge.",
-                "Install XFCE Desktop first if you have not already set it up.",
-                "Launch the Desktop tab to open your installed GUI apps from the XFCE Applications menu."
+                "Open an existing or new Ubuntu 26.04 container.",
+                "Install packages from the Software tab or run apt-get update && apt-get upgrade in the Terminal."
             ),
-            icon = Icons.Rounded.DesktopWindows,
-            isBetaBadge = true
+            icon = Icons.Rounded.Build
         ),
         WhatsNewFeature(
-            badge = "NEW",
-            title = "Full 1-Click Package Uninstall",
-            summary = "Cleanly uninstall any 1-click Software Center package across all 7 distros. Running services are stopped automatically and generated wrappers are removed with a confirmation prompt and live logs.",
+            badge = "FIXED",
+            title = "Desktop Diagnostics & Startup Hardening",
+            summary = "Graphical desktop sessions now save startup logs and include recent output in Settings debug reports, and the app stays on internal storage to prevent terminal startup linker errors.",
             stepsToFind = listOf(
-                "Open a container's Software tab.",
-                "Find any Installed package card.",
-                "Tap the trash icon on the right side of the card and confirm."
+                "Open the Desktop tab to start a graphical session and inspect ~/.vnc/vncserver_1.log if needed.",
+                "Open Settings -> Diagnostics -> Generate Debug Report to include recent desktop logs."
             ),
-            icon = Icons.Rounded.DeleteOutline
-        ),
-        WhatsNewFeature(
-            badge = "UPGRADED",
-            title = "Updated Distros & Desktop Stability",
-            summary = "Upgraded base images to Debian 13 (Trixie), Fedora 45, and Alpine 3.24.4, plus PRoot /dev/shm support, Debian/Ubuntu systemd-sysusers fixes, and Android Phantom Process Killer mitigations for XFCE.",
-            stepsToFind = listOf(
-                "Tap + New Container on the Dashboard to install the latest Debian 13, Fedora 45, or Alpine 3.24.4.",
-                "Open the Desktop tab on existing containers to automatically apply the lighter XFCE startup configuration."
-            ),
-            icon = Icons.Rounded.RocketLaunch
+            icon = Icons.Rounded.BugReport
         )
     )
 )

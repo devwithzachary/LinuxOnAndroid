@@ -21,9 +21,24 @@ data class ReleaseChangelog(
 
 val APP_CHANGELOG_HISTORY: List<ReleaseChangelog> = listOf(
     ReleaseChangelog(
-        version = "v1.9.0",
+        version = "v1.9.1",
         date = "November 2026",
         initialExpanded = true,
+        highlights = listOf(
+            "Updated the LinuxOnAndroid Classic app theme and default terminal color scheme to an Android green and dark forest-charcoal palette in both light and dark modes.",
+            "Moved the About screen into Settings so the bottom navigation bar stays clean with four tabs: Dashboard, Terminal, Desktop, and Settings.",
+            "Updated container subtitles on the Dashboard to show architecture and runtime details instead of repeating the distribution name.",
+            "Added desktop session logs to debug reports in Settings to make troubleshooting display issues easier.",
+            "Added recent community bug hunters to the in-app Credits section.",
+            "Fixed package upgrade and installation errors on Ubuntu 26.04 where core commands like mkdir and basename could fail during updates.",
+            "Fixed desktop sessions discarding startup output so diagnostic logs are now saved when starting a graphical desktop.",
+            "Prevented the app from being moved to external Adoptable Storage to avoid terminal startup linker errors on affected Android devices."
+        )
+    ),
+    ReleaseChangelog(
+        version = "v1.9.0",
+        date = "November 2026",
+        initialExpanded = false,
         highlights = listOf(
             "Material 3 UI Redesign & App Themes: Redesigned all screens with unified tonal surfaces, segmented lists, concentric progress rings, bottom-sheet modals, and refreshed Terminal/Desktop chrome. Added System/Light/Dark theme mode, Material You Dynamic Color vs LinuxOnAndroid Classic palette toggle, and a new warm LinuxOnAndroid default terminal color theme.",
             "Expanded Software Center (33 Packages): Added 24 new 1-click packages including CLI/Dev tools (Clang/C++, Go, Rust, Ruby, PHP, PostgreSQL, MariaDB, Redis, btop/Fastfetch, tmux/htop/jq, Zsh, aria2, Rclone, FFmpeg, iPerf3, Nmap, tshark) plus 7 Desktop GUI apps marked as Beta (VS Code Desktop, Blender, Kdenlive, GIMP, LibreOffice, Geany, Firefox).",

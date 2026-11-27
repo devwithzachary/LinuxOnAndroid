@@ -2,6 +2,20 @@
 
 All notable changes to the LinuxOnAndroid project will be documented in this file.
 
+## [1.9.1] - 2026-11-27
+
+### What's Changed
+- Updated the LinuxOnAndroid Classic app theme and default terminal color scheme to an Android green and dark forest-charcoal palette in both light and dark modes.
+- Moved the About screen into Settings so the bottom navigation bar stays clean with four tabs: Dashboard, Terminal, Desktop, and Settings.
+- Updated container subtitles on the Dashboard to show architecture and runtime details instead of repeating the distribution name.
+- Added desktop session logs to debug reports in Settings to make troubleshooting display issues easier.
+- Added recent community bug hunters to the in-app Credits section.
+
+### What's Fixed
+- Fixed package upgrade and installation errors on Ubuntu 26.04 where core commands like mkdir and basename could fail during updates.
+- Fixed desktop sessions discarding startup output so diagnostic logs are now saved when starting a graphical desktop.
+- Prevented the app from being moved to external Adoptable Storage to avoid terminal startup linker errors on affected Android devices.
+
 ## [1.9.0] - 2026-11-24
 
 ### ✨ New Features

@@ -1,0 +1,9 @@
+What's Changed
+- Updated the Classic theme and default terminal palette to Android green and forest charcoal.
+- Moved About into Settings for a four-tab navigation bar.
+- Dashboard subtitles now show architecture and runtime info instead of repeating the distro name.
+- Debug reports now include recent desktop logs.
+
+What's Fixed
+- Fixed Ubuntu 26.04 package upgrade errors affecting core shell commands.
+- Prevented Adoptable Storage installs that broke terminal startup.

@@ -13,28 +13,28 @@ class WhatsNewTest {
             WhatsNewLogic.shouldAutoShowWhatsNew(
                 isEnabled = true,
                 lastSeenVersion = "",
-                currentVersionKey = "1.9.0"
+                currentVersionKey = "1.9.1"
             )
         )
         assertTrue(
             WhatsNewLogic.shouldAutoShowWhatsNew(
                 isEnabled = true,
-                lastSeenVersion = "1.8.2",
-                currentVersionKey = "1.9.0"
+                lastSeenVersion = "1.9.0",
+                currentVersionKey = "1.9.1"
             )
         )
         assertFalse(
             WhatsNewLogic.shouldAutoShowWhatsNew(
                 isEnabled = true,
-                lastSeenVersion = "1.9.0",
-                currentVersionKey = "1.9.0"
+                lastSeenVersion = "1.9.1",
+                currentVersionKey = "1.9.1"
             )
         )
         assertFalse(
             WhatsNewLogic.shouldAutoShowWhatsNew(
                 isEnabled = false,
                 lastSeenVersion = "",
-                currentVersionKey = "1.9.0"
+                currentVersionKey = "1.9.1"
             )
         )
     }
@@ -42,11 +42,11 @@ class WhatsNewTest {
     @Test
     fun testCurrentWhatsNewRelease_isComplete() {
         val release = CURRENT_WHATS_NEW_RELEASE
-        assertTrue(release.versionKey.isNotBlank())
-        assertTrue(release.displayVersion.isNotBlank())
+        assertEquals("1.9.1", release.versionKey)
+        assertEquals("v1.9.1", release.displayVersion)
         assertTrue(release.headline.isNotBlank())
         assertTrue(release.subtitle.isNotBlank())
-        assertEquals(5, release.features.size)
+        assertEquals(4, release.features.size)
         release.features.forEach { feature ->
             assertTrue(feature.badge.isNotBlank())
             assertTrue(feature.title.isNotBlank())
