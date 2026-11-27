@@ -16,15 +16,15 @@ data class TerminalTheme(
         val LINUX_ON_ANDROID = TerminalTheme(
             id = "linux_on_android",
             name = "LinuxOnAndroid",
-            defaultFg = Color(0xFFF0DFD9),
-            defaultBg = Color(0xFF1A120E),
-            cursorColor = Color(0xFFFFB596),
-            selectionColor = Color(0xFF4A3831),
+            defaultFg = Color(0xFFE1E4D9),
+            defaultBg = Color(0xFF11140E),
+            cursorColor = Color(0xFFB1D17A),
+            selectionColor = Color(0xFF334E09),
             ansiColors = listOf(
-                Color(0xFF271E1A), Color(0xFFF07167), Color(0xFFB3D278), Color(0xFFF5BF48),
-                Color(0xFF7FB3D5), Color(0xFFD896C8), Color(0xFF76C7B7), Color(0xFFF0DFD9),
-                Color(0xFF8A766E), Color(0xFFFF8E82), Color(0xFFCFEF91), Color(0xFFFFDEA0),
-                Color(0xFFA3CFEB), Color(0xFFEBB4DE), Color(0xFF9CE0D2), Color(0xFFFFF8F6)
+                Color(0xFF1D211A), Color(0xFFF07167), Color(0xFFB1D17A), Color(0xFFF2BC6E),
+                Color(0xFF7FB3D5), Color(0xFFD896C8), Color(0xFF76C7B7), Color(0xFFE1E4D9),
+                Color(0xFF8E9285), Color(0xFFFFB4AB), Color(0xFFCDEDA3), Color(0xFFFFDDB3),
+                Color(0xFFA3CFEB), Color(0xFFEBB4DE), Color(0xFF9CE0D2), Color(0xFFF8FAF2)
             )
         )
 

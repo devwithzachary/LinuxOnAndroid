@@ -34,7 +34,7 @@ class AboutCreditsTest {
 
     @Test
     fun testIssueContributors_containsAllReportedIssues() {
-        val expectedIssues = listOf(7, 8, 9, 10, 11, 12, 13, 14, 16, 19, 21, 25, 31)
+        val expectedIssues = listOf(7, 8, 9, 10, 11, 12, 13, 14, 16, 19, 21, 25, 31, 54, 59, 61)
         val allReportedIssues = ISSUE_CONTRIBUTORS.flatMap { it.contributions }.map { it.referenceNumber }
 
         for (issueNum in expectedIssues) {
@@ -61,6 +61,22 @@ class AboutCreditsTest {
         val rayoflight = ISSUE_CONTRIBUTORS.firstOrNull { it.username == "rayoflight3000" }
         assertTrue(rayoflight != null)
         assertTrue(rayoflight!!.contributions.any { it.referenceNumber == 31 })
+
+        val giedel = ISSUE_CONTRIBUTORS.firstOrNull { it.username == "Giedel" }
+        assertTrue(giedel != null)
+        assertTrue(giedel!!.contributions.any { it.referenceNumber == 59 })
+
+        val alphaBlend = ISSUE_CONTRIBUTORS.firstOrNull { it.username == "AlphaBlend1975" }
+        assertTrue(alphaBlend != null)
+        assertTrue(alphaBlend!!.contributions.map { it.referenceNumber }.containsAll(listOf(59, 61)))
+
+        val yudhpk = ISSUE_CONTRIBUTORS.firstOrNull { it.username == "YUDHPK" }
+        assertTrue(yudhpk != null)
+        assertTrue(yudhpk!!.contributions.any { it.referenceNumber == 61 })
+
+        val fpedrei = ISSUE_CONTRIBUTORS.firstOrNull { it.username == "fpedrei" }
+        assertTrue(fpedrei != null)
+        assertTrue(fpedrei!!.contributions.any { it.referenceNumber == 54 })
     }
 
     @Test

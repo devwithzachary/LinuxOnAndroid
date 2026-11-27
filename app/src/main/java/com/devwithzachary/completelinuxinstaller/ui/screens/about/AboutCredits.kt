@@ -181,6 +181,39 @@ val ISSUE_CONTRIBUTORS: List<Contributor> = listOf(
         contributions = listOf(
             ContributionItem("Terminal character gaps with custom OEM fonts (Monospace font engine)", 31)
         )
+    ),
+    Contributor(
+        username = "Giedel",
+        displayName = "Giedel",
+        roleBadge = "Ubuntu Coreutils Pioneer",
+        contributions = listOf(
+            ContributionItem("Identified Ubuntu 26.04 Rust coreutils .l2s symlink conflict under PRoot", 59)
+        )
+    ),
+    Contributor(
+        username = "AlphaBlend1975",
+        displayName = "AlphaBlend1975",
+        roleBadge = "Bug Hunter",
+        contributions = listOf(
+            ContributionItem("Reported Ubuntu apt upgrade coreutils failure", 59),
+            ContributionItem("Confirmed missing VNC session log file during Desktop diagnostics", 61)
+        )
+    ),
+    Contributor(
+        username = "YUDHPK",
+        displayName = "YUDHPK",
+        roleBadge = "Desktop Bug Hunter",
+        contributions = listOf(
+            ContributionItem("Reported Ubuntu Desktop blank screen with debug diagnostics", 61)
+        )
+    ),
+    Contributor(
+        username = "fpedrei",
+        displayName = "fpedrei",
+        roleBadge = "Runtime Bug Hunter",
+        contributions = listOf(
+            ContributionItem("Reported Adoptable Storage libproot.so linker failure", 54)
+        )
     )
 )
 

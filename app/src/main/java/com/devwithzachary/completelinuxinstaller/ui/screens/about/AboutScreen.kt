@@ -226,7 +226,7 @@ fun AboutScreen(
                             title = labelLinuxDistro,
                             leadingIcon = Icons.Rounded.Terminal,
                             trailingContent = {
-                                LoaMonospaceChip(text = "Ubuntu 26.04 LTS")
+                                LoaMonospaceChip(text = "7 Supported Distros")
                             }
                         )
                         row(
