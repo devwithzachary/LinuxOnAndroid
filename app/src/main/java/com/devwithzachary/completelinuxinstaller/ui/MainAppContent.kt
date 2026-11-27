@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DesktopWindows
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material3.*
@@ -204,7 +203,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     BadgedBox(
                                         badge = {
                                             if (isDesktopRunning) {
-                                                Badge(containerColor = MaterialTheme.colorScheme.secondary)
+                                                Badge(containerColor = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     ) {
@@ -217,7 +216,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 label = { Text(stringResource(R.string.nav_desktop)) }
                             )
                             NavigationBarItem(
-                                selected = currentScreen == AppScreen.SETTINGS,
+                                selected = currentScreen == AppScreen.SETTINGS || currentScreen == AppScreen.ABOUT,
                                 onClick = { currentScreen = AppScreen.SETTINGS },
                                 icon = {
                                     Icon(
@@ -226,17 +225,6 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     )
                                 },
                                 label = { Text(stringResource(R.string.nav_settings)) }
-                            )
-                            NavigationBarItem(
-                                selected = currentScreen == AppScreen.ABOUT,
-                                onClick = { currentScreen = AppScreen.ABOUT },
-                                icon = {
-                                    Icon(
-                                        Icons.Rounded.Info,
-                                        contentDescription = stringResource(R.string.nav_about)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.nav_about)) }
                             )
                         }
                     }
@@ -294,7 +282,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     BadgedBox(
                                         badge = {
                                             if (dashboardState.isRunning) {
-                                                Badge(containerColor = MaterialTheme.colorScheme.secondary)
+                                                Badge(containerColor = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     ) {
@@ -313,7 +301,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     BadgedBox(
                                         badge = {
                                             if (isDesktopRunning) {
-                                                Badge(containerColor = MaterialTheme.colorScheme.secondary)
+                                                Badge(containerColor = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     ) {
@@ -326,7 +314,7 @@ fun MainAppContent(viewModel: MainViewModel) {
                                 label = { Text(stringResource(R.string.nav_desktop)) }
                             )
                             NavigationRailItem(
-                                selected = currentScreen == AppScreen.SETTINGS,
+                                selected = currentScreen == AppScreen.SETTINGS || currentScreen == AppScreen.ABOUT,
                                 onClick = { currentScreen = AppScreen.SETTINGS },
                                 icon = {
                                     Icon(
@@ -335,17 +323,6 @@ fun MainAppContent(viewModel: MainViewModel) {
                                     )
                                 },
                                 label = { Text(stringResource(R.string.nav_settings)) }
-                            )
-                            NavigationRailItem(
-                                selected = currentScreen == AppScreen.ABOUT,
-                                onClick = { currentScreen = AppScreen.ABOUT },
-                                icon = {
-                                    Icon(
-                                        Icons.Rounded.Info,
-                                        contentDescription = stringResource(R.string.nav_about)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.nav_about)) }
                             )
                         }
                     }
@@ -653,17 +630,24 @@ fun MainAppContent(viewModel: MainViewModel) {
                             onOpenWhatsNew = {
                                 whatsNewReturnScreen = AppScreen.SETTINGS
                                 currentScreen = AppScreen.WHATS_NEW
+                            },
+                            onOpenAbout = {
+                                currentScreen = AppScreen.ABOUT
                             }
                         )
                     }
 
                     AppScreen.ABOUT -> {
+                        BackHandler {
+                            currentScreen = AppScreen.SETTINGS
+                        }
                         val isCheckingForUpdates by viewModel.isCheckingForUpdates.collectAsStateWithLifecycle()
                         AboutScreen(
                             onCheckForUpdatesClick = { viewModel.checkForGitHubUpdates(manual = true) },
                             isCheckingForUpdates = isCheckingForUpdates,
                             updateCheckResult = updateCheckResult,
-                            onViewAppOverview = { currentScreen = AppScreen.WELCOME }
+                            onViewAppOverview = { currentScreen = AppScreen.WELCOME },
+                            onBack = { currentScreen = AppScreen.SETTINGS }
                         )
                     }
 

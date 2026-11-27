@@ -725,7 +725,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val pb = ProcessBuilder(cmd)
             pb.directory(rootfsDir)
             val env = pb.environment()
-            env.putAll(pRootEngine.getEnvironmentVariables())
+            pRootEngine.applyPRootEnvironment(env)
             env["DEBIAN_FRONTEND"] = "noninteractive"
             env["DEBIAN_PRIORITY"] = "critical"
             env["UCF_FORCE_CONFFOLD"] = "1"
@@ -1082,7 +1082,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val pb = ProcessBuilder(cmd)
             pb.directory(targetDir)
             val env = pb.environment()
-            env.putAll(pRootEngine.getEnvironmentVariables())
+            pRootEngine.applyPRootEnvironment(env)
             env["DEBIAN_FRONTEND"] = "noninteractive"
             env["DEBIAN_PRIORITY"] = "critical"
             env["UCF_FORCE_CONFFOLD"] = "1"
@@ -1171,7 +1171,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf("/bin/sh", "-c", script))
             val pb = ProcessBuilder(cmd).apply {
                 directory(targetDir)
-                environment().putAll(pRootEngine.getEnvironmentVariables())
+                pRootEngine.applyPRootEnvironment(environment())
             }
             val proc = pb.start()
             proc.outputStream.bufferedWriter().use { writer ->
@@ -1193,7 +1193,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf("/bin/sh", "-c", script))
             val pb = ProcessBuilder(cmd).apply {
                 directory(targetDir)
-                environment().putAll(pRootEngine.getEnvironmentVariables())
+                pRootEngine.applyPRootEnvironment(environment())
             }
             val proc = pb.start()
             proc.waitFor() == 0
@@ -1241,7 +1241,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf("/bin/sh", "-c", script))
             val pb = ProcessBuilder(cmd).apply {
                 directory(targetDir)
-                environment().putAll(pRootEngine.getEnvironmentVariables())
+                pRootEngine.applyPRootEnvironment(environment())
             }
             val proc = pb.start()
             proc.waitFor() == 0
@@ -1296,7 +1296,7 @@ class RootfsManager(private val context: Context, private val pRootEngine: PRoot
             val cmd = pRootEngine.buildPRootCommand(config = config, command = listOf("/bin/sh", "-c", script))
             val pb = ProcessBuilder(cmd).apply {
                 directory(targetDir)
-                environment().putAll(pRootEngine.getEnvironmentVariables())
+                pRootEngine.applyPRootEnvironment(environment())
             }
             val proc = pb.start()
             proc.waitFor()

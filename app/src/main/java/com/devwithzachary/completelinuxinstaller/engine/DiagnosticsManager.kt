@@ -26,7 +26,8 @@ data class ContainerDiagnostics(
     val containerVersionName: String?,
     val containerVersionCode: Int?,
     val distroPrettyName: String?,
-    val integrityChecks: List<Pair<String, Boolean>>
+    val integrityChecks: List<Pair<String, Boolean>>,
+    val recentVncLog: String? = null
 )
 
 data class DiagnosticsInfo(
@@ -90,6 +91,7 @@ class DiagnosticsManager(
                 val prettyName = if (isInstalled) safely(null) { readPrettyName(File(dir, "etc/os-release")) } else null
 
                 val checks = checkContainerIntegrity(dir)
+                val recentVncLog = if (isInstalled) safely(null) { readRecentVncLog(dir) } else null
 
                 containerDiagnosticsList.add(
                     ContainerDiagnostics(
@@ -103,7 +105,8 @@ class DiagnosticsManager(
                         containerVersionName = version?.versionName,
                         containerVersionCode = version?.versionCode,
                         distroPrettyName = prettyName,
-                        integrityChecks = checks
+                        integrityChecks = checks,
+                        recentVncLog = recentVncLog
                     )
                 )
             }
@@ -221,6 +224,37 @@ class DiagnosticsManager(
         private const val FRESH_SCAN_TIMEOUT_MS = 5_000L
         private const val BYTES_PER_MB = 1024L * 1024L
 
+        internal fun readRecentVncLog(
+            rootfsDir: File,
+            maxLines: Int = 40,
+            maxChars: Int = 4000
+        ): String? {
+            val vncDirs = mutableListOf(File(rootfsDir, "root/.vnc"))
+            val homeDir = File(rootfsDir, "home")
+            if (homeDir.exists() && homeDir.isDirectory) {
+                homeDir.listFiles()
+                    ?.filter { it.isDirectory }
+                    ?.forEach { userDir -> vncDirs.add(File(userDir, ".vnc")) }
+            }
+            val latestLog = vncDirs
+                .filter { it.exists() && it.isDirectory }
+                .flatMap { dir ->
+                    dir.listFiles { f -> f.isFile && f.name.endsWith(".log") && f.length() > 0L }?.toList().orEmpty()
+                }
+                .maxByOrNull { it.lastModified() }
+                ?: return null
+
+            val lines = try {
+                latestLog.readLines()
+            } catch (_: Exception) {
+                return null
+            }
+            val tail = lines.takeLast(maxLines).joinToString("\n").trim()
+            if (tail.isEmpty()) return null
+            val bounded = if (tail.length > maxChars) tail.takeLast(maxChars) else tail
+            return "${latestLog.name}\n$bounded"
+        }
+
         fun buildReport(info: DiagnosticsInfo): String {
             val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss 'UTC'", Locale.US).apply {
                 timeZone = TimeZone.getTimeZone("UTC")
@@ -263,6 +297,12 @@ class DiagnosticsManager(
                         appendLine("  Integrity Checks:")
                         for ((checkName, ok) in container.integrityChecks) {
                             appendLine("    • $checkName: ${if (ok) "OK" else "MISSING"}")
+                        }
+                        if (!container.recentVncLog.isNullOrBlank()) {
+                            appendLine("  Recent VNC Log:")
+                            container.recentVncLog.lines().forEach { logLine ->
+                                appendLine("    $logLine")
+                            }
                         }
                         appendLine()
                     }

@@ -1,5 +1,6 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.about
 
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -32,10 +34,11 @@ import androidx.compose.material.icons.rounded.Tag
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LargeTopAppBar
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -66,7 +69,8 @@ fun AboutScreen(
     onCheckForUpdatesClick: () -> Unit = {},
     isCheckingForUpdates: Boolean = false,
     updateCheckResult: UpdateCheckResult? = null,
-    onViewAppOverview: () -> Unit = {}
+    onViewAppOverview: () -> Unit = {},
+    onBack: (() -> Unit)? = null
 ) {
     val uriHandler = LocalUriHandler.current
     val websiteUrl = stringResource(R.string.website_url)
@@ -110,10 +114,20 @@ fun AboutScreen(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
-            LargeTopAppBar(
+            TopAppBar(
                 title = { Text(stringResource(R.string.nav_about)) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = "Back to settings"
+                            )
+                        }
+                    }
+                },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer
                 )
@@ -371,18 +385,26 @@ fun AboutScreen(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(
+    name = "About - Light",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
 @Composable
 private fun AboutScreenLightPreview() {
     LinuxOnAndroidTheme(darkTheme = false, dynamicColor = false) {
-        AboutScreen()
+        AboutScreen(onBack = {})
     }
 }
 
-@Preview(showBackground = true)
+@Preview(
+    name = "About - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun AboutScreenDarkPreview() {
     LinuxOnAndroidTheme(darkTheme = true, dynamicColor = false) {
-        AboutScreen()
+        AboutScreen(onBack = {})
     }
 }

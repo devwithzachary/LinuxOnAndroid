@@ -241,16 +241,18 @@ object DesktopConfigHelper {
             RFB_PORT=${d}((5900 + DISP_NUM))
             LH_ARG=""
             [ "${d}LOCALHOST" = "yes" ] && LH_ARG="-localhost"
+            VNC_LOG="${d}HOME/.vnc/vncserver_${d}{DISP_NUM}.log"
+            printf "=== VNC session :%s started %s ===\n" "${d}DISP_NUM" "${d}(date 2>/dev/null || echo unknown)" > "${d}VNC_LOG" 2>/dev/null || true
             echo "Starting Xvnc on display :${d}DISP_NUM (${d}GEOM, depth ${d}DEPTH)..."
-            Xvnc ":${d}DISP_NUM" -geometry "${d}GEOM" -depth "${d}DEPTH" ${d}PW -SecurityTypes "${d}SECTYPES" -UseBlacklist=0 ${d}LH_ARG >/dev/null 2>&1 &
+            Xvnc ":${d}DISP_NUM" -geometry "${d}GEOM" -depth "${d}DEPTH" ${d}PW -SecurityTypes "${d}SECTYPES" -UseBlacklist=0 ${d}LH_ARG >>"${d}VNC_LOG" 2>&1 &
             sleep 1
 
             if [ -x "${d}XSTARTUP" ]; then
-                DISPLAY=":${d}DISP_NUM" "${d}XSTARTUP" >/dev/null 2>&1 &
+                DISPLAY=":${d}DISP_NUM" "${d}XSTARTUP" >>"${d}VNC_LOG" 2>&1 &
             elif [ -x "${d}HOME/.vnc/xstartup" ]; then
-                DISPLAY=":${d}DISP_NUM" "${d}HOME/.vnc/xstartup" >/dev/null 2>&1 &
+                DISPLAY=":${d}DISP_NUM" "${d}HOME/.vnc/xstartup" >>"${d}VNC_LOG" 2>&1 &
             elif command -v startxfce4 >/dev/null 2>&1; then
-                DISPLAY=":${d}DISP_NUM" startxfce4 >/dev/null 2>&1 &
+                DISPLAY=":${d}DISP_NUM" startxfce4 >>"${d}VNC_LOG" 2>&1 &
             fi
 
             LAN_IP=""
@@ -266,6 +268,7 @@ object DesktopConfigHelper {
             if [ "${d}LOCALHOST" != "yes" ] && [ -n "${d}LAN_IP" ] && [ "${d}LAN_IP" != "127.0.0.1" ]; then
                 echo "-> Wi-Fi connection:  ${d}LAN_IP:${d}RFB_PORT"
             fi
+            echo "-> Log file:          ${d}VNC_LOG"
             echo "-> List sessions:     vncserver -list"
             echo "-> Stop server:       vncserver -kill :${d}DISP_NUM"
         """.trimIndent() + "\n"
@@ -354,15 +357,18 @@ object DesktopConfigHelper {
             "PW=\"\"; if [ -f \"\$HOME/.vnc/passwd\" ]; then PW=\"-rfbauth \$HOME/.vnc/passwd\"; elif [ -f \"\$HOME/.config/tigervnc/passwd\" ]; then PW=\"-rfbauth \$HOME/.config/tigervnc/passwd\"; elif [ -f \"/root/.vnc/passwd\" ]; then PW=\"-rfbauth /root/.vnc/passwd\"; fi\\n" +
             "RFB_PORT=\$((5900 + DISP_NUM))\\n" +
             "LH_ARG=\"\"; [ \"\$LOCALHOST\" = \"yes\" ] && LH_ARG=\"-localhost\"\\n" +
+            "VNC_LOG=\"\$HOME/.vnc/vncserver_\${DISP_NUM}.log\"\\n" +
+            "printf \"=== VNC session :%s started %s ===\\\\n\" \"\$DISP_NUM\" \"\$(date 2>/dev/null || echo unknown)\" > \"\$VNC_LOG\" 2>/dev/null || true\\n" +
             "echo \"Starting Xvnc on display :\$DISP_NUM (\$GEOM, depth \$DEPTH)...\"\\n" +
             "XVNC_BIN=\"Xvnc\"; command -v Xvnc >/dev/null 2>&1 || XVNC_BIN=\"Xtigervnc\"\\n" +
-            "\$XVNC_BIN \":\$DISP_NUM\" -geometry \"\$GEOM\" -depth \"\$DEPTH\" \$PW -SecurityTypes \"\$SECTYPES\" -UseBlacklist=0 \$LH_ARG >/dev/null 2>&1 &\\n" +
+            "\$XVNC_BIN \":\$DISP_NUM\" -geometry \"\$GEOM\" -depth \"\$DEPTH\" \$PW -SecurityTypes \"\$SECTYPES\" -UseBlacklist=0 \$LH_ARG >>\"\$VNC_LOG\" 2>&1 &\\n" +
             "sleep 1\\n" +
-            "if [ -x \"\$XSTARTUP\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$XSTARTUP\" >/dev/null 2>&1 & elif [ -x \"\$HOME/.vnc/xstartup\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$HOME/.vnc/xstartup\" >/dev/null 2>&1 & elif command -v startxfce4 >/dev/null 2>&1; then DISPLAY=\":\$DISP_NUM\" startxfce4 >/dev/null 2>&1 & fi\\n" +
+            "if [ -x \"\$XSTARTUP\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$XSTARTUP\" >>\"\$VNC_LOG\" 2>&1 & elif [ -x \"\$HOME/.vnc/xstartup\" ]; then DISPLAY=\":\$DISP_NUM\" \"\$HOME/.vnc/xstartup\" >>\"\$VNC_LOG\" 2>&1 & elif command -v startxfce4 >/dev/null 2>&1; then DISPLAY=\":\$DISP_NUM\" startxfce4 >>\"\$VNC_LOG\" 2>&1 & fi\\n" +
             "LAN_IP=\"\"; [ -f /etc/network/proot_interfaces.conf ] && LAN_IP=\$(grep \"^PRIMARY_IP=\" /etc/network/proot_interfaces.conf 2>/dev/null | cut -d= -f2); [ -z \"\$LAN_IP\" ] && [ -f /etc/hosts ] && LAN_IP=\$(grep -v \"^#\" /etc/hosts 2>/dev/null | grep -v \"^127\\\\.\" | grep -v \"^::1\" | awk \"{print \\\$1}\" | head -n1)\\n" +
             "echo \"VNC Server started on port \$RFB_PORT (:\$DISP_NUM).\"\\n" +
             "echo \"-> Local connection:  127.0.0.1:\$RFB_PORT\"\\n" +
             "[ \"\$LOCALHOST\" != \"yes\" ] && [ -n \"\$LAN_IP\" ] && [ \"\$LAN_IP\" != \"127.0.0.1\" ] && echo \"-> Wi-Fi connection:  \$LAN_IP:\$RFB_PORT\"\\n" +
+            "echo \"-> Log file:          \$VNC_LOG\"\\n" +
             "echo \"-> List sessions:     vncserver -list\"\\n" +
             "echo \"-> Stop server:       vncserver -kill :\$DISP_NUM\"\\n' > /usr/bin/vncserver && chmod 755 /usr/bin/vncserver && cp /usr/bin/vncserver /usr/local/bin/vncserver 2>/dev/null || true; chmod 755 /usr/local/bin/vncserver 2>/dev/null || true"
 

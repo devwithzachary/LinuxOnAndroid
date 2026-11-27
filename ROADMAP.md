@@ -1,12 +1,12 @@
 # Complete Linux Installer (LinuxOnAndroid) Roadmap
 
-This document outlines the planned evolution of **Complete Linux Installer** from **v1.9.0** onward. Priorities are shaped by community feedback, GitHub issues, and maintaining 100% compatibility across all supported distributions (Ubuntu, Debian, Fedora, Alpine, Arch Linux ARM, Kali Linux, and Void Linux).
+This document outlines the planned evolution of **Complete Linux Installer** from **v1.9.1** onward. Priorities are shaped by community feedback, GitHub issues, and maintaining 100% compatibility across all supported distributions (Ubuntu, Debian, Fedora, Alpine, Arch Linux ARM, Kali Linux, and Void Linux).
 
 > **Note:** Version numbers and feature groupings are targets and may shift as issues or upstream distro changes arise.
 
 ---
 
-## v1.9.0 - Software Center Foundation & Uninstall Support
+## v1.9.0 - Software Center Foundation & Uninstall Support (Shipped)
 
 The primary goal of **v1.9.0** is transforming the current 1-Click Software tab into a reliable, testable **Software Center** with full lifecycle management (install, verify, upgrade, launch, and uninstall).
 
@@ -38,14 +38,26 @@ The primary goal of **v1.9.0** is transforming the current 1-Click Software tab 
 
 ---
 
-## v1.10.0 - Desktop & Graphics Enhancements
+## v1.9.1 - Botanical Green Theme & Stability Fixes (In Progress)
 
-Focused on closing the gap between mobile VNC and a true portable Linux workstation:
+Focused on visual identity polish and resolving regressions reported on GitHub:
+
+- **Botanical Green Classic Brand Theme**: Replaced the orange/espresso palette with Android Green primary, balanced sage secondary, warm Tux amber tertiary accents, and forest-charcoal dark surfaces, plus 4-tab navigation (`Dashboard`, `Terminal`, `Desktop`, `Settings` with `About` inside Settings) and clean Dashboard container subtitles.
+- **Ubuntu 26.04 GNU Coreutils Fix ([#59](https://github.com/devwithzachary/LinuxOnAndroid/issues/59))**: Automatically switch Ubuntu 26.04 containers from Rust `uutils` coreutils to `coreutils-from-gnu` and heal `.l2s.coreutils.dpkg-new*` symlinks so `dpkg` and shell utilities run cleanly under PRoot.
+- **VNC Session Logging & Diagnostics ([#61](https://github.com/devwithzachary/LinuxOnAndroid/issues/61), [#63](https://github.com/devwithzachary/LinuxOnAndroid/issues/63))**: Log `Xvnc` and `xstartup` output to `~/.vnc/vncserver_1.log` and attach the recent VNC log tail to Debug Reports.
+- **Internal Storage & Environment Hardening ([#54](https://github.com/devwithzachary/LinuxOnAndroid/issues/54))**: Enforce `android:installLocation="internalOnly"` to prevent Adoptable Storage linker errors and strip inherited `LD_PRELOAD` before spawning `libproot.so`.
+
+---
+
+## v1.10.0 - Desktop, Graphics & Distribution Enhancements
+
+Focused on closing the gap between mobile VNC and a true portable Linux workstation, while expanding distribution choices:
 
 - **Bidirectional Clipboard Sync**: Sync Android clipboard <-> X11/VNC clipboard inside the built-in `VncClient` / `DesktopScreen`.
 - **Audio Forwarding**: Optional PulseAudio / PipeWire audio streaming from the Linux container to Android (`AudioTrack` / Oboe).
 - **Hardware-Accelerated Rendering (Experimental)**: VirGL (`virgl_test_server`) / Zink support for smoother 2D/3D rendering in XFCE and desktop apps on supported Adreno/Mali GPUs.
-- **Additional Desktop Environments & Window Managers**: Lightweight alternatives alongside XFCE4, such as **LXQt**, **MATE**, or tiling WMs (**i3** / **Openbox**) for lower-RAM devices.
+- **Additional Desktop Environments & Mobile Scaling Presets**: Lightweight alternatives alongside XFCE4, such as **LXQt**, **MATE**, or tiling WMs (**i3** / **Openbox**) for lower-RAM devices, plus phone-friendly XFCE4 panel/DPI presets and touch ergonomics (addressing [#65](https://github.com/devwithzachary/LinuxOnAndroid/issues/65)).
+- **GNU FSDG-Compliant Distribution Support**: Add native support for FSF-endorsed libre distributions, starting with **Trisquel ARM64** (addressing [#64](https://github.com/devwithzachary/LinuxOnAndroid/issues/64)).
 - **Desktop & PC Mode Polish**: Improved physical mouse/trackpad scroll & right-click handling, external monitor DPI presets, and customizable toolbar shortcuts.
 
 ---
@@ -80,6 +92,8 @@ Focused on unlocking hardware-accelerated graphics and x86_64/Windows gaming wor
   - Pre-configured **Wine + DXVK** 1-click Software Center profile paired with hardware acceleration and low-latency audio/display settings.
 - **Controller & Gamepad Input**:
   - Route Android Bluetooth/USB gamepad events (`InputDevice` / `KeyEvent` / `MotionEvent`) into the container's desktop/X11 session.
+- **Wayland / Mobile DE Exploration (Phosh / Plasma Mobile)**:
+  - Evaluate Wayland-based mobile shells once Turnip / VirGL GPU acceleration is established in PRoot (tracking [#65](https://github.com/devwithzachary/LinuxOnAndroid/issues/65)).
 
 ---
 

@@ -92,6 +92,17 @@ class DesktopSessionManagerTest {
 
         assertFalse(DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER.contains("pkill -f"))
         assertFalse(DesktopConfigHelper.buildVncServerScript().contains("pkill -f"))
+
+        assertTrue(DesktopConfigHelper.buildVncServerScript().contains("VNC_LOG="))
+        assertTrue(DesktopConfigHelper.buildVncServerScript().contains(">>\"${'$'}VNC_LOG\""))
+        assertTrue(DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER.contains("VNC_LOG="))
+        assertTrue(DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER.contains(">>\"\$VNC_LOG\""))
+
+        val printfStart = DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER.indexOf("printf '#!/bin/sh")
+        val printfEnd = DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER.indexOf("' > /usr/bin/vncserver")
+        assertTrue(printfStart >= 0 && printfEnd > printfStart)
+        val printfPayload = DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER.substring(printfStart + "printf '".length, printfEnd)
+        assertFalse("COMMON_VNCSERVER_WRAPPER printf payload must not contain unescaped single quotes", printfPayload.contains("'"))
     }
 
     @Test

@@ -863,6 +863,7 @@ object RootfsMigrationManager {
                                 command = listOf("/bin/sh", "-c", "xbps-install -y dejavu-fonts-ttf font-misc-misc")
                             )
                             val pb = ProcessBuilder(cmd)
+                            pRootEngine.applyPRootEnvironment(pb.environment())
                             pb.redirectErrorStream(true)
                             val p = pb.start()
                             p.waitFor()

@@ -22,6 +22,70 @@ class PRootEngine(val context: Context) {
     companion object {
         private const val TAG = "PRootEngine"
         private const val PROOT_BIN_NAME = "proot"
+
+        /**
+         * Ubuntu 26.04 switched default coreutils to Rust (`uutils`), which rejects PRoot's
+         * `--link2symlink` (`.l2s.*`) hardlink paths with `Security violation`. When GNU
+         * replacements (`gnu<util>`) exist in `/usr/bin`, repoint Rust/l2s coreutils symlinks
+         * to their GNU counterparts so `dpkg` and shell scripts keep working.
+         */
+        internal fun healUbuntuRustCoreutilsSymlinks(targetRootfs: File): Int {
+            val usrBin = File(targetRootfs, "usr/bin")
+            if (!usrBin.exists() || !usrBin.isDirectory) return 0
+            val files = usrBin.listFiles() ?: return 0
+            var healed = 0
+            for (gnuFile in files) {
+                val name = gnuFile.name
+                if (!name.startsWith("gnu") || name.length <= 3) continue
+                if (gnuFile.isDirectory) continue
+                val utilName = name.removePrefix("gnu")
+                val utilFile = File(usrBin, utilName)
+                val linkTarget = readSymlinkTarget(utilFile) ?: continue
+                val pointsToRustCoreutils = linkTarget.contains("cargo/bin/coreutils") ||
+                    linkTarget.contains("uutils") ||
+                    (linkTarget.contains(".l2s.") && linkTarget.contains("coreutils"))
+                if (!pointsToRustCoreutils) continue
+
+                if (replaceWithRelativeSymlink(utilFile, name)) {
+                    healed++
+                }
+            }
+            return healed
+        }
+
+        private fun readSymlinkTarget(file: File): String? {
+            return try {
+                val path = file.toPath()
+                if (java.nio.file.Files.isSymbolicLink(path)) {
+                    java.nio.file.Files.readSymbolicLink(path).toString()
+                } else {
+                    null
+                }
+            } catch (_: Throwable) {
+                try {
+                    android.system.Os.readlink(file.absolutePath)
+                } catch (_: Throwable) {
+                    null
+                }
+            }
+        }
+
+        private fun replaceWithRelativeSymlink(linkFile: File, targetName: String): Boolean {
+            return try {
+                val path = linkFile.toPath()
+                java.nio.file.Files.deleteIfExists(path)
+                java.nio.file.Files.createSymbolicLink(path, java.nio.file.Paths.get(targetName))
+                true
+            } catch (_: Throwable) {
+                try {
+                    linkFile.delete()
+                    android.system.Os.symlink(targetName, linkFile.absolutePath)
+                    true
+                } catch (_: Throwable) {
+                    false
+                }
+            }
+        }
     }
 
     private val filesDir: File get() = context.filesDir
@@ -650,8 +714,14 @@ class PRootEngine(val context: Context) {
         return env
     }
 
+    fun applyPRootEnvironment(env: MutableMap<String, String>, loginUser: String? = null) {
+        env.remove("LD_PRELOAD")
+        env.putAll(getEnvironmentVariables(loginUser = loginUser))
+    }
+
     private fun ensureContainerIntegrity(targetRootfs: File) {
         try {
+            healUbuntuRustCoreutilsSymlinks(targetRootfs)
             val etcDir = File(targetRootfs, "etc").apply { if (!exists()) mkdirs() }
 
             // 1. D-Bus Machine ID (must be valid 32-char hex string, not empty or "uninitialized")
@@ -756,10 +826,28 @@ class PRootEngine(val context: Context) {
                 } catch (_: Exception) {}
             }
 
-            // 4. Heal vncserver executable if corrupted or 0-byte
+            // 4. Heal vncserver executable if corrupted, 0-byte, or missing VNC_LOG support
             val usrBinVnc = File(targetRootfs, "usr/bin/vncserver")
             val usrLocalBinVnc = File(targetRootfs, "usr/local/bin/vncserver")
-            if (usrLocalBinVnc.exists() && usrLocalBinVnc.length() > 0L && (!usrBinVnc.exists() || usrBinVnc.length() == 0L)) {
+            val binVncContent = try {
+                if (usrBinVnc.exists()) usrBinVnc.readText() else ""
+            } catch (_: Exception) {
+                ""
+            }
+            val needsVncLogUpgrade = usrBinVnc.exists() &&
+                binVncContent.contains("LinuxOnAndroid") &&
+                !binVncContent.contains("VNC_LOG=")
+            if (needsVncLogUpgrade) {
+                try {
+                    val updatedWrapper = DesktopConfigHelper.buildVncServerScript()
+                    usrBinVnc.writeText(updatedWrapper)
+                    usrBinVnc.setExecutable(true, false)
+                    if (usrLocalBinVnc.parentFile?.exists() == true) {
+                        usrLocalBinVnc.writeText(updatedWrapper)
+                        usrLocalBinVnc.setExecutable(true, false)
+                    }
+                } catch (_: Exception) {}
+            } else if (usrLocalBinVnc.exists() && usrLocalBinVnc.length() > 0L && (!usrBinVnc.exists() || usrBinVnc.length() == 0L)) {
                 try {
                     usrLocalBinVnc.copyTo(usrBinVnc, overwrite = true)
                     usrBinVnc.setExecutable(true, false)

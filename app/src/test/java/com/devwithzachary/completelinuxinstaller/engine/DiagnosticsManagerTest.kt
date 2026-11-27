@@ -172,4 +172,39 @@ class DiagnosticsManagerTest {
 
         assertEquals(true, Regex("Generated: \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} UTC").containsMatchIn(report))
     }
+
+    @Test
+    fun testReadRecentVncLog_andBuildReportIncludesTail() {
+        val tempRoot = java.nio.file.Files.createTempDirectory("loa_diag_test").toFile()
+        try {
+            val vncDir = java.io.File(tempRoot, "root/.vnc").apply { mkdirs() }
+            val oldLog = java.io.File(vncDir, "vncserver_0.log").apply {
+                writeText("old log line\n")
+                setLastModified(1000L)
+            }
+            val latestLog = java.io.File(vncDir, "vncserver_1.log").apply {
+                writeText((1..50).joinToString("\n") { "line $it" } + "\n")
+                setLastModified(2000L)
+            }
+
+            val tail = DiagnosticsManager.readRecentVncLog(tempRoot, maxLines = 5)
+            assertTrue(tail != null && tail.startsWith(latestLog.name))
+            assertTrue(tail!!.contains("line 50"))
+            assertFalse(tail.contains("line 40"))
+            assertFalse(tail.contains(oldLog.name))
+
+            val base = fullInfo()
+            val updatedContainers = base.containers.mapIndexed { idx, c ->
+                if (idx == 0) c.copy(recentVncLog = tail) else c
+            }
+            val reportWithLog = DiagnosticsManager.buildReport(base.copy(containers = updatedContainers))
+            assertTrue(reportWithLog.contains("Recent VNC Log:"))
+            assertTrue(reportWithLog.contains("    line 50"))
+
+            val reportWithoutLog = DiagnosticsManager.buildReport(base)
+            assertFalse(reportWithoutLog.contains("Recent VNC Log:"))
+        } finally {
+            tempRoot.deleteRecursively()
+        }
+    }
 }

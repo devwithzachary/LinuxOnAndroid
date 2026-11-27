@@ -451,7 +451,7 @@ class DesktopSessionManager(
         }
         val userHome = if (targetUser == "root") "/root" else "/home/$targetUser"
         val prepScript = buildString {
-            append("([ -f /usr/bin/vncserver ] && grep -q 'LinuxOnAndroid' /usr/bin/vncserver 2>/dev/null || (${DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER})); ")
+            append("([ -f /usr/bin/vncserver ] && grep -q 'VNC_LOG=' /usr/bin/vncserver 2>/dev/null || (${DesktopConfigHelper.COMMON_VNCSERVER_WRAPPER})); ")
             append("rm -f /etc/tigervnc/vncserver-config-defaults 2>/dev/null || true; ")
             append("mkdir -p /tmp/.X11-unix /tmp/.ICE-unix /root/.vnc /etc/skel/.vnc 2>/dev/null || true; ")
             append("chmod 1777 /tmp/.X11-unix /tmp/.ICE-unix 2>/dev/null || true; ")
@@ -520,7 +520,7 @@ class DesktopSessionManager(
 
                 val pb = ProcessBuilder(cmdList)
                 pb.directory(pRootEngine.tmpDir)
-                pb.environment().putAll(pRootEngine.getEnvironmentVariables(loginUser = loginUser))
+                pRootEngine.applyPRootEnvironment(pb.environment(), loginUser = loginUser)
                 pb.redirectErrorStream(true)
                 val proc = pb.start()
                 vncServerProcess = proc
@@ -661,7 +661,7 @@ class DesktopSessionManager(
         )
         val pb = ProcessBuilder(cmdList)
         pb.directory(pRootEngine.tmpDir)
-        pb.environment().putAll(pRootEngine.getEnvironmentVariables())
+        pRootEngine.applyPRootEnvironment(pb.environment())
         pb.redirectErrorStream(true)
         val proc = pb.start()
 

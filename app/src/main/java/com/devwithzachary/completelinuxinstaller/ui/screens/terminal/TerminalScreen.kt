@@ -206,7 +206,7 @@ fun TerminalScreen(
                                 .size(8.dp)
                                 .background(
                                     color = if (isRunning) {
-                                        MaterialTheme.colorScheme.secondary
+                                        MaterialTheme.colorScheme.primary
                                     } else {
                                         MaterialTheme.colorScheme.error
                                     },
@@ -324,7 +324,7 @@ fun TerminalScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.PlayArrow,
                                         contentDescription = "Start Terminal",
-                                        tint = MaterialTheme.colorScheme.secondary,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -401,7 +401,7 @@ fun TerminalScreen(
                                                     .size(6.dp)
                                                     .background(
                                                         color = if (sessionRunning) {
-                                                            MaterialTheme.colorScheme.secondary
+                                                            MaterialTheme.colorScheme.primary
                                                         } else {
                                                             MaterialTheme.colorScheme.outline
                                                         },

@@ -1,6 +1,7 @@
 package com.devwithzachary.completelinuxinstaller.ui.screens.dashboard
 
 import android.content.res.Configuration
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,6 +71,7 @@ import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusBadge
 import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaStatusTone
 import com.devwithzachary.completelinuxinstaller.ui.screens.container.ContainerDetailTab
 import com.devwithzachary.completelinuxinstaller.ui.theme.LinuxOnAndroidTheme
+import com.devwithzachary.completelinuxinstaller.ui.theme.LoaMonoTextStyle
 import com.devwithzachary.completelinuxinstaller.ui.util.handHover
 import com.devwithzachary.completelinuxinstaller.ui.util.onContextMenu
 import com.devwithzachary.completelinuxinstaller.ui.util.rememberWindowSizeClass
@@ -297,6 +299,10 @@ private fun DashboardHeroSection(
         else -> 0
     }
     val hasDesktop = isContainerDesktopSetup(defaultContainer.id)
+    val archLabel = remember { resolveHostArchLabel() }
+    val heroSubtitle = remember(defaultContainer.name, defaultContainer.distroName, archLabel) {
+        formatContainerSubtitle(defaultContainer, isHero = true, archLabel = archLabel)
+    }
 
     LoaHeroContainer {
         Row(
@@ -315,8 +321,8 @@ private fun DashboardHeroSection(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = defaultContainer.distroName,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = heroSubtitle,
+                    style = LoaMonoTextStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -472,6 +478,10 @@ private fun ContainerSegmentedRow(
     onSetDefaultContainerClick: (String) -> Unit
 ) {
     var showContextMenu by remember { mutableStateOf(false) }
+    val archLabel = remember { resolveHostArchLabel() }
+    val rowSubtitle = remember(container.name, container.distroName, archLabel) {
+        formatContainerSubtitle(container, isHero = false, archLabel = archLabel)
+    }
 
     val ramText = when {
         cMetrics != null && cMetrics.processes.isNotEmpty() -> "${cMetrics.containerMemoryUsedMb} MB"
@@ -526,8 +536,8 @@ private fun ContainerSegmentedRow(
                         }
 
                         Text(
-                            text = container.distroName,
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = rowSubtitle,
+                            style = LoaMonoTextStyle,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
@@ -666,6 +676,39 @@ private fun ContainerSegmentedRow(
     }
 }
 
+private fun resolveHostArchLabel(): String {
+    val primaryAbi = Build.SUPPORTED_ABIS?.firstOrNull()?.lowercase().orEmpty()
+    return when {
+        primaryAbi.contains("arm64") || primaryAbi.contains("aarch64") -> "aarch64"
+        primaryAbi.contains("x86_64") || primaryAbi.contains("amd64") -> "x86_64"
+        primaryAbi.contains("armeabi") || primaryAbi.contains("armv7") -> "armv7l"
+        primaryAbi.contains("x86") -> "x86"
+        else -> "aarch64"
+    }
+}
+
+private fun formatContainerSubtitle(
+    container: ContainerInstance,
+    isHero: Boolean,
+    archLabel: String
+): String {
+    val name = container.name.trim()
+    val distro = container.distroName.trim()
+    return if (distro.isEmpty() || name.equals(distro, ignoreCase = true)) {
+        if (isHero) "Default container • $archLabel • PRoot" else "$archLabel • PRoot"
+    } else {
+        val hasArchInDistro = distro.contains("arm64", ignoreCase = true) ||
+            distro.contains("aarch64", ignoreCase = true) ||
+            distro.contains("x86_64", ignoreCase = true) ||
+            distro.contains("armv7", ignoreCase = true)
+        if (hasArchInDistro) {
+            "$distro • PRoot"
+        } else {
+            "$distro • $archLabel • PRoot"
+        }
+    }
+}
+
 private fun formatStorageSize(mb: Long): String {
     return if (mb >= 1024L) {
         String.format(java.util.Locale.US, "%.1f GB", mb / 1024.0)
@@ -676,19 +719,19 @@ private fun formatStorageSize(mb: Long): String {
 
 private val previewContainers = listOf(
     ContainerInstance(
-        id = "ubuntu_default",
-        name = "Ubuntu Workstation",
-        distroId = "ubuntu",
-        distroName = "Ubuntu 26.04 LTS (arm64)",
-        rootDirPath = "/data/user/0/com.devwithzachary.completelinuxinstaller/files/ubuntu",
+        id = "fedora_default",
+        name = "Fedora 45",
+        distroId = "fedora",
+        distroName = "Fedora 45",
+        rootDirPath = "/data/user/0/com.devwithzachary.completelinuxinstaller/files/fedora",
         isDefault = true,
         storageUsedMb = 1480L
     ),
     ContainerInstance(
         id = "debian_dev",
-        name = "Debian Sandbox",
+        name = "Debian 13",
         distroId = "debian",
-        distroName = "Debian 13 Trixie (arm64)",
+        distroName = "Debian 13",
         rootDirPath = "/data/user/0/com.devwithzachary.completelinuxinstaller/files/debian",
         isDefault = false,
         storageUsedMb = 640L

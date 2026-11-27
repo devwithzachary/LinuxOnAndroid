@@ -1,5 +1,6 @@
 package com.devwithzachary.completelinuxinstaller.ui.components
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -32,8 +33,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.devwithzachary.completelinuxinstaller.ui.theme.LinuxOnAndroidTheme
 import com.devwithzachary.completelinuxinstaller.ui.theme.LoaMonoTextStyle
 import kotlin.math.ceil
 
@@ -102,8 +105,8 @@ fun ExtraKeysRow(
                 TermuxKeyCell(
                     label = "CTRL",
                     isActive = isCtrlActive,
-                    activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    activeContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    activeContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    activeContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.weight(1f),
                     onClick = onToggleCtrl
                 )
@@ -111,8 +114,8 @@ fun ExtraKeysRow(
                 TermuxKeyCell(
                     label = "ALT",
                     isActive = isAltActive,
-                    activeContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    activeContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    activeContainerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    activeContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
                     modifier = Modifier.weight(1f),
                     onClick = onToggleAlt
                 )
@@ -213,8 +216,8 @@ private fun TermuxKeyCell(
     isActive: Boolean = false,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerHighest,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
-    activeContainerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
-    activeContentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
+    activeContainerColor: Color = MaterialTheme.colorScheme.tertiaryContainer,
+    activeContentColor: Color = MaterialTheme.colorScheme.onTertiaryContainer,
     onClick: () -> Unit
 ) {
     val bg = if (isActive) activeContainerColor else containerColor
@@ -245,5 +248,37 @@ private fun TermuxKeyCell(
                 modifier = Modifier.padding(horizontal = 2.dp)
             )
         }
+    }
+}
+
+@Preview(
+    name = "Extra Keys - Light",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_NO
+)
+@Composable
+private fun ExtraKeysRowLightPreview() {
+    LinuxOnAndroidTheme(darkTheme = false, dynamicColor = false) {
+        ExtraKeysRow(
+            keys = listOf("◄", "►", "/", "-", "_", "~", ":", "Ctrl+C", "Ctrl+Z"),
+            onKeyClick = {},
+            isCtrlActive = true
+        )
+    }
+}
+
+@Preview(
+    name = "Extra Keys - Dark",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun ExtraKeysRowDarkPreview() {
+    LinuxOnAndroidTheme(darkTheme = true, dynamicColor = false) {
+        ExtraKeysRow(
+            keys = listOf("◄", "►", "/", "-", "_", "~", ":", "Ctrl+C", "Ctrl+Z"),
+            onKeyClick = {},
+            isCtrlActive = true
+        )
     }
 }

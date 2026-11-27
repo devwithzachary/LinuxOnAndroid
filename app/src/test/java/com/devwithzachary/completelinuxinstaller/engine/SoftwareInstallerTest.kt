@@ -74,4 +74,31 @@ class SoftwareInstallerTest {
         assertEquals("Log must append 'Installation completed successfully!' when missing", 1, occurrences)
         assertTrue("Log ends with completion message", installLogs.trimEnd().endsWith("Installation completed successfully!"))
     }
+
+    @Test
+    fun testHealUbuntuRustCoreutilsSymlinks_repointsOnlyRustAndL2sCoreutils() {
+        val tempRoot = java.nio.file.Files.createTempDirectory("loa_coreutils_test").toFile()
+        try {
+            val usrBin = java.io.File(tempRoot, "usr/bin").apply { mkdirs() }
+            java.io.File(usrBin, "gnumkdir").writeText("gnu-mkdir")
+            java.io.File(usrBin, "gnubasename").writeText("gnu-basename")
+            java.io.File(usrBin, "gnuplot").writeText("gnuplot-bin")
+
+            val mkdirPath = java.io.File(usrBin, "mkdir").toPath()
+            val basenamePath = java.io.File(usrBin, "basename").toPath()
+            val plotPath = java.io.File(usrBin, "plot").toPath()
+
+            java.nio.file.Files.createSymbolicLink(mkdirPath, java.nio.file.Paths.get("../lib/cargo/bin/coreutils/mkdir"))
+            java.nio.file.Files.createSymbolicLink(basenamePath, java.nio.file.Paths.get(".l2s.coreutils.dpkg-new0001.0116"))
+            java.nio.file.Files.createSymbolicLink(plotPath, java.nio.file.Paths.get("other-plot"))
+
+            val healed = PRootEngine.healUbuntuRustCoreutilsSymlinks(tempRoot)
+            assertEquals(2, healed)
+            assertEquals("gnumkdir", java.nio.file.Files.readSymbolicLink(mkdirPath).toString())
+            assertEquals("gnubasename", java.nio.file.Files.readSymbolicLink(basenamePath).toString())
+            assertEquals("other-plot", java.nio.file.Files.readSymbolicLink(plotPath).toString())
+        } finally {
+            tempRoot.deleteRecursively()
+        }
+    }
 }

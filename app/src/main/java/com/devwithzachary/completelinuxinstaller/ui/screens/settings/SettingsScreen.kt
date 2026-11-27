@@ -12,7 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -27,10 +31,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.devwithzachary.completelinuxinstaller.BuildConfig
 import com.devwithzachary.completelinuxinstaller.R
 import com.devwithzachary.completelinuxinstaller.engine.UpdateCheckResult
 import com.devwithzachary.completelinuxinstaller.theme.TerminalTheme
 import com.devwithzachary.completelinuxinstaller.ui.DashboardUiState
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSectionHeader
+import com.devwithzachary.completelinuxinstaller.ui.designsystem.LoaSegmentedGroup
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.cards.AppUpdatesCard
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.cards.BackgroundServiceCard
 import com.devwithzachary.completelinuxinstaller.ui.screens.settings.cards.SystemDiagnosticsCard
@@ -66,7 +73,8 @@ fun SettingsScreen(
     onCheckForUpdatesClick: () -> Unit = {},
     isShowWhatsNewOnUpdateEnabled: Boolean = true,
     onSetShowWhatsNewOnUpdate: (Boolean) -> Unit = {},
-    onOpenWhatsNew: () -> Unit = {}
+    onOpenWhatsNew: () -> Unit = {},
+    onOpenAbout: () -> Unit = {}
 ) {
     val windowSizeClass = rememberWindowSizeClass()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -158,6 +166,8 @@ fun SettingsScreen(
                         SystemDiagnosticsCard(
                             onGenerateDebugReport = onGenerateDebugReport
                         )
+
+                        AboutSettingsSection(onOpenAbout = onOpenAbout)
                     }
                 }
             }
@@ -211,8 +221,40 @@ fun SettingsScreen(
                     SystemDiagnosticsCard(
                         onGenerateDebugReport = onGenerateDebugReport
                     )
+
+                    AboutSettingsSection(onOpenAbout = onOpenAbout)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun AboutSettingsSection(
+    onOpenAbout: () -> Unit
+) {
+    val appTitle = stringResource(R.string.app_title)
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        LoaSectionHeader(title = stringResource(R.string.nav_about))
+
+        LoaSegmentedGroup {
+            row(
+                title = appTitle,
+                subtitle = "v${BuildConfig.VERSION_NAME} • Version info, community, credits & changelog",
+                leadingIcon = Icons.Rounded.Info,
+                trailingContent = {
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                onClick = onOpenAbout
+            )
         }
     }
 }
