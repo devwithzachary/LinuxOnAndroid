@@ -38,7 +38,7 @@ The primary goal of **v1.9.0** is transforming the current 1-Click Software tab 
 
 ---
 
-## v1.9.1 - Botanical Green Theme & Stability Fixes (In Progress)
+## v1.9.1 - Botanical Green Theme & Stability Fixes (Shipped)
 
 Focused on visual identity polish and resolving regressions reported on GitHub:
 
